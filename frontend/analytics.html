@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Analytics | NovaCare OS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="app-shell">
+  <header class="app-navbar">
+    <div class="app-brand">
+      <div class="app-logo"></div>
+      <span class="app-title">NovaCare OS</span>
+    </div>
+    <nav class="app-nav-links">
+      <a href="patient_dashboard.html">Patient</a>
+      <a href="doctor_dashboard.html">Doctor</a>
+      <a href="analytics.html">Analytics</a>
+    </nav>
+  </header>
+
+  <main class="app-main">
+    <header class="page-header">
+      <h1 class="page-title">Analytics overview</h1>
+      <p class="page-subtitle">Visits, outcomes, and platform usage in one view.</p>
+    </header>
+
+    <section class="section-block grid-3">
+      <article class="glass-card card card-tilt">
+        <p class="section-eyebrow">Total visits</p>
+        <h3>4,320</h3>
+        <p class="page-subtitle">Last 30 days · clinic + online.</p>
+      </article>
+      <article class="glass-card card card-tilt">
+        <p class="section-eyebrow">Adherence rate</p>
+        <h3>84%</h3>
+        <p class="page-subtitle">Patients following prescription schedule.</p>
+      </article>
+      <article class="glass-card card card-tilt">
+        <p class="section-eyebrow">Average wait time</p>
+        <h3>9 minutes</h3>
+        <p class="page-subtitle">Before consultation start.</p>
+      </article>
+    </section>
+
+    <section class="section-block grid-2">
+      <article class="glass-card card card-tilt">
+        <div class="section-header">
+          <p class="section-eyebrow">Visits trend</p>
+          <h2 class="section-title">Clinic vs online</h2>
+        </div>
+        <div id="visits-chart" style="height:220px; background:#EEF2FF; border-radius:12px; border:1px dashed var(--line);">
+          <!-- analytics.js: draw chart here -->
+        </div>
+      </article>
+
+      <article class="glass-card card card-tilt">
+        <div class="section-header">
+          <p class="section-eyebrow">Risk distribution</p>
+          <h2 class="section-title">Checker outputs</h2>
+        </div>
+        <div id="risk-chart" style="height:220px; background:#EEF2FF; border-radius:12px; border:1px dashed var(--line);">
+          <!-- analytics.js: draw chart here -->
+        </div>
+      </article>
+    </section>
+  </main>
+</div>
+
+<script src="js/analytics.js"></script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Book Appointment | NovaCare OS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="app-shell">
+  <header class="app-navbar">
+    <div class="app-brand">
+      <div class="app-logo"></div>
+      <span class="app-title">NovaCare OS</span>
+    </div>
+    <nav class="app-nav-links">
+      <a href="patient_dashboard.html">Dashboard</a>
+      <a href="find_doctors.html">Find doctors</a>
+      <a href="book_appointment.html">Book</a>
+    </nav>
+  </header>
+
+  <main class="app-main">
+    <header class="page-header">
+      <h1 class="page-title">Book an appointment</h1>
+      <p class="page-subtitle">Select your doctor, date, and time slot.</p>
+    </header>
+
+    <section class="section-block grid-2">
+      <article class="glass-card card card-tilt">
+        <div class="section-header">
+          <p class="section-eyebrow">Step 1</p>
+          <h2 class="section-title">Choose doctor & mode</h2>
+        </div>
+        <form id="booking-form" style="display:flex; flex-direction:column; gap:10px;">
+          <div class="input-row">
+            <label class="input-label" for="doctor-name">Doctor</label>
+            <input id="doctor-name" class="input-field" placeholder="Dr. Sharma">
+          </div>
+          <div class="input-row">
+            <label class="input-label" for="booking-mode">Mode</label>
+            <select id="booking-mode" class="input-field">
+              <option value="clinic">Clinic</option>
+              <option value="online">Online</option>
+            </select>
+          </div>
+          <div class="input-row">
+            <label class="input-label" for="booking-date">Date</label>
+            <input id="booking-date" type="date" class="input-field">
+          </div>
+        </form>
+      </article>
+
+      <article class="glass-card card card-tilt">
+        <div class="section-header">
+          <p class="section-eyebrow">Step 2</p>
+          <h2 class="section-title">Pick a time slot</h2>
+        </div>
+        <div id="time-slots" style="display:flex; flex-wrap:wrap; gap:8px;">
+          <!-- booking.js can generate slots -->
+          <button class="btn btn-outline" type="button">10:30</button>
+          <button class="btn btn-outline" type="button">11:15</button>
+          <button class="btn btn-outline" type="button">12:00</button>
+        </div>
+        <div style="margin-top:14px;">
+          <button id="confirm-booking" class="btn btn-primary" type="button">Confirm booking</button>
+        </div>
+        <p id="booking-result" class="page-subtitle" style="margin-top:10px;"></p>
+      </article>
+    </section>
+  </main>
+</div>
+
+<script src="js/booking.js"></script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Prescription | NovaCare OS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="app-shell">
+  <header class="app-navbar">
+    <div class="app-brand">
+      <div class="app-logo"></div>
+      <span class="app-title">NovaCare OS</span>
+    </div>
+    <nav class="app-nav-links">
+      <a href="patient_dashboard.html">Dashboard</a>
+      <a href="prescription.html">Prescriptions</a>
+    </nav>
+  </header>
+
+  <main class="app-main">
+    <header class="page-header">
+      <h1 class="page-title">Current prescription</h1>
+      <p class="page-subtitle">View medicine list and QR for quick sharing.</p>
+    </header>
+
+    <section class="section-block grid-2">
+      <article class="glass-card card card-tilt">
+        <div class="section-header">
+          <p class="section-eyebrow">Details</p>
+          <h2 class="section-title">Medication summary</h2>
+        </div>
+        <table class="table">
+          <thead>
+            <tr><th>Medicine</th><th>Dosage</th><th>Frequency</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Med A</td><td>10 mg</td><td>2× / day</td></tr>
+            <tr><td>Med B</td><td>5 mg</td><td>1× / day</td></tr>
+            <tr><td>Vitamin D</td><td>1 capsule</td><td>1× / week</td></tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="glass-card card card-tilt">
+        <div class="section-header">
+          <p class="section-eyebrow">QR</p>
+          <h2 class="section-title">Prescription QR</h2>
+        </div>
+        <div id="qr-container"
+             style="height:200px; display:flex; align-items:center; justify-content:center;
+                    background:#EEF2FF; border-radius:12px; border:1px dashed var(--line);">
+          <!-- qr_viewer.js will draw QR here -->
+          <span class="page-subtitle">QR code placeholder</span>
+        </div>
+        <div style="margin-top:12px; display:flex; gap:8px;">
+          <button class="btn btn-primary" type="button">Download PDF</button>
+          <button class="btn btn-outline" type="button">Share</button>
+        </div>
+      </article>
+    </section>
+  </main>
+</div>
+
+<script src="js/qr_viewer.js"></script>
+</body>
+</html>

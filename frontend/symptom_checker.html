@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Symptom Checker | NovaCare OS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="app-shell">
+  <header class="app-navbar">
+    <div class="app-brand">
+      <div class="app-logo"></div>
+      <span class="app-title">NovaCare OS</span>
+    </div>
+    <nav class="app-nav-links">
+      <a href="patient_dashboard.html">Dashboard</a>
+      <a href="symptom_checker.html">Symptom checker</a>
+      <a href="find_doctors.html">Find doctors</a>
+    </nav>
+  </header>
+
+  <main class="app-main">
+    <header class="page-header">
+      <h1 class="page-title">Symptom checker</h1>
+      <p class="page-subtitle">Answer a few questions to get a risk hint and next-step suggestion.</p>
+    </header>
+
+    <section class="section-block grid-2">
+      <article class="glass-card card card-tilt">
+        <div class="section-header">
+          <p class="section-eyebrow">Input</p>
+          <h2 class="section-title">Describe what you feel</h2>
+        </div>
+        <form id="symptom-form" style="display:flex; flex-direction:column; gap:12px;">
+          <div class="input-row">
+            <label class="input-label" for="main-symptom">Main symptom</label>
+            <input id="main-symptom" class="input-field" placeholder="Example: chest pain">
+          </div>
+          <div class="input-row">
+            <label class="input-label" for="duration">Duration</label>
+            <input id="duration" class="input-field" placeholder="Example: 3 days">
+          </div>
+          <div class="input-row">
+            <label class="input-label" for="severity">Severity (1–10)</label>
+            <input id="severity" type="number" min="1" max="10" class="input-field">
+          </div>
+          <div class="input-row">
+            <label class="input-label" for="notes">Additional notes</label>
+            <textarea id="notes" class="input-field" rows="3" placeholder="Anything else you notice"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary">Check risk level</button>
+        </form>
+      </article>
+
+      <article class="glass-card card card-tilt">
+        <div class="section-header">
+          <p class="section-eyebrow">Output</p>
+          <h2 class="section-title">Risk hint & suggested action</h2>
+        </div>
+        <div id="symptom-result">
+          <p class="page-subtitle">
+            Once you submit, the symptom checker script will compute a risk level
+            and suggest whether to book an urgent appointment or follow up later.
+          </p>
+        </div>
+      </article>
+    </section>
+  </main>
+</div>
+
+<script src="js/symptom_checker.js"></script>
+</body>
+</html>

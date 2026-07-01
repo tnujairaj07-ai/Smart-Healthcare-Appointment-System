@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Patient Dashboard | NovaCare OS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="app-shell">
+  <header class="app-navbar">
+    <div class="app-brand">
+      <div class="app-logo"></div>
+      <span class="app-title">NovaCare OS</span>
+    </div>
+    <nav class="app-nav-links">
+      <a href="patient_dashboard.html">Dashboard</a>
+      <a href="symptom_checker.html">Symptom checker</a>
+      <a href="find_doctors.html">Find doctors</a>
+      <a href="analytics.html">Analytics</a>
+    </nav>
+    <div class="app-navbar-right">
+      <span class="app-pill">Patient</span>
+      <div class="app-avatar"></div>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <aside class="app-sidebar">
+      <div class="app-sidebar-section-title">Patient space</div>
+      <nav class="app-sidebar-nav">
+        <a class="app-sidebar-link active" href="patient_dashboard.html">
+          <span class="icon"></span>
+          <span>Overview</span>
+        </a>
+        <a class="app-sidebar-link" href="book_appointment.html">
+          <span class="icon"></span>
+          <span>Appointments</span>
+        </a>
+        <a class="app-sidebar-link" href="prescription.html">
+          <span class="icon"></span>
+          <span>Prescriptions</span>
+        </a>
+        <a class="app-sidebar-link" href="symptom_checker.html">
+          <span class="icon"></span>
+          <span>Symptom tracker</span>
+        </a>
+      </nav>
+    </aside>
+
+    <main class="app-main">
+      <header class="page-header">
+        <h1 class="page-title">Today’s health overview</h1>
+        <p class="page-subtitle">Your upcoming visits, prescriptions, and recent symptoms at a glance.</p>
+      </header>
+
+      <!-- Top stats -->
+      <section class="section-block">
+        <div class="grid-4">
+          <article class="glass-card card card-tilt">
+            <p class="section-eyebrow">Next appointment</p>
+            <h3>Dr. Sharma · Cardiology</h3>
+            <p class="page-subtitle">Tomorrow · 10:30 AM · Clinic</p>
+            <span class="badge badge-info" style="margin-top:8px;">Confirmed</span>
+          </article>
+          <article class="glass-card card card-tilt">
+            <p class="section-eyebrow">Active prescriptions</p>
+            <h3>3 medications</h3>
+            <p class="page-subtitle">Blood pressure, vitamin D, allergy.</p>
+            <span class="badge badge-success" style="margin-top:8px;">On schedule</span>
+          </article>
+          <article class="glass-card card card-tilt">
+            <p class="section-eyebrow">Symptom flag</p>
+            <h3>Mild risk</h3>
+            <p class="page-subtitle">Last checker: chest heaviness, fatigue.</p>
+            <span class="badge badge-info" style="margin-top:8px;">Follow-up booked</span>
+          </article>
+          <article class="glass-card card card-tilt">
+            <p class="section-eyebrow">Steps today</p>
+            <h3>4,982 steps</h3>
+            <p class="page-subtitle">Goal: 8,000 steps</p>
+            <span class="badge badge-success" style="margin-top:8px;">Progressing</span>
+          </article>
+        </div>
+      </section>
+
+      <!-- Appointments & symptoms -->
+      <section class="section-block grid-2">
+        <article class="glass-card card card-tilt">
+          <div class="section-header">
+            <p class="section-eyebrow">Upcoming appointments</p>
+            <h2 class="section-title">Your schedule</h2>
+          </div>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Date</th><th>Doctor</th><th>Type</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>28 Jun</td><td>Dr. Sharma</td><td>Clinic</td>
+                <td><span class="badge badge-info">Confirmed</span></td>
+              </tr>
+              <tr>
+                <td>03 Jul</td><td>Dr. Mehta</td><td>Online</td>
+                <td><span class="badge badge-success">Scheduled</span></td>
+              </tr>
+              <tr>
+                <td>12 Jul</td><td>Dr. Rao</td><td>Clinic</td>
+                <td><span class="badge badge-info">Pending</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <div style="margin-top:12px;">
+            <a href="book_appointment.html" class="btn btn-primary">Book another appointment</a>
+          </div>
+        </article>
+
+        <article class="glass-card card card-tilt">
+          <div class="section-header">
+            <p class="section-eyebrow">Symptom log</p>
+            <h2 class="section-title">Recent check-ins</h2>
+          </div>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Date</th><th>Main symptom</th><th>Risk</th><th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="symptom-log">
+              <!-- symptom_checker.js can populate this -->
+              <tr>
+                <td>26 Jun</td><td>Chest heaviness</td>
+                <td><span class="badge badge-danger">High</span></td>
+                <td>Booked cardiology</td>
+              </tr>
+              <tr>
+                <td>21 Jun</td><td>Headache</td>
+                <td><span class="badge badge-info">Medium</span></td>
+                <td>General consult</td>
+              </tr>
+              <tr>
+                <td>15 Jun</td><td>Cough</td>
+                <td><span class="badge badge-success">Low</span></td>
+                <td>Self care</td>
+              </tr>
+            </tbody>
+          </table>
+          <div style="margin-top:12px;">
+            <a href="symptom_checker.html" class="btn btn-outline">Run symptom checker</a>
+          </div>
+        </article>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script src="js/symptom_checker.js"></script>
+</body>
+</html>

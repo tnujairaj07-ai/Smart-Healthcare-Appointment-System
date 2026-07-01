@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Login | NovaCare OS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="app-shell">
+  <header class="app-navbar">
+    <div class="app-brand">
+      <div class="app-logo"></div>
+      <span class="app-title">NovaCare OS</span>
+    </div>
+  </header>
+
+  <main class="app-main">
+    <section class="section-block">
+      <div class="grid-2">
+        <!-- Illustration / info -->
+        <div class="glass-card card card-tilt" style="padding:26px;">
+          <div class="section-header">
+            <p class="section-eyebrow">Secure health access</p>
+            <h2 class="section-title">Sign in to your patient or doctor workspace.</h2>
+          </div>
+          <p class="page-subtitle">
+            Use a single account to manage appointments, view prescriptions, and collaborate
+            on care decisions with your doctor.
+          </p>
+          <div style="margin-top:16px;">
+            <ul style="font-size:0.9rem; color:var(--muted); list-style:none;">
+              <li>• Encrypted health records</li>
+              <li>• Role-based dashboards</li>
+              <li>• Real-time appointment status</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Login card -->
+        <div class="glass-card card card-tilt" style="padding:26px;">
+          <div class="page-header">
+            <h2 class="page-title">Welcome back</h2>
+            <p class="page-subtitle">Choose your role and sign in to continue.</p>
+          </div>
+
+          <form id="login-form" class="grid-2" style="row-gap:14px;">
+            <div class="input-row">
+              <label class="input-label" for="role">Role</label>
+              <select id="role" class="input-field">
+                <option value="patient">Patient</option>
+                <option value="doctor">Doctor</option>
+              </select>
+            </div>
+            <div class="input-row">
+              <label class="input-label" for="email">Email</label>
+              <input id="email" type="email" class="input-field" placeholder="you@example.com">
+            </div>
+            <div class="input-row">
+              <label class="input-label" for="password">Password</label>
+              <input id="password" type="password" class="input-field" placeholder="••••••••">
+            </div>
+            <div style="grid-column:1 / -1; display:flex; justify-content:space-between; align-items:center; margin-top:6px;">
+              <div>
+                <input id="remember" type="checkbox">
+                <label for="remember" style="font-size:0.8rem; color:var(--muted);">Keep me signed in</label>
+              </div>
+              <a href="#" style="font-size:0.8rem; color:var(--blue-dark); text-decoration:none;">Forgot password?</a>
+            </div>
+            <div style="grid-column:1 / -1; margin-top:10px; display:flex; gap:10px;">
+              <button type="submit" class="btn btn-primary" style="flex:1;">Sign in</button>
+              <a href="index.html" class="btn btn-outline" style="flex:1; text-align:center;">Back to overview</a>
+            </div>
+          </form>
+          <p id="login-message" class="page-subtitle" style="margin-top:12px;"></p>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="js/auth.js"></script>
+</body>
+</html>

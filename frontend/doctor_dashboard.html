@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Doctor Dashboard | NovaCare OS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="app-shell">
+  <header class="app-navbar">
+    <div class="app-brand">
+      <div class="app-logo"></div>
+      <span class="app-title">NovaCare OS</span>
+    </div>
+    <nav class="app-nav-links">
+      <a href="doctor_dashboard.html">Dashboard</a>
+      <a href="find_doctors.html">Peer network</a>
+      <a href="analytics.html">Analytics</a>
+    </nav>
+    <div class="app-navbar-right">
+      <span class="app-pill">Doctor</span>
+      <div class="app-avatar"></div>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <aside class="app-sidebar">
+      <div class="app-sidebar-section-title">Doctor tools</div>
+      <nav class="app-sidebar-nav">
+        <a class="app-sidebar-link active" href="doctor_dashboard.html">
+          <span class="icon"></span>
+          <span>Today’s queue</span>
+        </a>
+        <a class="app-sidebar-link" href="prescription.html">
+          <span class="icon"></span>
+          <span>Prescriptions</span>
+        </a>
+        <a class="app-sidebar-link" href="analytics.html">
+          <span class="icon"></span>
+          <span>Performance</span>
+        </a>
+      </nav>
+    </aside>
+
+    <main class="app-main">
+      <header class="page-header">
+        <h1 class="page-title">Current patient queue</h1>
+        <p class="page-subtitle">Live list of upcoming consultations, risk flags, and quick notes.</p>
+      </header>
+
+      <section class="section-block">
+        <div class="grid-3">
+          <article class="glass-card card card-tilt">
+            <p class="section-eyebrow">Patients today</p>
+            <h3>18</h3>
+            <p class="page-subtitle">10 clinic · 8 online.</p>
+          </article>
+          <article class="glass-card card card-tilt">
+            <p class="section-eyebrow">High-risk alerts</p>
+            <h3>4 cases</h3>
+            <p class="page-subtitle">Chest pain, severe headache, short breath.</p>
+          </article>
+          <article class="glass-card card card-tilt">
+            <p class="section-eyebrow">Average session</p>
+            <h3>18 minutes</h3>
+            <p class="page-subtitle">Including notes & prescription.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section-block">
+        <div class="glass-card card card-tilt">
+          <div class="section-header">
+            <p class="section-eyebrow">Today</p>
+            <h2 class="section-title">Consultation list</h2>
+          </div>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Time</th><th>Patient</th><th>Main symptom</th><th>Risk</th><th>Mode</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>10:30</td><td>Tanuj</td><td>Chest heaviness</td>
+                <td><span class="badge badge-danger">High</span></td><td>Clinic</td>
+              </tr>
+              <tr>
+                <td>11:15</td><td>Ananya</td><td>Headache</td>
+                <td><span class="badge badge-info">Medium</span></td><td>Online</td>
+              </tr>
+              <tr>
+                <td>12:05</td><td>Rohan</td><td>Cough</td>
+                <td><span class="badge badge-success">Low</span></td><td>Clinic</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script src="js/doctor_match.js"></script>
+</body>
+</html>
