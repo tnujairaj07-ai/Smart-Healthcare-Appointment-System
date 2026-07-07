@@ -1,76 +1,722 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full bg-[#f4f7fc]">
 <head>
   <meta charset="UTF-8">
-  <title>Book Appointment | NovaCare OS</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="css/styles.css">
+  <title>NovaCare OS | Doctor Finder & Appointments</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Alpine.js for interactive state management -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              sidebar: '#5c6dfa',      // Vibrant Blue/Indigo from Patient Dashboard
+              sidebarHover: '#4e5ee6',
+              sidebarActive: '#eff2ff',
+              coral: '#ff6b35',        // Signature Coral Accent
+              coralHover: '#e5531d',
+            },
+            medical: {
+              light: '#f8fafc',
+              slate: '#64748b',
+              dark: '#0f172a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom elegant card styles matching Patient Profile Dashboard */
+    .dashboard-card {
+      background: #ffffff;
+      border-radius: 24px;
+      border: 1px solid #eef2f6;
+      box-shadow: 0 4px 20px -2px rgba(148, 163, 184, 0.06), 0 2px 8px -1px rgba(148, 163, 184, 0.04);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .dashboard-card:hover {
+      box-shadow: 0 12px 30px -5px rgba(148, 163, 184, 0.12), 0 4px 16px -2px rgba(148, 163, 184, 0.06);
+    }
+
+    /* Scrollbar Customization */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
 </head>
-<body>
-<div class="app-shell">
-  <header class="app-navbar">
-    <div class="app-brand">
-      <div class="app-logo"></div>
-      <span class="app-title">NovaCare OS</span>
+<body class="h-full font-sans antialiased text-slate-800 bg-[#f4f7fc]">
+
+  <!-- MAIN APP GRID CONTAINER -->
+  <div class="flex h-full min-h-screen" x-data="{
+    activeTab: 'Dashboard',
+    searchQuery: '',
+    selectedSpecialty: '',
+    currentAppointment: {
+      doctorName: 'Dr. Haylie Philips',
+      specialty: 'General',
+      date: 'Monday, 06 Oct 2025 · 07:45',
+      code: 'A-03 · HP-061025-003',
+      image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=400'
+    },
+    doctors: [
+      { id: 1, name: 'Dr. Haylie Philips', specialty: 'General', rating: '4.9', reviews: 142, image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=400', bio: 'Expert general practitioner specializing in preventative medicine and family care.', cost: '$60', location: 'Building A, Room 303' },
+      { id: 2, name: 'Dr. James Carter', specialty: 'Cardiology', rating: '4.8', reviews: 98, image: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=400', bio: 'Dedicated cardiologist with 12+ years diagnosing complex cardiovascular conditions.', cost: '$120', location: 'Building B, Room 102' },
+      { id: 3, name: 'Dr. Sarah Jenkins', specialty: 'Pediatrics', rating: '4.9', reviews: 210, image: 'https://images.unsplash.com/photo-1594824813573-246434de83fb?auto=format&fit=crop&q=80&w=400', bio: 'Caring pediatrician focused on adolescent health, nutrition, and vaccination routines.', cost: '$75', location: 'Building A, Room 205' },
+      { id: 4, name: 'Dr. Amira Patel', specialty: 'Obstetrics & Gynecology', rating: '4.7', reviews: 115, image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=400', bio: 'Compassionate care for women throughout all stages of pregnancy and maternal health.', cost: '$90', location: 'Building C, Room 401' },
+      { id: 5, name: 'Dr. Marcus Vance', specialty: 'Internal Medicine', rating: '4.6', reviews: 85, image: 'https://images.unsplash.com/photo-1614608682850-e0d6ed316d47?auto=format&fit=crop&q=80&w=400', bio: 'Specialist in adult internal conditions, chronic disease management and diagnosis.', cost: '$85', location: 'Building A, Room 108' },
+      { id: 6, name: 'Dr. Elena Rostova', specialty: 'Dermatology', rating: '4.9', reviews: 194, image: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=400', bio: 'Expert skin care specialist providing treatment for dermis conditions, acne, and anti-aging.', cost: '$95', location: 'Building B, Room 204' },
+      { id: 7, name: 'Dr. Kenji Tanaka', specialty: 'Mental Health', rating: '4.8', reviews: 130, image: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&q=80&w=400', bio: 'Licensed clinical psychologist offering therapy, stress guidance, and mental health strategies.', cost: '$100', location: 'Building D, Room 101' },
+      { id: 8, name: 'Dr. Thomas Wright', specialty: 'Orthopedics', rating: '4.7', reviews: 92, image: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&q=80&w=400', bio: 'Bone and joint care specialist focusing on sports injuries and rehabilitation surgery.', cost: '$110', location: 'Building C, Room 212' },
+      { id: 9, name: 'Dr. Lisa Vance', specialty: 'Infectious Disease', rating: '4.9', reviews: 167, image: 'https://images.unsplash.com/photo-1582750433449-64935283404f?auto=format&fit=crop&q=80&w=400', bio: 'Focused epidemiologist with expertise in viral, bacterial, and seasonal disease prevention.', cost: '$105', location: 'Building A, Room 311' }
+    ],
+    specialties: [
+      { name: 'General', icon: 'fa-plus' },
+      { name: 'Pediatrics', icon: 'fa-baby' },
+      { name: 'Obstetrics & Gynecology', icon: 'fa-heart' },
+      { name: 'Internal Medicine', icon: 'fa-heart-pulse' },
+      { name: 'Dermatology', icon: 'fa-hand-dots' },
+      { name: 'Mental Health', icon: 'fa-brain' },
+      { name: 'Cardiology', icon: 'fa-heart-pulse' },
+      { name: 'Orthopedics', icon: 'fa-bone' },
+      { name: 'Infectious Disease', icon: 'fa-shield-virus' }
+    ],
+    bookedQueue: [
+      { department: 'Cardiology', doctor: 'Dr. James Carter', queue: 'C15', position: '4 dari 18', eta: '16:10' }
+    ],
+    showSuccessToast: false,
+    toastMessage: '',
+    queueOpen: true,
+
+    get filteredDoctors() {
+      return this.doctors.filter(doc => {
+        const matchesSearch = doc.name.toLowerCase().includes(this.searchQuery.toLowerCase()) || 
+                              doc.specialty.toLowerCase().includes(this.searchQuery.toLowerCase());
+        const matchesSpecialty = this.selectedSpecialty ? doc.specialty === this.selectedSpecialty : true;
+        return matchesSearch && matchesSpecialty;
+      });
+    },
+
+    bookDoctor(doc) {
+      this.currentAppointment = {
+        doctorName: doc.name,
+        specialty: doc.specialty,
+        date: 'Monday, ' + new Date().toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }) + ' · 09:30',
+        code: 'A-24 · HP-' + Math.floor(100000 + Math.random() * 900000),
+        image: doc.image
+      };
+
+      this.bookedQueue.unshift({
+        department: doc.specialty,
+        doctor: doc.name,
+        queue: 'B' + Math.floor(Math.random() * 20 + 10),
+        position: '1 dari ' + Math.floor(Math.random() * 20 + 10),
+        eta: '09:30'
+      });
+
+      this.toastMessage = 'Appointment booked with ' + doc.name;
+      this.showSuccessToast = true;
+      setTimeout(() => this.showSuccessToast = false, 4000);
+      this.searchQuery = '';
+      this.selectedSpecialty = '';
+    }
+  }">
+
+    <!-- Toast Notification Overlay -->
+    <div x-cloak x-show="showSuccessToast"
+         x-transition:enter="transition ease-out duration-300 transform"
+         x-transition:enter-start="translate-y-[-20px] opacity-0"
+         x-transition:enter-end="translate-y-0 opacity-100"
+         x-transition:leave="transition ease-in duration-200 transform"
+         x-transition:leave-start="translate-y-0 opacity-100"
+         x-transition:leave-end="translate-y-[-20px] opacity-0"
+         class="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-emerald-600 text-white px-6 py-3.5 rounded-xl shadow-xl flex items-center gap-3 border border-emerald-500/30">
+      <i class="fa-solid fa-circle-check text-lg"></i>
+      <span class="font-bold text-xs uppercase tracking-wide" x-text="toastMessage"></span>
     </div>
-    <nav class="app-nav-links">
-      <a href="patient_dashboard.html">Dashboard</a>
-      <a href="find_doctors.html">Find doctors</a>
-      <a href="book_appointment.html">Book</a>
-    </nav>
-  </header>
 
-  <main class="app-main">
-    <header class="page-header">
-      <h1 class="page-title">Book an appointment</h1>
-      <p class="page-subtitle">Select your doctor, date, and time slot.</p>
-    </header>
-
-    <section class="section-block grid-2">
-      <article class="glass-card card card-tilt">
-        <div class="section-header">
-          <p class="section-eyebrow">Step 1</p>
-          <h2 class="section-title">Choose doctor & mode</h2>
+    <!-- LEFT SIDEBAR: Matches NovaCare OS sidebar design exactly -->
+    <aside class="w-64 bg-brand-sidebar flex-shrink-0 flex flex-col text-white relative shadow-xl shadow-indigo-600/10 hidden lg:flex">
+      
+      <!-- Brand Logo Header -->
+      <div class="p-6 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-brand-sidebar font-extrabold text-xl shadow-md">
+          <img src="images/app-logo.jpg"
+               alt="NovaCare OS logo"
+               class="w-8 h-8 rounded object-contain">
         </div>
-        <form id="booking-form" style="display:flex; flex-direction:column; gap:10px;">
-          <div class="input-row">
-            <label class="input-label" for="doctor-name">Doctor</label>
-            <input id="doctor-name" class="input-field" placeholder="Dr. Sharma">
+        <div>
+          <span class="font-bold text-xl tracking-tight block">NovaCare OS</span>
+          <span class="text-[10px] text-indigo-100 uppercase tracking-widest font-semibold">Workspace OS</span>
+        </div>
+      </div>
+
+      <!-- Main Navigation Items -->
+      <nav class="flex-1 px-4 space-y-1.5 overflow-y-auto pt-2">
+        <button @click="activeTab = 'Dashboard'; searchQuery = ''; selectedSpecialty = ''" 
+                :class="activeTab === 'Dashboard' ? 'bg-white/15 text-white font-semibold shadow-inner' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white font-medium'"
+                class="w-full flex items-center gap-3.5 px-4.5 py-3 rounded-xl transition-all text-sm text-left">
+          <i class="fa-solid fa-table-cells-large text-sm"></i>
+          <span>Dashboard</span>
+        </button>
+        
+        <button @click="activeTab = 'Appointments'" 
+                :class="activeTab === 'Appointments' ? 'bg-white/15 text-white font-semibold shadow-inner' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white font-medium'"
+                class="w-full flex items-center gap-3.5 px-4.5 py-3 rounded-xl transition-all text-sm text-left">
+          <i class="fa-solid fa-calendar text-sm"></i>
+          <span>Appointments</span>
+        </button>
+
+        <button @click="activeTab = 'Messages'" 
+                :class="activeTab === 'Messages' ? 'bg-white/15 text-white font-semibold shadow-inner' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white font-medium'"
+                class="w-full flex items-center gap-3.5 px-4.5 py-3 rounded-xl transition-all text-sm text-left">
+          <i class="fa-solid fa-comment-dots text-sm"></i>
+          <span>Messages</span>
+        </button>
+
+        <button @click="activeTab = 'Pharmacy'" 
+                :class="activeTab === 'Pharmacy' ? 'bg-white/15 text-white font-semibold shadow-inner' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white font-medium'"
+                class="w-full flex items-center gap-3.5 px-4.5 py-3 rounded-xl transition-all text-sm text-left">
+          <i class="fa-solid fa-pills text-sm"></i>
+          <span>Pharmacy</span>
+        </button>
+
+        <button @click="activeTab = 'Laboratory'" 
+                :class="activeTab === 'Laboratory' ? 'bg-white/15 text-white font-semibold shadow-inner' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white font-medium'"
+                class="w-full flex items-center gap-3.5 px-4.5 py-3 rounded-xl transition-all text-sm text-left">
+          <i class="fa-solid fa-flask text-sm"></i>
+          <span>Laboratory</span>
+        </button>
+
+        <button @click="activeTab = 'Inpatient'" 
+                :class="activeTab === 'Inpatient' ? 'bg-white/15 text-white font-semibold shadow-inner' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white font-medium'"
+                class="w-full flex items-center gap-3.5 px-4.5 py-3 rounded-xl transition-all text-sm text-left">
+          <i class="fa-solid fa-hospital-user text-sm"></i>
+          <span>Inpatient</span>
+        </button>
+
+        <button @click="activeTab = 'Support'" 
+                :class="activeTab === 'Support' ? 'bg-white/15 text-white font-semibold shadow-inner' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white font-medium'"
+                class="w-full flex items-center gap-3.5 px-4.5 py-3 rounded-xl transition-all text-sm text-left">
+          <i class="fa-solid fa-handshake-angle text-sm"></i>
+          <span>Support</span>
+        </button>
+
+        <div class="h-px bg-white/10 my-4"></div>
+
+        <button @click="activeTab = 'Settings'" 
+                :class="activeTab === 'Settings' ? 'bg-white/15 text-white font-semibold shadow-inner' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white font-medium'"
+                class="w-full flex items-center gap-3.5 px-4.5 py-3 rounded-xl transition-all text-sm text-left">
+          <i class="fa-solid fa-gear text-sm"></i>
+          <span>Settings</span>
+        </button>
+      </nav>
+
+      <!-- Sidebar Patient Card Footer -->
+      <div class="p-4 m-4 rounded-2xl bg-white/10 border border-white/10 flex items-center gap-3">
+        <img class="w-10 h-10 rounded-xl object-cover border border-white/20"
+             src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150" alt="Sarah Johnson">
+        <div>
+          <h4 class="text-xs font-bold text-white">Sarah Johnson</h4>
+          <p class="text-[10px] text-indigo-200">Regular Patient</p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN CENTER WORKSPACE -->
+    <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+      
+      <!-- HEADER BAR -->
+      <header class="bg-white/75 backdrop-blur-md border-b border-slate-100 px-8 py-4 flex items-center justify-between sticky top-0 z-10">
+        <div class="flex items-center gap-4">
+          <h1 class="text-xl font-bold text-slate-900 tracking-tight">Clinical Workspace</h1>
+        </div>
+
+        <div class="flex items-center gap-6">
+          <div class="flex items-center gap-2 text-xs font-semibold text-slate-500 bg-slate-100/80 px-3 py-1.5 rounded-lg border border-slate-200">
+            <span class="uppercase tracking-wider text-[10px]">Workspace:</span>
+            <span class="text-slate-800 font-bold flex items-center gap-1">DENMED <i class="fa-solid fa-chevron-down text-[9px]"></i></span>
           </div>
-          <div class="input-row">
-            <label class="input-label" for="booking-mode">Mode</label>
-            <select id="booking-mode" class="input-field">
-              <option value="clinic">Clinic</option>
-              <option value="online">Online</option>
-            </select>
-          </div>
-          <div class="input-row">
-            <label class="input-label" for="booking-date">Date</label>
-            <input id="booking-date" type="date" class="input-field">
-          </div>
-        </form>
-      </article>
 
-      <article class="glass-card card card-tilt">
-        <div class="section-header">
-          <p class="section-eyebrow">Step 2</p>
-          <h2 class="section-title">Pick a time slot</h2>
-        </div>
-        <div id="time-slots" style="display:flex; flex-wrap:wrap; gap:8px;">
-          <!-- booking.js can generate slots -->
-          <button class="btn btn-outline" type="button">10:30</button>
-          <button class="btn btn-outline" type="button">11:15</button>
-          <button class="btn btn-outline" type="button">12:00</button>
-        </div>
-        <div style="margin-top:14px;">
-          <button id="confirm-booking" class="btn btn-primary" type="button">Confirm booking</button>
-        </div>
-        <p id="booking-result" class="page-subtitle" style="margin-top:10px;"></p>
-      </article>
-    </section>
-  </main>
-</div>
+          <!-- Notification Bell -->
+          <button class="relative p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-colors">
+            <i class="fa-regular fa-bell text-lg"></i>
+            <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-brand-coral animate-ping"></span>
+          </button>
 
-<script src="js/booking.js"></script>
+          <div class="h-6 w-px bg-slate-200"></div>
+
+          <!-- Patient Profile selector -->
+          <div class="flex items-center gap-3">
+            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150" alt="Sarah Johnson" class="w-8 h-8 rounded-full object-cover border border-slate-200 shadow-sm">
+            <div class="hidden md:block text-left">
+              <p class="text-xs font-bold text-slate-800 leading-none">Sarah Johnson</p>
+              <p class="text-[9px] text-slate-400 font-semibold mt-0.5">Regular Patient</p>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- CONTENT BODY -->
+      <div class="p-6 md:p-8 max-w-[1400px] w-full mx-auto space-y-6 flex-1">
+        
+        <!-- Toggle Content Views dynamically: Dashboard View -->
+        <div x-show="activeTab === 'Dashboard'" class="space-y-6">
+          
+          <!-- Conditional Header: Normal Welcome or Search Results header -->
+          <div class="flex justify-between items-center">
+            <div>
+              <template x-if="searchQuery === '' && selectedSpecialty === ''">
+                <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Welcome back, Sarah</h2>
+              </template>
+              <template x-if="searchQuery !== '' || selectedSpecialty !== ''">
+                <div class="flex items-center gap-3">
+                  <button @click="searchQuery = ''; selectedSpecialty = ''"
+                          class="w-9 h-9 rounded-xl bg-white hover:bg-slate-50 flex items-center justify-center border border-slate-200 transition shadow-sm">
+                    <i class="fa-solid fa-arrow-left text-slate-700 text-sm"></i>
+                  </button>
+                  <div>
+                    <h2 class="text-xl font-bold text-slate-900 tracking-tight">Clinician Results</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">
+                      Showing results for <span class="font-semibold text-brand-sidebar" x-text="selectedSpecialty || 'All Specialties'"></span>
+                      <span x-show="searchQuery">matching "<span class="italic text-brand-sidebar" x-text="searchQuery"></span>"</span>
+                    </p>
+                  </div>
+                </div>
+              </template>
+            </div>
+
+            <!-- Active search reset indicator -->
+            <div x-show="searchQuery !== '' || selectedSpecialty !== ''" class="flex gap-2">
+              <button @click="searchQuery = ''; selectedSpecialty = ''" 
+                      class="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-brand-sidebar text-xs font-bold transition flex items-center gap-1.5 border border-indigo-100">
+                <i class="fa-solid fa-rotate-left"></i> Reset Filter
+              </button>
+            </div>
+          </div>
+
+          <!-- VIEW 1: Traditional Dashboard Home (When no search filters active) -->
+          <div x-show="searchQuery === '' && selectedSpecialty === ''" class="space-y-6">
+            
+            <!-- Hero Featured Doctor Spotlight (Adopted from Screenshot 2026-06-30 092536.jpg with Dashboard system colors) -->
+            <div class="relative overflow-hidden rounded-3xl bg-gradient-to-tr from-slate-900 to-indigo-950 text-white shadow-xl shadow-slate-950/15 p-6 md:p-8 flex flex-col justify-between min-h-[260px]">
+              <!-- Subtle decorative gradient ambient blob inside banner -->
+              <div class="absolute right-0 top-0 bottom-0 w-1/2 bg-gradient-to-l from-indigo-500/10 to-transparent pointer-events-none"></div>
+
+              <div class="max-w-[100%] md:max-w-[55%] z-10 flex flex-col justify-between h-full space-y-6">
+                <div>
+                  <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 border border-white/10 rounded-full text-[10px] font-bold tracking-wider uppercase text-indigo-200">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Your Scheduled Appointment
+                  </span>
+                  <h3 class="text-2xl md:text-3xl font-extrabold tracking-tight mt-3 text-white" x-text="currentAppointment.doctorName">Dr. Haylie Philips</h3>
+                  <p class="text-xs text-indigo-300 font-bold tracking-wide mt-1" x-text="currentAppointment.specialty + ' Medicine Practice Specialist'"></p>
+                </div>
+
+                <!-- Structured timeline detail pills -->
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="flex items-center gap-2 bg-white/10 backdrop-blur-md rounded-xl py-2 px-3.5 border border-white/10 text-xs font-semibold text-white">
+                    <i class="fa-regular fa-calendar-check text-indigo-300"></i>
+                    <span x-text="currentAppointment.date"></span>
+                  </span>
+                  <span class="flex items-center gap-2 bg-white/10 backdrop-blur-md rounded-xl py-2 px-3.5 border border-white/10 text-xs font-mono text-indigo-200">
+                    <i class="fa-solid fa-receipt text-indigo-300"></i>
+                    <span x-text="currentAppointment.code"></span>
+                  </span>
+                </div>
+              </div>
+
+              <!-- Absolute positioned clinician image overlapping visually -->
+              <div class="absolute right-0 bottom-0 top-0 w-1/3 md:w-2/5 overflow-hidden hidden sm:block">
+                <img :src="currentAppointment.image" class="h-full w-full object-cover object-top opacity-95 hover:scale-105 transition-transform duration-500" alt="Doctor Profile">
+                <div class="absolute inset-0 bg-gradient-to-r from-slate-900 via-transparent to-transparent pointer-events-none"></div>
+              </div>
+            </div>
+
+            <!-- QUICK CIRCULAR ACTIONS ROW -->
+            <div class="grid grid-cols-3 sm:grid-cols-6 gap-4 pt-2">
+              <button @click="activeTab = 'Pharmacy'" class="dashboard-card hover:bg-slate-50 p-4 rounded-2xl flex flex-col items-center justify-center text-center transition-all group hover:-translate-y-1">
+                <div class="w-12 h-12 rounded-full bg-indigo-50 group-hover:bg-indigo-100 flex items-center justify-center text-lg shadow-inner text-brand-sidebar transition-colors">
+                  <i class="fa-solid fa-pills text-sm"></i>
+                </div>
+                <span class="text-xs font-bold text-slate-600 mt-2">Pharmacy</span>
+              </button>
+
+              <button @click="activeTab = 'Dashboard'" class="dashboard-card hover:bg-slate-50 p-4 rounded-2xl flex flex-col items-center justify-center text-center transition-all group hover:-translate-y-1">
+                <div class="w-12 h-12 rounded-full bg-purple-50 group-hover:bg-purple-100 flex items-center justify-center text-lg shadow-inner text-purple-600 transition-colors">
+                  <i class="fa-solid fa-ticket text-sm"></i>
+                </div>
+                <span class="text-xs font-bold text-slate-600 mt-2">My Queue</span>
+              </button>
+
+              <button @click="selectedSpecialty = 'General'" class="dashboard-card hover:bg-slate-50 p-4 rounded-2xl flex flex-col items-center justify-center text-center transition-all group hover:-translate-y-1">
+                <div class="w-12 h-12 rounded-full bg-emerald-50 group-hover:bg-emerald-100 flex items-center justify-center text-lg shadow-inner text-emerald-600 transition-colors">
+                  <i class="fa-solid fa-hourglass-half text-sm"></i>
+                </div>
+                <span class="text-xs font-bold text-slate-600 mt-2">Book</span>
+              </button>
+
+              <button @click="selectedSpecialty = ''" class="dashboard-card hover:bg-slate-50 p-4 rounded-2xl flex flex-col items-center justify-center text-center transition-all group hover:-translate-y-1">
+                <div class="w-12 h-12 rounded-full bg-amber-50 group-hover:bg-amber-100 flex items-center justify-center text-lg shadow-inner text-amber-600 transition-colors">
+                  <i class="fa-solid fa-user-doctor text-sm"></i>
+                </div>
+                <span class="text-xs font-bold text-slate-600 mt-2">Doctors</span>
+              </button>
+
+              <button @click="activeTab = 'Appointments'" class="dashboard-card hover:bg-slate-50 p-4 rounded-2xl flex flex-col items-center justify-center text-center transition-all group hover:-translate-y-1">
+                <div class="w-12 h-12 rounded-full bg-rose-50 group-hover:bg-rose-100 flex items-center justify-center text-lg shadow-inner text-rose-600 transition-colors">
+                  <i class="fa-regular fa-calendar-days text-sm"></i>
+                </div>
+                <span class="text-xs font-bold text-slate-600 mt-2">Schedule</span>
+              </button>
+
+              <div class="dashboard-card hover:bg-slate-50 p-4 rounded-2xl flex flex-col items-center justify-center text-center transition-all group hover:-translate-y-1 cursor-pointer">
+                <div class="w-12 h-12 rounded-full bg-slate-50 group-hover:bg-slate-150 flex items-center justify-center text-lg shadow-inner text-slate-600 transition-colors">
+                  <i class="fa-solid fa-ellipsis text-sm"></i>
+                </div>
+                <span class="text-xs font-bold text-slate-600 mt-2">More</span>
+              </div>
+            </div>
+
+            <!-- TWO COLUMN LOWER LAYOUT: Health Tips & Result History -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+              
+              <!-- HEALTH TIPS COLUMN -->
+              <div class="dashboard-card p-6 space-y-4">
+                <h3 class="font-bold text-slate-800 text-xs tracking-wide uppercase flex items-center gap-2">
+                  <span class="text-indigo-500 text-lg">ℹ️</span> Health tips
+                </h3>
+                
+                <div class="space-y-3">
+                  <!-- Tip 1 -->
+                  <div class="flex items-center gap-3.5 p-2.5 bg-slate-50 hover:bg-slate-100/80 rounded-xl border border-slate-100 transition-colors">
+                    <img class="w-14 h-14 rounded-lg object-cover bg-slate-200 flex-shrink-0"
+                         src="https://images.unsplash.com/photo-1548839140-29a749e1cf4d?auto=format&fit=crop&q=80&w=150" alt="Drink Water"
+                         onerror="this.src='https://placehold.co/150x150/5c6dfa/ffffff?text=Water'">
+                    <div>
+                      <h4 class="text-xs font-bold text-slate-800 leading-tight">Stay Hydrated</h4>
+                      <p class="text-[10px] text-slate-500 mt-1 leading-normal">Drink enough water to support daily cellular energy and focus.</p>
+                    </div>
+                  </div>
+
+                  <!-- Tip 2 -->
+                  <div class="flex items-center gap-3.5 p-2.5 bg-slate-50 hover:bg-slate-100/80 rounded-xl border border-slate-100 transition-colors">
+                    <img class="w-14 h-14 rounded-lg object-cover bg-slate-200 flex-shrink-0"
+                         src="https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?auto=format&fit=crop&q=80&w=150" alt="Exercise"
+                         onerror="this.src='https://placehold.co/150x150/a78bfa/ffffff?text=Move'">
+                    <div>
+                      <h4 class="text-xs font-bold text-slate-800 leading-tight">Move Every Hour</h4>
+                      <p class="text-[10px] text-slate-500 mt-1 leading-normal">Stand up and stretch briefly to keep your body active.</p>
+                    </div>
+                  </div>
+
+                  <!-- Tip 3 -->
+                  <div class="flex items-center gap-3.5 p-2.5 bg-slate-50 hover:bg-slate-100/80 rounded-xl border border-slate-100 transition-colors">
+                    <img class="w-14 h-14 rounded-lg object-cover bg-slate-200 flex-shrink-0"
+                         src="https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&q=80&w=150" alt="Eat Green"
+                         onerror="this.src='https://placehold.co/150x150/34d399/ffffff?text=Greens'">
+                    <div>
+                      <h4 class="text-xs font-bold text-slate-800 leading-tight">Eat More Greens</h4>
+                      <p class="text-[10px] text-slate-500 mt-1 leading-normal">Add healthy organic vegetables to meals for micronutrient values.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- RESULT & HISTORY COLUMN -->
+              <div class="dashboard-card p-6 flex flex-col justify-between">
+                <div>
+                  <div class="flex justify-between items-center pb-4 border-b border-slate-100">
+                    <h3 class="font-bold text-slate-800 text-xs tracking-wide uppercase flex items-center gap-2">
+                      <span class="text-brand-coral text-lg">🧬</span> Result & History
+                    </h3>
+                    <div class="flex gap-1">
+                      <button class="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 text-[10px] font-bold flex items-center justify-center transition-all"><i class="fa-solid fa-arrow-left"></i></button>
+                      <button class="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 text-[10px] font-bold flex items-center justify-center transition-all"><i class="fa-solid fa-arrow-right"></i></button>
+                    </div>
+                  </div>
+
+                  <!-- Diagnosis Items -->
+                  <div class="space-y-4 mt-5">
+                    <!-- Item 1 -->
+                    <div class="flex justify-between items-start border-b border-slate-50 pb-2.5">
+                      <div>
+                        <div class="flex items-center gap-2">
+                          <span class="w-1.5 h-1.5 rounded-full bg-[#5c6dfa]"></span>
+                          <span class="text-[9px] text-brand-sidebar font-bold uppercase tracking-wide">Diagnosis Terakhir</span>
+                        </div>
+                        <p class="text-xs font-bold text-slate-800 ml-3.5 mt-0.5">Flu Ringan (Mild Rhinitis)</p>
+                      </div>
+                      <span class="text-[10px] text-slate-400 font-semibold">12 Okt 2025</span>
+                    </div>
+
+                    <!-- Item 2 -->
+                    <div class="flex justify-between items-start border-b border-slate-50 pb-2.5">
+                      <div>
+                        <div class="flex items-center gap-2">
+                          <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                          <span class="text-[9px] text-purple-600 font-bold uppercase tracking-wide">Obat Terdaftar</span>
+                        </div>
+                        <p class="text-xs font-bold text-slate-800 ml-3.5 mt-0.5">Paracetamol 500mg (5 hari)</p>
+                      </div>
+                      <span class="text-[10px] text-slate-400 font-semibold">12 Okt 2025</span>
+                    </div>
+
+                    <!-- Item 3 -->
+                    <div class="flex justify-between items-start">
+                      <div>
+                        <div class="flex items-center gap-2">
+                          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                          <span class="text-[9px] text-emerald-600 font-bold uppercase tracking-wide">Hasil Lab</span>
+                        </div>
+                        <p class="text-xs font-bold text-slate-800 ml-3.5 mt-0.5">CBC (Complete Blood Count) - Normal</p>
+                      </div>
+                      <span class="text-[10px] text-slate-400 font-semibold">06 Sep 2025</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Alert/Urgent status panel -->
+                <div class="bg-[#eff2ff] p-3 rounded-xl border border-[#5c6dfa]/20 mt-4 text-[11px] flex items-center gap-2 text-indigo-700 font-medium">
+                  <i class="fa-solid fa-circle-exclamation text-sm"></i>
+                  <span>No critical systemic flags raised. Keep adhering to daily care routines.</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- VIEW 2: Doctors Search & Filter Results Display -->
+          <div x-show="searchQuery !== '' || selectedSpecialty !== ''" class="space-y-4">
+            
+            <!-- Filter summary banner -->
+            <div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 text-sm shadow-sm">
+              <span class="text-slate-600 text-xs">
+                Found <strong class="text-slate-800" x-text="filteredDoctors.length"></strong> matches for active query.
+              </span>
+              <button @click="searchQuery = ''; selectedSpecialty = ''" class="text-xs text-brand-sidebar font-bold hover:underline">
+                Clear all filters
+              </button>
+            </div>
+
+            <!-- Doctors Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <template x-for="doc in filteredDoctors" :key="doc.id">
+                <div class="dashboard-card p-5 flex flex-col justify-between relative overflow-hidden group">
+                  <div class="flex gap-4">
+                    <img :src="doc.image" class="w-20 h-20 rounded-2xl object-cover border border-slate-100 shadow-sm" alt="Doctor Profile">
+                    <div class="space-y-1.5 flex-1">
+                      <span class="inline-block px-2.5 py-0.5 rounded-full text-[9px] font-bold tracking-wide uppercase bg-indigo-50 text-indigo-600"
+                            x-text="doc.specialty"></span>
+                      <h4 class="text-base font-bold text-slate-900 leading-tight" x-text="doc.name"></h4>
+                      
+                      <!-- Rating component block -->
+                      <div class="flex items-center gap-1.5 text-xs text-slate-500">
+                        <span class="flex items-center text-amber-500 gap-0.5">
+                          <i class="fa-solid fa-star"></i>
+                          <span class="font-bold text-slate-800 text-[11px]" x-text="doc.rating"></span>
+                        </span>
+                        <span>·</span>
+                        <span class="font-medium text-[11px]" x-text="doc.reviews + ' reviews'"></span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p class="text-xs text-slate-500 mt-3 line-clamp-2" x-text="doc.bio"></p>
+
+                  <!-- Secondary features: Location & Consult charge -->
+                  <div class="flex justify-between items-center mt-4 pt-3 border-t border-slate-100">
+                    <div class="text-xs">
+                      <span class="text-slate-400 block font-semibold text-[10px]">CONSULTATION CHARGE</span>
+                      <strong class="text-slate-700 font-bold" x-text="doc.cost + ' / session'"></strong>
+                    </div>
+                    <div class="text-xs text-right">
+                      <span class="text-slate-400 block font-semibold text-[10px]">FACILITY LOCATION</span>
+                      <strong class="text-slate-700 font-bold" x-text="doc.location"></strong>
+                    </div>
+                  </div>
+
+                  <!-- Book action button -->
+                  <div class="mt-4 pt-1">
+                    <button @click="bookDoctor(doc)" class="w-full bg-brand-sidebar hover:bg-brand-sidebarHover text-white font-bold text-xs py-2.5 rounded-xl transition-all shadow-md shadow-indigo-600/10 active:scale-95">
+                      Book Appointment
+                    </button>
+                  </div>
+                </div>
+              </template>
+            </div>
+
+            <!-- Empty state check -->
+            <div x-show="filteredDoctors.length === 0" class="text-center py-16 bg-white border border-slate-100 rounded-3xl space-y-3 shadow-inner">
+              <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto border border-slate-100 text-slate-400 text-xl">
+                <i class="fa-solid fa-magnifying-glass"></i>
+              </div>
+              <h5 class="text-base font-bold text-slate-800">No matching doctors found</h5>
+              <p class="text-xs text-slate-400 max-w-xs mx-auto">Try adjusting the specialty filter queries or clearing the main search bar input.</p>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- STUB VIEWS FOR NAVIGATION CHANNELS -->
+        <div x-show="activeTab !== 'Dashboard'" class="dashboard-card p-8 space-y-4">
+          <div class="flex items-center gap-4">
+            <button @click="activeTab = 'Dashboard'" class="w-9 h-9 rounded-xl bg-white hover:bg-slate-50 flex items-center justify-center border border-slate-200 transition shadow-sm">
+              <i class="fa-solid fa-arrow-left text-slate-700 text-sm"></i>
+            </button>
+            <h3 class="text-xl font-bold text-slate-900 tracking-tight" x-text="activeTab"></h3>
+          </div>
+          <p class="text-sm text-slate-500 leading-relaxed">
+            This is the secure interactive workspace channel for <strong class="text-slate-700" x-text="activeTab"></strong>. 
+            Review records, monitor prescription logs, check updates, and synchronize active patient schedules instantly.
+          </p>
+
+          <!-- Interactive mockup values based on selected tab -->
+          <template x-if="activeTab === 'Appointments'">
+            <div class="space-y-3 mt-6 pt-6 border-t border-slate-100">
+              <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Active Scheduled Consultation:</h4>
+              <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex justify-between items-center hover:translate-x-1 transition-transform">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-brand-sidebar"><i class="fa-solid fa-calendar-check"></i></div>
+                  <div>
+                    <h5 class="font-bold text-slate-800 text-xs" x-text="currentAppointment.doctorName"></h5>
+                    <p class="text-[10px] text-slate-500" x-text="currentAppointment.specialty"></p>
+                  </div>
+                </div>
+                <span class="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-100 px-3 py-1 rounded-full font-bold uppercase tracking-wider">Confirmed</span>
+              </div>
+            </div>
+          </template>
+
+          <template x-if="activeTab === 'Pharmacy'">
+            <div class="space-y-3 mt-6 pt-6 border-t border-slate-100">
+              <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Prescription Adherence Statuses:</h4>
+              <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex justify-between items-center hover:translate-x-1 transition-transform">
+                <div>
+                  <h5 class="font-bold text-slate-800 text-xs">Paracetamol 500mg</h5>
+                  <p class="text-[10px] text-slate-500">Qty: 10 tablets · Twice daily</p>
+                </div>
+                <span class="text-[10px] bg-amber-50 text-amber-700 border border-amber-100 px-3 py-1 rounded-full font-bold uppercase tracking-wider">In Preparation</span>
+              </div>
+            </div>
+          </template>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- RIGHT SIDEBAR FILTER & QUEUE PANEL -->
+    <aside class="w-full lg:w-[360px] p-6 border-t lg:border-t-0 lg:border-l border-slate-200 bg-white flex flex-col gap-6 flex-shrink-0">
+      
+      <!-- SECTION 1: Find a Doctor Header / Search Bar -->
+      <div class="space-y-4">
+        <h3 class="text-lg font-bold text-slate-900 tracking-tight">Find a doctor</h3>
+        
+        <!-- Search Bar Field (Fires active search state) -->
+        <div class="relative">
+          <span class="absolute left-3.5 top-3.5 text-xs text-slate-400"><i class="fa-solid fa-magnifying-glass"></i></span>
+          <input type="text"
+                 x-model="searchQuery"
+                 placeholder="Cari di sini..."
+                 class="w-full pl-9 pr-4 py-3 bg-slate-50 focus:bg-white border border-slate-200 focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 rounded-2xl text-xs placeholder-slate-400 focus:outline-none transition-all shadow-inner">
+        </div>
+
+        <!-- Specialty Grid matching screenshot design (9 cards) -->
+        <div class="grid grid-cols-3 gap-2">
+          <template x-for="spec in specialties" :key="spec.name">
+            <button @click="selectedSpecialty = spec.name; activeTab = 'Dashboard'"
+                    :class="selectedSpecialty === spec.name ? 'border-brand-sidebar bg-indigo-50 text-brand-sidebar scale-105' : 'border-slate-100 bg-slate-50 text-slate-700 hover:bg-slate-100'"
+                    class="p-3 rounded-xl border flex flex-col items-center justify-center gap-2 transition duration-200 cursor-pointer shadow-sm group text-center min-h-[96px]">
+              <div :class="selectedSpecialty === spec.name ? 'bg-white text-brand-sidebar shadow-sm' : 'bg-white text-slate-500'"
+                   class="w-8 h-8 rounded-lg flex items-center justify-center group-hover:scale-110 transition duration-200">
+                <i :class="'fa-solid ' + spec.icon" class="text-xs"></i>
+              </div>
+              <span class="text-[9px] font-bold tracking-tight leading-tight" x-text="spec.name"></span>
+            </button>
+          </template>
+        </div>
+      </div>
+
+      <!-- SECTION 2: Appointment queue -->
+      <div class="space-y-4 border-t border-slate-100 pt-6">
+        <div class="flex justify-between items-center cursor-pointer" @click="queueOpen = !queueOpen">
+          <h3 class="text-sm font-extrabold uppercase tracking-wider text-slate-400">Appointment queue</h3>
+          <i class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200"
+             :class="queueOpen ? 'rotate-180' : ''"></i>
+        </div>
+
+        <!-- Animated Queue Card List -->
+        <div class="space-y-3" x-show="queueOpen" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0">
+          <template x-for="(q, idx) in bookedQueue" :key="idx">
+            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+              <!-- Top details -->
+              <div class="flex justify-between items-center">
+                <div>
+                  <span class="text-[9px] font-bold text-brand-sidebar uppercase tracking-wider" x-text="q.department"></span>
+                  <h4 class="text-xs font-bold text-slate-800" x-text="q.doctor"></h4>
+                </div>
+                <button class="w-6 h-6 rounded-lg bg-white border border-slate-100 flex items-center justify-center hover:bg-slate-50 transition">
+                  <i class="fa-solid fa-chevron-down text-slate-500 text-[9px]"></i>
+                </button>
+              </div>
+
+              <!-- Stats row from reference image -->
+              <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                <!-- Stat 1 -->
+                <div class="bg-white rounded-xl p-2.5 border border-slate-100">
+                  <span class="block text-[8px] text-slate-400 font-bold uppercase tracking-wider">Queue</span>
+                  <strong class="text-xs text-slate-800 font-extrabold block mt-0.5" x-text="q.queue"></strong>
+                </div>
+
+                <!-- Stat 2 -->
+                <div class="bg-white rounded-xl p-2.5 border border-slate-100">
+                  <span class="block text-[8px] text-slate-400 font-bold uppercase tracking-wider">Urutan</span>
+                  <strong class="text-xs text-slate-800 font-extrabold block mt-0.5" x-text="q.position"></strong>
+                </div>
+
+                <!-- Stat 3 -->
+                <div class="bg-white rounded-xl p-2.5 border border-slate-100">
+                  <span class="block text-[8px] text-slate-400 font-bold uppercase tracking-wider">ETA</span>
+                  <strong class="text-xs text-slate-800 font-extrabold block mt-0.5" x-text="q.eta"></strong>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+    </aside>
+
+  </div>
+
 </body>
 </html>
