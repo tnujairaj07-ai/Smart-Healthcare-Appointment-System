@@ -1,107 +1,811 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full bg-[#f4f7fc]">
 <head>
   <meta charset="UTF-8">
-  <title>Doctor Dashboard | NovaCare OS</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="css/styles.css">
-</head>
-<body>
-<div class="app-shell">
-  <header class="app-navbar">
-    <div class="app-brand">
-      <div class="app-logo"></div>
-      <span class="app-title">NovaCare OS</span>
-    </div>
-    <nav class="app-nav-links">
-      <a href="doctor_dashboard.html">Dashboard</a>
-      <a href="find_doctors.html">Peer network</a>
-      <a href="analytics.html">Analytics</a>
-    </nav>
-    <div class="app-navbar-right">
-      <span class="app-pill">Doctor</span>
-      <div class="app-avatar"></div>
-    </div>
-  </header>
+  <title>NovaCare OS | Doctor Management & Clinical Dashboard</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Alpine.js for interactive state management -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
-  <div class="app-body">
-    <aside class="app-sidebar">
-      <div class="app-sidebar-section-title">Doctor tools</div>
-      <nav class="app-sidebar-nav">
-        <a class="app-sidebar-link active" href="doctor_dashboard.html">
-          <span class="icon"></span>
-          <span>Today’s queue</span>
-        </a>
-        <a class="app-sidebar-link" href="prescription.html">
-          <span class="icon"></span>
-          <span>Prescriptions</span>
-        </a>
-        <a class="app-sidebar-link" href="analytics.html">
-          <span class="icon"></span>
-          <span>Performance</span>
-        </a>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              sidebar: '#5c6dfa',      // Vibrant Blue/Indigo from Patient Dashboard
+              sidebarHover: '#4e5ee6',
+              sidebarActive: '#eff2ff',
+              coral: '#ff6b35',        // Signature Coral Accent
+              coralHover: '#e5531d',
+            },
+            medical: {
+              light: '#f8fafc',
+              slate: '#64748b',
+              dark: '#0f172a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom elegant card styles matching Patient Profile Dashboard */
+    .dashboard-card {
+      background: #ffffff;
+      border-radius: 24px;
+      border: 1px solid #eef2f6;
+      box-shadow: 0 4px 20px -2px rgba(148, 163, 184, 0.06), 0 2px 8px -1px rgba(148, 163, 184, 0.04);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .dashboard-card:hover {
+      box-shadow: 0 12px 30px -5px rgba(148, 163, 184, 0.12), 0 4px 16px -2px rgba(148, 163, 184, 0.06);
+    }
+
+    /* Custom scrollbar matching Patient Dashboard */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="h-full font-sans antialiased text-slate-800 bg-[#f4f7fc]" x-data="{
+  activeTab: 'Doctors',
+  searchQuery: '',
+  showEditModal: false,
+  showToast: false,
+  toastMessage: '',
+  
+  doctorsList: [
+    {
+      name: 'Dr. Dianne Russell',
+      specialty: 'General Practitioner',
+      status: 'Available',
+      image: 'https://images.unsplash.com/photo-1594824813573-246434de83fb?auto=format&fit=crop&q=80&w=400',
+      gender: 'Female',
+      email: 'dianne.russell@novacareos.com',
+      phone: '(704) 555-0127',
+      address: '6391 Elgin St. Celina, Delaware 10299',
+      experience: '10+ Years',
+      education: 'Harvard Medical School',
+      license: 'MD-2023-4982',
+      specialization: 'Neurology Primary Care',
+      totalPatients: 230,
+      surgeries: 90,
+      rating: '4.5',
+      reviewsCount: 120
+    },
+    {
+      name: 'Dr. Albert Flores',
+      specialty: 'Cardiologist',
+      status: 'On Duty',
+      image: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=400',
+      gender: 'Male',
+      email: 'albert.flores@novacareos.com',
+      phone: '(302) 555-0194',
+      address: '8502 Preston Rd. Inglewood, Maine 98380',
+      experience: '12+ Years',
+      education: 'Stanford University Medical School',
+      license: 'MD-2021-8843',
+      specialization: 'Cardiology Specialist',
+      totalPatients: 184,
+      surgeries: 64,
+      rating: '4.9',
+      reviewsCount: 95
+    },
+    {
+      name: 'Dr. Savannah Nguyen',
+      specialty: 'Dermatologist',
+      status: 'Available',
+      image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=400',
+      gender: 'Female',
+      email: 'savannah.n@novacareos.com',
+      phone: '(405) 555-0128',
+      address: '1901 Thornridge Cir. Shiloh, Hawaii 81063',
+      experience: '18+ Years',
+      education: 'Johns Hopkins School of Medicine',
+      license: 'MD-2024-1102',
+      specialization: 'Cosmetic Dermatology',
+      totalPatients: 310,
+      surgeries: 12,
+      rating: '4.8',
+      reviewsCount: 154
+    }
+  ],
+  currentDocIndex: 0,
+  
+  get activeDoc() {
+    return this.doctorsList[this.currentDocIndex];
+  },
+  
+  patients: [
+    { time: '09:40 AM', type: 'Check-up', status: 'Confirm', treatment: 'Routine check up', patientName: 'Leslie Alexander' },
+    { time: '10:15 AM', type: 'Urgent visit', status: 'Pending', treatment: 'Dermatology consultation', patientName: 'Savannah Nguyen' },
+    { time: '11:00 AM', type: 'Check-up', status: 'Canceled', treatment: 'Routine check up', patientName: 'Jerome Bell' },
+    { time: '11:30 AM', type: 'Check-up', status: 'Confirm', treatment: 'Physical therapy', patientName: 'Dianne Russell' },
+    { time: '01:15 PM', type: 'Urgent visit', status: 'Canceled', treatment: 'Routine check up', patientName: 'Kristin Watson' },
+    { time: '02:00 PM', type: 'Check-up', status: 'Confirm', treatment: 'Nutrition counseling', patientName: 'Albert Flores' },
+    { time: '02:30 PM', type: 'Check-up', status: 'Confirm', treatment: 'Cardio evaluation', patientName: 'Arlene McCoy' },
+    { time: '03:00 PM', type: 'Urgent visit', status: 'Confirm', treatment: 'Neurology assessment', patientName: 'Bessie Cooper' },
+    { time: '03:45 PM', type: 'Check-up', status: 'Pending', treatment: 'Vaccination routine', patientName: 'Devon Lane' },
+    { time: '04:15 PM', type: 'Urgent visit', status: 'Canceled', treatment: 'Chronic Pain check', patientName: 'Cody Fisher' },
+    { time: '05:00 PM', type: 'Check-up', status: 'Confirm', treatment: 'General consult', patientName: 'Theresa Webb' },
+    { time: '05:30 PM', type: 'Check-up', status: 'Pending', treatment: 'Orthopedic follow-up', patientName: 'Eleanor Pena' }
+  ],
+  
+  filterCheckup: true,
+  filterUrgent: true,
+  currentPage: 1,
+  patientsPerPage: 6,
+  
+  timeSlots: [
+    { time: '09:00 AM', status: 'available' },
+    { time: '09:30 AM', status: 'selected' },
+    { time: '10:00 AM', status: 'available' },
+    { time: '10:30 AM', status: 'available' },
+    { time: '11:30 AM', status: 'available' },
+    { time: '12:00 PM', status: 'available' },
+    { time: '02:00 PM', status: 'available' },
+    { time: '02:30 PM', status: 'available' }
+  ],
+  
+  triggerToast(msg) {
+    this.toastMessage = msg;
+    this.showToast = true;
+    setTimeout(() => this.showToast = false, 3500);
+  },
+  
+  saveDoctorProfile() {
+    this.showEditModal = false;
+    this.triggerToast('Doctor Profile updated successfully!');
+  },
+  
+  toggleTimeSlot(index) {
+    if (this.timeSlots[index].status === 'selected') {
+      this.timeSlots[index].status = 'available';
+      this.triggerToast('Removed availability slot ' + this.timeSlots[index].time);
+    } else {
+      this.timeSlots[index].status = 'selected';
+      this.triggerToast('Reserved availability slot ' + this.timeSlots[index].time);
+    }
+  },
+  
+  cycleDoctor() {
+    this.currentDocIndex = (this.currentDocIndex + 1) % this.doctorsList.length;
+    this.triggerToast('Switched Active Profile to ' + this.activeDoc.name);
+  },
+  
+  get filteredPatients() {
+    return this.patients.filter(p => {
+      const matchesSearch = p.patientName.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+                            p.treatment.toLowerCase().includes(this.searchQuery.toLowerCase());
+      let matchesType = false;
+      if (this.filterCheckup && p.type === 'Check-up') matchesType = true;
+      if (this.filterUrgent && p.type === 'Urgent visit') matchesType = true;
+      if (!this.filterCheckup && !this.filterUrgent) matchesType = true;
+      return matchesSearch && matchesType;
+    });
+  },
+  
+  get paginatedPatients() {
+    const start = (this.currentPage - 1) * this.patientsPerPage;
+    return this.filteredPatients.slice(start, start + this.patientsPerPage);
+  },
+  
+  get totalPages() {
+    return Math.ceil(this.filteredPatients.length / this.patientsPerPage) || 1;
+  }
+}">
+
+  <!-- Toast Popup Notification -->
+  <div x-cloak x-show="showToast"
+       x-transition:enter="transition ease-out duration-300 transform"
+       x-transition:enter-start="translate-y-[-20px] opacity-0"
+       x-transition:enter-end="translate-y-0 opacity-100"
+       x-transition:leave="transition ease-in duration-200 transform"
+       x-transition:leave-start="translate-y-0 opacity-100"
+       x-transition:leave-end="translate-y-[-20px] opacity-0"
+       class="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-6 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 border border-slate-800">
+    <div class="w-8 h-8 rounded-full bg-brand-sidebar/20 flex items-center justify-center text-brand-sidebar">
+      <i class="fa-solid fa-circle-info text-base"></i>
+    </div>
+    <span class="font-bold text-xs uppercase tracking-wider" x-text="toastMessage"></span>
+  </div>
+
+  <!-- MAIN WRAPPER CONTAINER -->
+  <div class="flex h-full min-h-screen w-full">
+
+    <!-- LEFT SIDEBAR: Replicates navigation sidebar design from Patient Dashboard -->
+    <aside class="w-64 bg-brand-sidebar flex-shrink-0 flex flex-col text-white relative shadow-xl shadow-indigo-600/10 hidden lg:flex">
+      
+      <!-- Brand Logo Header -->
+      <div class="p-6 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-brand-sidebar font-extrabold text-xl shadow-md">
+          <img src="images/app-logo.jpg"
+               alt="NovaCare OS logo"
+               class="w-8 h-8 rounded object-contain">
+        </div>
+        <div>
+          <span class="font-bold text-xl tracking-tight block">NovaCare OS</span>
+          <span class="text-[10px] text-indigo-100 uppercase tracking-widest font-semibold">Workspace OS</span>
+        </div>
+      </div>
+
+      <!-- Navigation links matching Screenshot sidebar items -->
+      <nav class="flex-1 px-4 space-y-1.5 overflow-y-auto pt-2">
+        <button @click="activeTab = 'Dashboard'" 
+                :class="activeTab === 'Dashboard' ? 'bg-white/15 text-white font-semibold shadow-inner' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white font-medium'"
+                class="w-full flex items-center gap-3.5 px-4.5 py-3 rounded-xl transition-all text-sm text-left">
+          <i class="fa-solid fa-table-cells-large text-sm"></i>
+          <span>Dashboard</span>
+        </button>
+
+        <button @click="activeTab = 'Doctors'" 
+                :class="activeTab === 'Doctors' ? 'bg-white/15 text-white font-semibold shadow-inner' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white font-medium'"
+                class="w-full flex items-center gap-3.5 px-4.5 py-3 rounded-xl transition-all text-sm text-left">
+          <i class="fa-solid fa-user-doctor text-sm"></i>
+          <span>Doctors</span>
+        </button>
+
+        <button @click="activeTab = 'Patients'" 
+                :class="activeTab === 'Patients' ? 'bg-white/15 text-white font-semibold shadow-inner' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white font-medium'"
+                class="w-full flex items-center gap-3.5 px-4.5 py-3 rounded-xl transition-all text-sm text-left">
+          <i class="fa-solid fa-hospital-user text-sm"></i>
+          <span>Patients</span>
+        </button>
+
+        <button @click="activeTab = 'Staff'" 
+                :class="activeTab === 'Staff' ? 'bg-white/15 text-white font-semibold shadow-inner' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white font-medium'"
+                class="w-full flex items-center gap-3.5 px-4.5 py-3 rounded-xl transition-all text-sm text-left">
+          <i class="fa-solid fa-users text-sm"></i>
+          <span>Staff</span>
+        </button>
+
+        <button @click="activeTab = 'Appointment'" 
+                :class="activeTab === 'Appointment' ? 'bg-white/15 text-white font-semibold shadow-inner' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white font-medium'"
+                class="w-full flex items-center gap-3.5 px-4.5 py-3 rounded-xl transition-all text-sm text-left">
+          <i class="fa-solid fa-calendar text-sm"></i>
+          <span>Appointment</span>
+        </button>
+
+        <button @click="activeTab = 'Message'" 
+                :class="activeTab === 'Message' ? 'bg-white/15 text-white font-semibold shadow-inner' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white font-medium'"
+                class="w-full flex items-center justify-between gap-3 px-4.5 py-3 rounded-xl transition-all text-sm text-left">
+          <span class="flex items-center gap-3.5">
+            <i class="fa-solid fa-comment-dots text-sm"></i>
+            <span>Message</span>
+          </span>
+          <span class="bg-brand-coral text-white text-[9px] font-extrabold px-2 py-0.5 rounded-full">99+</span>
+        </button>
+
+        <button @click="activeTab = 'Help Center'" 
+                :class="activeTab === 'Help Center' ? 'bg-white/15 text-white font-semibold shadow-inner' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white font-medium'"
+                class="w-full flex items-center gap-3.5 px-4.5 py-3 rounded-xl transition-all text-sm text-left">
+          <i class="fa-regular fa-circle-question text-sm"></i>
+          <span>Help Center</span>
+        </button>
       </nav>
+
+      <!-- Sidebar Foot copyright info -->
+      <div class="p-6 border-t border-white/10 text-center">
+        <p class="text-[10px] text-indigo-200">v1.6.50 · © 2026 Agensip</p>
+      </div>
     </aside>
 
-    <main class="app-main">
-      <header class="page-header">
-        <h1 class="page-title">Current patient queue</h1>
-        <p class="page-subtitle">Live list of upcoming consultations, risk flags, and quick notes.</p>
+    <!-- MAIN WORKSPACE CONTAINER -->
+    <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+      
+      <!-- TOP NAVIGATION HEADER BAR -->
+      <header class="bg-white/75 backdrop-blur-md border-b border-slate-100 px-8 py-4 flex items-center justify-between sticky top-0 z-10">
+        <!-- Search bar -->
+        <div class="relative w-full md:max-w-md">
+          <input type="text"
+                 x-model="searchQuery"
+                 placeholder="Search patient, specialty or treatment..."
+                 class="w-full pl-5 pr-12 py-3 bg-slate-50 focus:bg-white border border-slate-200 focus:border-indigo-300 rounded-full text-xs placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-100 transition-all shadow-inner">
+          <i class="fa-solid fa-magnifying-glass absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+        </div>
+
+        <!-- Toolbar controls -->
+        <div class="flex items-center gap-4">
+          <!-- Switch Active Profile Quick Button -->
+          <button class="px-3 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-xl hover:bg-indigo-100 transition" @click="cycleDoctor()">
+            <i class="fa-solid fa-rotate mr-1"></i> Switch Profile
+          </button>
+
+          <!-- Settings -->
+          <button class="w-10 h-10 rounded-full bg-slate-50 hover:bg-slate-100 transition flex items-center justify-center border border-slate-200 text-slate-500 hover:text-indigo-600 shadow-sm"
+                  @click="triggerToast('Opening Clinical Settings...')">
+            <i class="fa-solid fa-gear text-xs"></i>
+          </button>
+
+          <!-- Notifications -->
+          <button class="w-10 h-10 rounded-full bg-slate-50 hover:bg-slate-100 transition flex items-center justify-center border border-slate-200 text-slate-500 hover:text-indigo-600 relative shadow-sm"
+                  @click="triggerToast('No pending notifications')">
+            <i class="fa-regular fa-bell text-xs"></i>
+            <span class="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-brand-coral"></span>
+          </button>
+
+          <div class="h-6 w-px bg-slate-200"></div>
+
+          <!-- User Badge -->
+          <div class="flex items-center gap-3 bg-slate-50 p-1.5 px-4 rounded-full border border-slate-200 cursor-pointer hover:bg-slate-100 transition shadow-sm"
+               @click="cycleDoctor()">
+            <img class="w-8 h-8 rounded-full object-cover border border-white"
+                 src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150" alt="Sarah Johnson">
+            <div class="text-left hidden md:block">
+              <h4 class="text-xs font-bold text-slate-800 leading-none">Nola Hawkins</h4>
+              <span class="text-[9px] text-slate-500">Administrator</span>
+            </div>
+            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 ml-1"></i>
+          </div>
+        </div>
       </header>
 
-      <section class="section-block">
-        <div class="grid-3">
-          <article class="glass-card card card-tilt">
-            <p class="section-eyebrow">Patients today</p>
-            <h3>18</h3>
-            <p class="page-subtitle">10 clinic · 8 online.</p>
-          </article>
-          <article class="glass-card card card-tilt">
-            <p class="section-eyebrow">High-risk alerts</p>
-            <h3>4 cases</h3>
-            <p class="page-subtitle">Chest pain, severe headache, short breath.</p>
-          </article>
-          <article class="glass-card card card-tilt">
-            <p class="section-eyebrow">Average session</p>
-            <h3>18 minutes</h3>
-            <p class="page-subtitle">Including notes & prescription.</p>
-          </article>
-        </div>
-      </section>
+      <!-- CORE CONTAINER -->
+      <div class="p-6 md:p-8 max-w-[1400px] w-full mx-auto grid grid-cols-1 xl:grid-cols-12 gap-6 flex-1">
 
-      <section class="section-block">
-        <div class="glass-card card card-tilt">
-          <div class="section-header">
-            <p class="section-eyebrow">Today</p>
-            <h2 class="section-title">Consultation list</h2>
+        <!-- LEFT COLUMN: DOCTOR PROFILE CARD (col-span-5) -->
+        <div class="xl:col-span-5 flex flex-col gap-6">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <button class="w-8 h-8 rounded-full bg-white hover:bg-slate-50 flex items-center justify-center border border-slate-200 transition shadow-sm"
+                      @click="cycleDoctor()">
+                <i class="fa-solid fa-arrow-left text-slate-600 text-xs"></i>
+              </button>
+              <h2 class="text-xl font-bold text-slate-900 tracking-tight">Doctor Profile</h2>
+            </div>
           </div>
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Time</th><th>Patient</th><th>Main symptom</th><th>Risk</th><th>Mode</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>10:30</td><td>Tanuj</td><td>Chest heaviness</td>
-                <td><span class="badge badge-danger">High</span></td><td>Clinic</td>
-              </tr>
-              <tr>
-                <td>11:15</td><td>Ananya</td><td>Headache</td>
-                <td><span class="badge badge-info">Medium</span></td><td>Online</td>
-              </tr>
-              <tr>
-                <td>12:05</td><td>Rohan</td><td>Cough</td>
-                <td><span class="badge badge-success">Low</span></td><td>Clinic</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </main>
-  </div>
-</div>
 
-<script src="js/doctor_match.js"></script>
+          <!-- Doctor Card Panel -->
+          <div class="dashboard-card p-6 space-y-6 relative">
+            <!-- Edit Profile Trigger Button -->
+            <button class="absolute top-4 right-4 w-9 h-9 bg-slate-900 hover:bg-slate-800 text-white rounded-xl flex items-center justify-center transition shadow-md hover:-translate-y-0.5 active:translate-y-0"
+                    @click="showEditModal = true">
+              <i class="fa-regular fa-pen-to-square text-xs"></i>
+            </button>
+
+            <!-- Card Header Section -->
+            <div class="flex flex-col sm:flex-row gap-5 items-center sm:items-start pt-2">
+              <div class="relative flex-shrink-0">
+                <img :src="activeDoc.image"
+                     class="w-28 h-28 rounded-2xl object-cover border-2 border-slate-100 shadow-md"
+                     alt="Active Doctor Profile">
+              </div>
+
+              <div class="space-y-1 text-center sm:text-left">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-bold"
+                      x-text="activeDoc.status">
+                </span>
+                <h3 class="text-xl font-bold text-slate-900 leading-tight" x-text="activeDoc.name"></h3>
+                <p class="text-xs text-slate-500 font-semibold" x-text="activeDoc.specialty"></p>
+
+                <!-- Profile Actions Strip -->
+                <div class="flex items-center justify-center sm:justify-start gap-2 pt-3">
+                  <button class="w-9 h-9 rounded-full bg-slate-50 hover:bg-slate-100 transition flex items-center justify-center border border-slate-200 text-slate-600 hover:text-indigo-600 shadow-sm"
+                          @click="triggerToast('Dialing office desk: ' + activeDoc.phone)">
+                    <i class="fa-solid fa-phone text-xs"></i>
+                  </button>
+                  <button class="px-4 py-2 bg-[#5c6dfa] hover:bg-[#4e5ee6] text-white text-xs font-bold rounded-full transition flex items-center gap-2 shadow-md shadow-indigo-600/15"
+                          @click="triggerToast('Opening reservations calendar for ' + activeDoc.name)">
+                    <i class="fa-regular fa-calendar text-xs"></i> Booking
+                  </button>
+                  <button class="w-9 h-9 rounded-full bg-slate-50 hover:bg-slate-100 transition flex items-center justify-center border border-slate-200 text-slate-600 hover:text-indigo-600 shadow-sm"
+                          @click="triggerToast('Opening direct messaging console with ' + activeDoc.name)">
+                    <i class="fa-regular fa-comment-dots text-xs"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Details List -->
+            <div class="space-y-2 pt-4 border-t border-slate-100">
+              
+              <!-- Gender Row -->
+              <div class="flex justify-between items-center p-2.5 rounded-xl hover:bg-slate-50 transition duration-150">
+                <span class="flex items-center gap-3 text-xs text-slate-500 font-semibold">
+                  <span class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-500 flex items-center justify-center">
+                    <i class="fa-solid fa-venus-mars text-xs"></i>
+                  </span>
+                  Gender
+                </span>
+                <span class="text-xs font-bold text-slate-800" x-text="activeDoc.gender"></span>
+              </div>
+
+              <!-- Email Row -->
+              <div class="flex justify-between items-center p-2.5 rounded-xl hover:bg-slate-50 transition duration-150">
+                <span class="flex items-center gap-3 text-xs text-slate-500 font-semibold">
+                  <span class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-500 flex items-center justify-center">
+                    <i class="fa-regular fa-envelope text-xs"></i>
+                  </span>
+                  Email
+                </span>
+                <span class="text-xs font-bold text-slate-800 break-all ml-4 text-right truncate max-w-[180px]" x-text="activeDoc.email"></span>
+              </div>
+
+              <!-- Phone Row -->
+              <div class="flex justify-between items-center p-2.5 rounded-xl hover:bg-slate-50 transition duration-150">
+                <span class="flex items-center gap-3 text-xs text-slate-500 font-semibold">
+                  <span class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-500 flex items-center justify-center">
+                    <i class="fa-solid fa-phone-volume text-xs"></i>
+                  </span>
+                  Phone Number
+                </span>
+                <span class="text-xs font-bold text-slate-800 text-right" x-text="activeDoc.phone"></span>
+              </div>
+
+              <!-- Address Row -->
+              <div class="flex justify-between items-center p-2.5 rounded-xl hover:bg-slate-50 transition duration-150">
+                <span class="flex items-center gap-3 text-xs text-slate-500 font-semibold shrink-0">
+                  <span class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-500 flex items-center justify-center">
+                    <i class="fa-solid fa-location-dot text-xs"></i>
+                  </span>
+                  Address
+                </span>
+                <span class="text-[11px] font-bold text-slate-800 text-right ml-4 line-clamp-1 truncate max-w-[180px]" :title="activeDoc.address" x-text="activeDoc.address"></span>
+              </div>
+
+              <!-- Experience Row -->
+              <div class="flex justify-between items-center p-2.5 rounded-xl hover:bg-slate-50 transition duration-150">
+                <span class="flex items-center gap-3 text-xs text-slate-500 font-semibold">
+                  <span class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-500 flex items-center justify-center">
+                    <i class="fa-solid fa-briefcase text-xs"></i>
+                  </span>
+                  Experience
+                </span>
+                <span class="text-xs font-bold text-slate-800" x-text="activeDoc.experience"></span>
+              </div>
+
+              <!-- Education Row -->
+              <div class="flex justify-between items-center p-2.5 rounded-xl hover:bg-slate-50 transition duration-150">
+                <span class="flex items-center gap-3 text-xs text-slate-500 font-semibold">
+                  <span class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-500 flex items-center justify-center">
+                    <i class="fa-solid fa-graduation-cap text-xs"></i>
+                  </span>
+                  Education
+                </span>
+                <span class="text-xs font-bold text-slate-800 text-right" x-text="activeDoc.education"></span>
+              </div>
+
+              <!-- License Number Row -->
+              <div class="flex justify-between items-center p-2.5 rounded-xl hover:bg-slate-50 transition duration-150">
+                <span class="flex items-center gap-3 text-xs text-slate-500 font-semibold">
+                  <span class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-500 flex items-center justify-center">
+                    <i class="fa-solid fa-id-card text-xs"></i>
+                  </span>
+                  License Number
+                </span>
+                <span class="text-xs font-bold text-slate-800" x-text="activeDoc.license"></span>
+              </div>
+
+              <!-- Specialization Row -->
+              <div class="flex justify-between items-center p-2.5 rounded-xl hover:bg-slate-50 transition duration-150">
+                <span class="flex items-center gap-3 text-xs text-slate-500 font-semibold">
+                  <span class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-500 flex items-center justify-center">
+                    <i class="fa-solid fa-stethoscope text-xs"></i>
+                  </span>
+                  Specialization
+                </span>
+                <span class="text-xs font-bold text-slate-800 text-right" x-text="activeDoc.specialization"></span>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT PANEL: METRICS CARD GRID, APPOINTMENT LIST, TIMELINE SLOTS (col-span-7) -->
+        <div class="xl:col-span-7 flex flex-col gap-6">
+          
+          <!-- Triple Stats Header Row -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            
+            <!-- Stat 1: Patients Total -->
+            <div class="dashboard-card p-5 flex flex-col justify-between h-[150px]">
+              <div>
+                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Patients</h4>
+                <div class="flex items-baseline gap-3 mt-2">
+                  <span class="text-4xl font-extrabold text-slate-900 tracking-tight" x-text="activeDoc.totalPatients">230</span>
+                </div>
+              </div>
+              <div class="flex items-center justify-between text-xs pt-2">
+                <span class="text-emerald-600 font-bold flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-lg">
+                  <i class="fa-solid fa-arrow-trend-up text-[10px]"></i> +3.5%
+                </span>
+                <span class="text-slate-400 text-[10px] font-semibold">Since Yesterday</span>
+              </div>
+            </div>
+
+            <!-- Stat 2: Completed Surgeries -->
+            <div class="dashboard-card p-5 flex flex-col justify-between h-[150px]">
+              <div>
+                <div class="flex justify-between items-start">
+                  <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Surgeries</h4>
+                  <span class="w-7 h-7 rounded-lg bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-500">
+                    <i class="fa-solid fa-syringe text-xs"></i>
+                  </span>
+                </div>
+                <div class="flex items-baseline gap-3 mt-2">
+                  <span class="text-4xl font-extrabold text-slate-900 tracking-tight" x-text="activeDoc.surgeries">90</span>
+                </div>
+              </div>
+              <p class="text-[10px] text-slate-400 leading-normal font-medium">Total operational procedures executed successfully.</p>
+            </div>
+
+            <!-- Stat 3: Star Reviews -->
+            <div class="dashboard-card p-5 flex flex-col justify-between h-[150px]">
+              <div>
+                <div class="flex justify-between items-start">
+                  <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Reviews</h4>
+                  <span class="w-7 h-7 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-500">
+                    <i class="fa-solid fa-star text-xs"></i>
+                  </span>
+                </div>
+                <div class="flex items-baseline gap-1 mt-2">
+                  <span class="text-4xl font-extrabold text-slate-900 tracking-tight" x-text="activeDoc.rating">4.5</span>
+                  <span class="text-slate-400 text-xs font-semibold">/5.0</span>
+                </div>
+              </div>
+              <p class="text-[10px] text-slate-400 leading-normal font-medium">Based on <span class="font-bold text-slate-700" x-text="activeDoc.reviewsCount">120</span> reviews from verified patients.</p>
+            </div>
+
+          </div>
+
+          <!-- Active Patients List Card -->
+          <div class="dashboard-card p-6 space-y-4">
+            
+            <!-- Controls panel -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div class="flex flex-wrap items-center gap-4">
+                <h3 class="text-lg font-bold text-slate-900 tracking-tight">Today Patient</h3>
+                
+                <!-- Category Select Checkboxes -->
+                <div class="flex items-center gap-3 text-xs">
+                  <label class="flex items-center gap-1.5 cursor-pointer select-none">
+                    <input type="checkbox" x-model="filterCheckup" class="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                    <span class="text-slate-600 font-bold">Check-up</span>
+                  </label>
+                  <label class="flex items-center gap-1.5 cursor-pointer select-none">
+                    <input type="checkbox" x-model="filterUrgent" class="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                    <span class="text-slate-600 font-bold">Urgent Visit</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Paginator block -->
+              <div class="flex items-center gap-3 self-end sm:self-auto">
+                <span class="text-xs text-slate-500 font-semibold">
+                  Page <span class="font-extrabold text-slate-800" x-text="currentPage"></span> of <span class="font-extrabold text-slate-800" x-text="totalPages"></span>
+                </span>
+                <div class="flex gap-1">
+                  <button class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition flex items-center justify-center text-xs border border-slate-200 disabled:opacity-40"
+                          :disabled="currentPage === 1"
+                          @click="currentPage = Math.max(1, currentPage - 1)">
+                    <i class="fa-solid fa-chevron-left"></i>
+                  </button>
+                  <button class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition flex items-center justify-center text-xs border border-slate-200 disabled:opacity-40"
+                          :disabled="currentPage === totalPages"
+                          @click="currentPage = Math.min(totalPages, currentPage + 1)">
+                    <i class="fa-solid fa-chevron-right"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Clinical list dynamic grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <template x-for="(patient, index) in paginatedPatients" :key="index">
+                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/60 hover:bg-slate-100/50 transition cursor-pointer relative group flex flex-col justify-between"
+                     @click="triggerToast('Loading chart file for: ' + patient.patientName)">
+                  
+                  <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs font-bold text-slate-700" x-text="patient.time">09:40 AM</span>
+                    
+                    <!-- Dynamic Badges -->
+                    <span class="text-[9px] font-extrabold px-2.5 py-0.5 rounded-full border"
+                          :class="{
+                            'bg-emerald-50 text-emerald-700 border-emerald-100': patient.status === 'Confirm',
+                            'bg-amber-50 text-amber-700 border-amber-100': patient.status === 'Pending',
+                            'bg-rose-50 text-rose-700 border-rose-100': patient.status === 'Canceled'
+                          }"
+                          x-text="patient.status">
+                    </span>
+                  </div>
+
+                  <div class="space-y-1">
+                    <h4 class="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition" x-text="patient.treatment"></h4>
+                    <p class="text-[11px] text-slate-400 font-semibold" x-text="patient.patientName"></p>
+                  </div>
+                </div>
+              </template>
+
+              <!-- Empty State Block -->
+              <div x-show="filteredPatients.length === 0" class="col-span-full py-12 text-center space-y-2">
+                <i class="fa-regular fa-folder-open text-slate-300 text-2xl"></i>
+                <p class="text-xs text-slate-500 font-semibold">No active patient bookings aligned with the current filters.</p>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Availability timeslots card -->
+          <div class="dashboard-card p-6 space-y-4">
+            <div class="flex justify-between items-center">
+              <h3 class="text-lg font-bold text-slate-900 tracking-tight">Availability</h3>
+              <span class="text-[9px] font-bold text-[#5c6dfa] bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-lg">TAP SLOTS TO CHANGE RESERVATIONS</span>
+            </div>
+
+            <!-- Timeslot grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2.5">
+              <template x-for="(slot, idx) in timeSlots" :key="idx">
+                <button @click="toggleTimeSlot(idx)"
+                        :class="{
+                          'bg-[#5c6dfa] text-white border-indigo-500 shadow-md shadow-indigo-600/10 hover:bg-[#4e5ee6] font-bold': slot.status === 'selected',
+                          'bg-slate-50 hover:bg-slate-100/80 text-slate-600 border-slate-200 font-semibold': slot.status !== 'selected'
+                        }"
+                        class="py-2.5 px-2 rounded-xl text-xs border text-center transition duration-200 select-none">
+                  <span x-text="slot.time"></span>
+                </button>
+              </template>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </main>
+
+  </div>
+
+  <!-- MODAL LAYER: Dynamic edit overlay -->
+  <div x-cloak x-show="showEditModal"
+       class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm"
+       x-transition:enter="transition ease-out duration-300"
+       x-transition:enter-start="opacity-0"
+       x-transition:enter-end="opacity-100"
+       x-transition:leave="transition ease-in duration-200"
+       x-transition:leave-start="opacity-100"
+       x-transition:leave-end="opacity-0">
+    
+    <div class="bg-white border border-slate-100 rounded-3xl p-6 md:p-8 w-full max-w-lg shadow-2xl relative space-y-5"
+         @click.away="showEditModal = false"
+         x-transition:enter="transition ease-out duration-300 transform"
+         x-transition:enter-start="scale-95 translate-y-4"
+         x-transition:enter-end="scale-100 translate-y-0">
+      
+      <!-- Modal Header -->
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+          Edit Doctor Profile <i class="fa-solid fa-user-gear text-brand-sidebar"></i>
+        </h3>
+        <button class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400"
+                @click="showEditModal = false">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <!-- Editing Content Area -->
+      <div class="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+        
+        <!-- Full Name -->
+        <div>
+          <label class="block text-xs font-bold text-slate-500 mb-1">Full Name</label>
+          <input type="text" x-model="activeDoc.name"
+                 class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-brand-sidebar text-sm font-semibold text-slate-800 focus:outline-none">
+        </div>
+
+        <!-- Specialty & Specialization fields -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1">Specialty Header</label>
+            <input type="text" x-model="activeDoc.specialty"
+                   class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-brand-sidebar text-sm font-semibold text-slate-800 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1">Detailed Specialization</label>
+            <input type="text" x-model="activeDoc.specialization"
+                   class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-brand-sidebar text-sm font-semibold text-slate-800 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Gender & Status Selections -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1">Gender</label>
+            <select x-model="activeDoc.gender"
+                    class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-brand-sidebar text-sm font-semibold text-slate-800 focus:outline-none">
+              <option value="Female">Female</option>
+              <option value="Male">Male</option>
+              <option value="Non-binary">Non-binary</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1">Status</label>
+            <select x-model="activeDoc.status"
+                    class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-brand-sidebar text-sm font-semibold text-slate-800 focus:outline-none">
+              <option value="Available">Available</option>
+              <option value="On Duty">On Duty</option>
+              <option value="Away">Away</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Contact Coordinates -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1">Email</label>
+            <input type="email" x-model="activeDoc.email"
+                   class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-brand-sidebar text-sm font-semibold text-slate-800 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1">Phone</label>
+            <input type="text" x-model="activeDoc.phone"
+                   class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-brand-sidebar text-sm font-semibold text-slate-800 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Address Field -->
+        <div>
+          <label class="block text-xs font-bold text-slate-500 mb-1">Clinic Address</label>
+          <input type="text" x-model="activeDoc.address"
+                 class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-brand-sidebar text-sm font-semibold text-slate-800 focus:outline-none">
+        </div>
+
+        <!-- Credentials Fields -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1">Education / School</label>
+            <input type="text" x-model="activeDoc.education"
+                   class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-brand-sidebar text-sm font-semibold text-slate-800 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1">License No.</label>
+            <input type="text" x-model="activeDoc.license"
+                   class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-brand-sidebar text-sm font-semibold text-slate-800 focus:outline-none">
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Action buttons -->
+      <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+        <button class="px-5 py-2.5 text-xs font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-xl transition"
+                @click="showEditModal = false">
+          Cancel
+        </button>
+        <button class="px-6 py-2.5 text-xs font-bold text-white bg-brand-sidebar hover:bg-brand-sidebarHover rounded-xl transition shadow-md shadow-indigo-600/10"
+                @click="saveDoctorProfile()">
+          Save Changes
+        </button>
+      </div>
+
+    </div>
+  </div>
+
 </body>
 </html>
