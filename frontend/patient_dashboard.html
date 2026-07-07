@@ -1,161 +1,782 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full bg-slate-50">
 <head>
   <meta charset="UTF-8">
-  <title>Patient Dashboard | NovaCare OS</title>
+  <title>Patient Profile Dashboard | NovaCare OS</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="css/styles.css">
-</head>
-<body>
-<div class="app-shell">
-  <header class="app-navbar">
-    <div class="app-brand">
-      <div class="app-logo"></div>
-      <span class="app-title">NovaCare OS</span>
-    </div>
-    <nav class="app-nav-links">
-      <a href="patient_dashboard.html">Dashboard</a>
-      <a href="symptom_checker.html">Symptom checker</a>
-      <a href="find_doctors.html">Find doctors</a>
-      <a href="analytics.html">Analytics</a>
-    </nav>
-    <div class="app-navbar-right">
-      <span class="app-pill">Patient</span>
-      <div class="app-avatar"></div>
-    </div>
-  </header>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Plus Jakarta Sans for clean medical dashboards -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-  <div class="app-body">
-    <aside class="app-sidebar">
-      <div class="app-sidebar-section-title">Patient space</div>
-      <nav class="app-sidebar-nav">
-        <a class="app-sidebar-link active" href="patient_dashboard.html">
-          <span class="icon"></span>
-          <span>Overview</span>
+  <!-- Tailwind Configuration matching the landing page colors and style of Screenshot 2026-06-29 214051.jpg -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              sidebar: '#5c6dfa', // Vibrant blue/indigo sidebar from Screenshot 2026-06-29 214051.jpg
+              sidebarHover: '#4e5ee6',
+              sidebarActive: '#eff2ff',
+              coral: '#ff6b35', // Signature coral from landing page
+            },
+            medical: {
+              light: '#f8fafc',
+              slate: '#64748b',
+              dark: '#0f172a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Styling to match Screenshot 2026-06-29 214051.jpg card shadows */
+    .dashboard-card {
+      background: #ffffff;
+      border-radius: 24px;
+      border: 1px solid #eef2f6;
+      box-shadow: 0 4px 20px -2px rgba(148, 163, 184, 0.06), 0 2px 8px -1px rgba(148, 163, 184, 0.04);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .dashboard-card:hover {
+      box-shadow: 0 12px 30px -5px rgba(148, 163, 184, 0.12), 0 4px 16px -2px rgba(148, 163, 184, 0.06);
+    }
+    
+    /* Scrollbar customization for clinical items and uploads */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    /* Print-specific media styles to support high-quality medical reporting layout */
+    @media print {
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .print-full {
+        width: 100% !important;
+        grid-column: span 12 !important;
+      }
+      .dashboard-card {
+        box-shadow: none !important;
+        border: 1px solid #cbd5e1 !important;
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body class="h-full font-sans antialiased text-slate-800 bg-[#f4f7fc]">
+
+  <div class="flex h-full min-h-screen">
+    
+    <!-- LEFT SIDEBAR (Adapted from Screenshot 2026-06-29 214051.jpg with enhanced styling) -->
+    <aside class="no-print w-64 bg-brand-sidebar flex-shrink-0 flex flex-col text-white relative shadow-xl shadow-indigo-600/10">
+      
+      <!-- Brand Logo Header -->
+      <div class="p-6 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-brand-sidebar font-extrabold text-xl shadow-md">
+          <img src="images/app-logo.jpg"
+               alt="NovaCare OS logo"
+               class="w-8 h-8 rounded object-contain">
+        </div>
+        <div>
+          <span class="font-bold text-xl tracking-tight block">NovaCare OS</span>
+          <span class="text-[10px] text-indigo-100 uppercase tracking-widest font-semibold">Workspace OS</span>
+        </div>
+      </div>
+
+      <!-- Main Navigation Items (Direct reference to list in Screenshot 2026-06-29 214051.jpg) -->
+      <nav class="flex-1 px-4 space-y-1.5 overflow-y-auto pt-2">
+        <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl text-indigo-100 hover:bg-brand-sidebarHover hover:text-white transition-all text-sm font-medium">
+          📅 <span>Schedule</span>
         </a>
-        <a class="app-sidebar-link" href="book_appointment.html">
-          <span class="icon"></span>
-          <span>Appointments</span>
+        <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl text-indigo-100 hover:bg-brand-sidebarHover hover:text-white transition-all text-sm font-medium">
+          👥 <span>Employees</span>
         </a>
-        <a class="app-sidebar-link" href="prescription.html">
-          <span class="icon"></span>
-          <span>Prescriptions</span>
+        
+        <!-- Active Patient Item Matching the highlight visual of Screenshot 2026-06-29 214051.jpg -->
+        <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/15 text-white transition-all text-sm font-semibold shadow-inner">
+          👤 <span>Patients</span>
         </a>
-        <a class="app-sidebar-link" href="symptom_checker.html">
-          <span class="icon"></span>
-          <span>Symptom tracker</span>
+        
+        <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl text-indigo-100 hover:bg-brand-sidebarHover hover:text-white transition-all text-sm font-medium">
+          📆 <span>Scheduled visits</span>
+        </a>
+        <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl text-indigo-100 hover:bg-brand-sidebarHover hover:text-white transition-all text-sm font-medium">
+          📈 <span>Statistics</span>
+        </a>
+        <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl text-indigo-100 hover:bg-brand-sidebarHover hover:text-white transition-all text-sm font-medium">
+          📁 <span>Reports</span>
+        </a>
+        <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl text-indigo-100 hover:bg-brand-sidebarHover hover:text-white transition-all text-sm font-medium">
+          🏷️ <span>Price</span>
+        </a>
+        <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl text-indigo-100 hover:bg-brand-sidebarHover hover:text-white transition-all text-sm font-medium">
+          🚪 <span>Cabinets</span>
+        </a>
+        
+        <div class="h-px bg-white/10 my-4"></div>
+
+        <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl text-indigo-100 hover:bg-brand-sidebarHover hover:text-white transition-all text-sm font-medium">
+          ⚙️ <span>Settings</span>
         </a>
       </nav>
+
+      <!-- Upgrade to PRO Promotion Banner (From Screenshot 2026-06-29 214051.jpg Bottom) -->
+      <div class="p-4 m-4 rounded-2xl bg-gradient-to-tr from-white/20 to-white/5 border border-white/10 relative overflow-hidden">
+        <div class="absolute -right-6 -bottom-6 w-16 h-16 bg-white/10 rounded-full blur-xl"></div>
+        <h4 class="text-xs font-bold uppercase tracking-wider text-white">Upgrade to PRO</h4>
+        <p class="text-[10px] text-indigo-100 mt-1 leading-relaxed">Improve your clinical processes and get advanced metrics with NovaCare OS PRO.</p>
+        <button onclick="triggerUpgradeSimulation()" class="w-full mt-3 py-2.5 bg-white text-brand-sidebar hover:bg-indigo-50 active:scale-95 transition-all text-xs font-bold rounded-xl shadow-md">
+          UPDATE TO PRO
+        </button>
+      </div>
     </aside>
 
-    <main class="app-main">
-      <header class="page-header">
-        <h1 class="page-title">Today’s health overview</h1>
-        <p class="page-subtitle">Your upcoming visits, prescriptions, and recent symptoms at a glance.</p>
+    <!-- MAIN WORKSPACE CONTENT -->
+    <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+      
+      <!-- HEADER -->
+      <header class="no-print bg-white/75 backdrop-blur-md border-b border-slate-100 px-8 py-4 flex items-center justify-between sticky top-0 z-10">
+        <div class="flex items-center gap-4">
+          <!-- Back trigger matching Screenshot navigation icon -->
+          <button class="text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-50 rounded-lg transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <h1 class="text-xl font-bold text-slate-900 tracking-tight">Patient profile</h1>
+        </div>
+
+        <div class="flex items-center gap-6">
+          <!-- Quick Status dropdown alignment -->
+          <div class="flex items-center gap-2 text-xs font-semibold text-slate-500 bg-slate-100/80 px-3 py-1.5 rounded-lg border border-slate-200">
+            <span class="uppercase tracking-wider text-[10px]">Workspace:</span>
+            <span class="text-slate-800 font-bold flex items-center gap-1">DENMED <span class="text-[9px]">▼</span></span>
+          </div>
+
+          <!-- Language Selector -->
+          <span class="text-xs font-bold text-slate-500 hover:text-slate-800 cursor-pointer bg-slate-100 px-2.5 py-1.5 rounded">EN</span>
+
+          <!-- Notification Bell with Active Indicator -->
+          <button onclick="toggleAlertTray()" class="relative p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+            <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-brand-coral animate-ping"></span>
+          </button>
+
+          <!-- Divider -->
+          <div class="h-6 w-px bg-slate-200"></div>
+
+          <!-- Doctor Profile Selector -->
+          <div class="flex items-center gap-3">
+            <img src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=150" alt="Doctor" class="w-8 h-8 rounded-full object-cover border border-slate-200 shadow-sm" onerror="this.src='https://placehold.co/150x150/5c6dfa/ffffff?text=DR'">
+            <div class="hidden md:block">
+              <p class="text-xs font-bold text-slate-800 leading-none">Dr. Helen Ross</p>
+              <p class="text-[9px] text-slate-400 font-semibold mt-0.5">Cardiology Lead</p>
+            </div>
+          </div>
+        </div>
       </header>
 
-      <!-- Top stats -->
-      <section class="section-block">
-        <div class="grid-4">
-          <article class="glass-card card card-tilt">
-            <p class="section-eyebrow">Next appointment</p>
-            <h3>Dr. Sharma · Cardiology</h3>
-            <p class="page-subtitle">Tomorrow · 10:30 AM · Clinic</p>
-            <span class="badge badge-info" style="margin-top:8px;">Confirmed</span>
-          </article>
-          <article class="glass-card card card-tilt">
-            <p class="section-eyebrow">Active prescriptions</p>
-            <h3>3 medications</h3>
-            <p class="page-subtitle">Blood pressure, vitamin D, allergy.</p>
-            <span class="badge badge-success" style="margin-top:8px;">On schedule</span>
-          </article>
-          <article class="glass-card card card-tilt">
-            <p class="section-eyebrow">Symptom flag</p>
-            <h3>Mild risk</h3>
-            <p class="page-subtitle">Last checker: chest heaviness, fatigue.</p>
-            <span class="badge badge-info" style="margin-top:8px;">Follow-up booked</span>
-          </article>
-          <article class="glass-card card card-tilt">
-            <p class="section-eyebrow">Steps today</p>
-            <h3>4,982 steps</h3>
-            <p class="page-subtitle">Goal: 8,000 steps</p>
-            <span class="badge badge-success" style="margin-top:8px;">Progressing</span>
-          </article>
+      <!-- PATIENT PROFILE DASHBOARD CONTENT WORKSPACE -->
+      <div class="p-6 md:p-8 max-w-[1400px] w-full mx-auto space-y-6">
+
+        <!-- Header Controls (Row layout with Print & Edit matching Screenshot 2026-06-29 214051.jpg) -->
+        <div class="no-print flex items-center justify-between gap-3 pb-2">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-brand-sidebar animate-pulse"></span>
+            <p class="text-xs font-semibold text-slate-400">Electronic Health File synced with NovaCare Cloud</p>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="window.print()" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 active:scale-95 transition-all text-xs font-bold rounded-xl shadow-sm flex items-center gap-2 uppercase tracking-wide">
+              🖨️ PRINT
+            </button>
+            <button id="master-edit-btn" onclick="toggleEditMode()" class="px-6 py-2.5 bg-brand-sidebar hover:bg-brand-sidebarHover text-white active:scale-95 transition-all text-xs font-bold rounded-xl shadow-md shadow-indigo-600/15 flex items-center gap-2 uppercase tracking-wide">
+              ✏️ EDIT
+            </button>
+          </div>
         </div>
-      </section>
 
-      <!-- Appointments & symptoms -->
-      <section class="section-block grid-2">
-        <article class="glass-card card card-tilt">
-          <div class="section-header">
-            <p class="section-eyebrow">Upcoming appointments</p>
-            <h2 class="section-title">Your schedule</h2>
-          </div>
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Date</th><th>Doctor</th><th>Type</th><th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>28 Jun</td><td>Dr. Sharma</td><td>Clinic</td>
-                <td><span class="badge badge-info">Confirmed</span></td>
-              </tr>
-              <tr>
-                <td>03 Jul</td><td>Dr. Mehta</td><td>Online</td>
-                <td><span class="badge badge-success">Scheduled</span></td>
-              </tr>
-              <tr>
-                <td>12 Jul</td><td>Dr. Rao</td><td>Clinic</td>
-                <td><span class="badge badge-info">Pending</span></td>
-              </tr>
-            </tbody>
-          </table>
-          <div style="margin-top:12px;">
-            <a href="book_appointment.html" class="btn btn-primary">Book another appointment</a>
-          </div>
-        </article>
+        <!-- Dashboard Layout Grid (Row 1 Upper Stack) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 print:grid-cols-12">
+          
+          <!-- Card 1: Patient Primary Demographics Avatar Card (Column Span 4 on Large Screens) -->
+          <div class="dashboard-card lg:col-span-4 p-6 flex flex-col items-center justify-center text-center relative print:col-span-4">
+            <div class="relative group">
+              <div class="w-32 h-32 rounded-full overflow-hidden border-4 border-slate-50 shadow-md ring-4 ring-indigo-50">
+                <img id="patient-avatar" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=300" alt="Kate Prokopchuk" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/300x300/ff6b35/ffffff?text=KP'">
+              </div>
+              <div class="absolute inset-0 bg-slate-900/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                <span class="text-white text-xs font-semibold">Replace Photo</span>
+              </div>
+            </div>
 
-        <article class="glass-card card card-tilt">
-          <div class="section-header">
-            <p class="section-eyebrow">Symptom log</p>
-            <h2 class="section-title">Recent check-ins</h2>
+            <!-- Demographics details with responsive inline editable mode -->
+            <div class="mt-4 space-y-1">
+              <h2 id="view-name" class="text-xl font-bold text-slate-800">Kate Prokopchuk</h2>
+              <input id="edit-name" type="text" class="hidden text-center text-sm font-semibold border-b-2 border-indigo-500 focus:outline-none focus:border-brand-coral bg-indigo-50/50 p-1.5 rounded w-full" value="Kate Prokopchuk">
+              
+              <p id="view-phone" class="text-xs text-indigo-600 font-semibold tracking-wide">+38 (093) 23 45 678</p>
+              <input id="edit-phone" type="text" class="hidden text-center text-xs text-indigo-600 font-semibold border-b-2 border-indigo-500 focus:outline-none focus:border-brand-coral bg-indigo-50/50 p-1.5 rounded w-full" value="+38 (093) 23 45 678">
+
+              <p id="view-email" class="text-xs text-slate-400 font-medium">katepro@gmail.com</p>
+              <input id="edit-email" type="text" class="hidden text-center text-xs text-slate-400 border-b-2 border-indigo-500 focus:outline-none focus:border-brand-coral bg-indigo-50/50 p-1.5 rounded w-full" value="katepro@gmail.com">
+            </div>
+
+            <div class="w-full mt-6 pt-5 border-t border-slate-100 grid grid-cols-2 gap-4 text-left">
+              <div>
+                <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">ID Code</span>
+                <span class="text-xs font-bold text-slate-700">#NC-9321-K</span>
+              </div>
+              <div>
+                <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Account Status</span>
+                <span class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Verified
+                </span>
+              </div>
+            </div>
           </div>
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Date</th><th>Main symptom</th><th>Risk</th><th>Action</th>
-              </tr>
-            </thead>
-            <tbody id="symptom-log">
-              <!-- symptom_checker.js can populate this -->
-              <tr>
-                <td>26 Jun</td><td>Chest heaviness</td>
-                <td><span class="badge badge-danger">High</span></td>
-                <td>Booked cardiology</td>
-              </tr>
-              <tr>
-                <td>21 Jun</td><td>Headache</td>
-                <td><span class="badge badge-info">Medium</span></td>
-                <td>General consult</td>
-              </tr>
-              <tr>
-                <td>15 Jun</td><td>Cough</td>
-                <td><span class="badge badge-success">Low</span></td>
-                <td>Self care</td>
-              </tr>
-            </tbody>
-          </table>
-          <div style="margin-top:12px;">
-            <a href="symptom_checker.html" class="btn btn-outline">Run symptom checker</a>
+
+          <!-- Card 2: General Information Card (Column Span 4) -->
+          <div class="dashboard-card lg:col-span-4 p-6 flex flex-col justify-between print:col-span-4">
+            <div>
+              <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                <h3 class="font-bold text-slate-800 text-xs tracking-wide uppercase flex items-center gap-2">
+                  <span class="text-indigo-500 font-semibold text-lg">ℹ️</span> General information
+                </h3>
+                <span class="text-slate-400 hover:text-indigo-600 text-xs transition-all pointer-events-none">✏️ Editable</span>
+              </div>
+
+              <!-- General details fields -->
+              <div class="space-y-4 mt-5">
+                <div class="grid grid-cols-3 items-center">
+                  <span class="text-xs font-semibold text-slate-400">Date of birth</span>
+                  <div class="col-span-2">
+                    <span id="view-dob" class="text-xs font-bold text-slate-700">23. 07. 1994</span>
+                    <input id="edit-dob" type="text" class="hidden text-xs font-semibold border-b-2 border-indigo-500 focus:outline-none focus:border-brand-coral bg-indigo-50/50 p-1.5 rounded w-full" value="23. 07. 1994">
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-3 items-start">
+                  <span class="text-xs font-semibold text-slate-400">Address</span>
+                  <div class="col-span-2">
+                    <span id="view-address" class="text-xs font-semibold text-slate-700 block leading-relaxed">Lviv, Chornovola street, 67</span>
+                    <textarea id="edit-address" class="hidden text-xs font-semibold border border-indigo-200 rounded p-1.5 w-full focus:outline-none focus:border-brand-coral bg-indigo-50/50" rows="2">Lviv, Chornovola street, 67</textarea>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-3 items-center">
+                  <span class="text-xs font-semibold text-slate-400">Reg. Date</span>
+                  <div class="col-span-2">
+                    <span id="view-reg" class="text-xs font-semibold text-slate-700">Thursday, May 25</span>
+                    <input id="edit-reg" type="text" class="hidden text-xs font-semibold border-b-2 border-indigo-500 focus:outline-none bg-indigo-50/50 p-1.5 rounded w-full" value="Thursday, May 25">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Footer statistics quick trend -->
+            <div class="bg-indigo-50/40 p-3.5 rounded-2xl border border-indigo-100/50 mt-4 flex items-center justify-between">
+              <div>
+                <span class="text-[9px] text-indigo-500 font-extrabold uppercase tracking-widest block">Last Checkup Cycle</span>
+                <span class="text-xs font-bold text-slate-800">Cardiology Diagnostics</span>
+              </div>
+              <span class="text-xs font-extrabold text-indigo-600 bg-white px-2.5 py-1.5 rounded-xl border border-indigo-100 shadow-sm">12 Days Ago</span>
+            </div>
           </div>
-        </article>
-      </section>
+
+          <!-- Card 3: Anamnesis Card (Column Span 4) -->
+          <div class="dashboard-card lg:col-span-4 p-6 flex flex-col justify-between print:col-span-4">
+            <div>
+              <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                <h3 class="font-bold text-slate-800 text-xs tracking-wide uppercase flex items-center gap-2">
+                  <span class="text-emerald-500 text-lg">🧬</span> Anamnesis
+                </h3>
+                <span class="text-slate-400 hover:text-indigo-600 text-xs transition-all pointer-events-none">✏️ Editable</span>
+              </div>
+
+              <!-- Anamnesis details lists -->
+              <div class="space-y-4 mt-5">
+                <div class="grid grid-cols-3 items-center">
+                  <span class="text-xs font-semibold text-slate-400">Allergies</span>
+                  <div class="col-span-2">
+                    <span id="view-allergies" class="text-xs font-bold text-slate-700 bg-rose-50 border border-rose-100 text-rose-600 px-2 py-0.5 rounded">Nuts, pollen</span>
+                    <input id="edit-allergies" type="text" class="hidden text-xs font-semibold border-b-2 border-indigo-500 focus:outline-none focus:border-brand-coral bg-indigo-50/50 p-1.5 rounded w-full" value="Nuts, pollen">
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-3 items-center">
+                  <span class="text-xs font-semibold text-slate-400">Chronic diseases</span>
+                  <div class="col-span-2">
+                    <span id="view-chronic" class="text-xs font-bold text-slate-700 bg-amber-50 border border-amber-100 text-amber-700 px-2 py-0.5 rounded">Asthma</span>
+                    <input id="edit-chronic" type="text" class="hidden text-xs font-semibold border-b-2 border-indigo-500 focus:outline-none focus:border-brand-coral bg-indigo-50/50 p-1.5 rounded w-full" value="Asthma">
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-3 items-center">
+                  <span class="text-xs font-semibold text-slate-400">Blood type</span>
+                  <div class="col-span-2">
+                    <span id="view-blood" class="text-xs font-extrabold text-slate-700 bg-indigo-50 border border-indigo-100 text-indigo-600 px-2.5 py-0.5 rounded">I+</span>
+                    <input id="edit-blood" type="text" class="hidden text-xs font-semibold border-b-2 border-indigo-500 focus:outline-none focus:border-brand-coral bg-indigo-50/50 p-1.5 rounded w-full" value="I+">
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-3 items-center">
+                  <span class="text-xs font-semibold text-slate-400">Past illnesses</span>
+                  <div class="col-span-2">
+                    <span id="view-past" class="text-xs font-medium text-slate-700">Coronavirus</span>
+                    <input id="edit-past" type="text" class="hidden text-xs font-semibold border-b-2 border-indigo-500 focus:outline-none focus:border-brand-coral bg-indigo-50/50 p-1.5 rounded w-full" value="Coronavirus">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Emergency Note Banner -->
+            <div class="bg-rose-50/40 p-3 rounded-xl border border-rose-100/50 mt-4 text-xs flex items-center gap-2">
+              <span class="text-lg">🚨</span>
+              <p class="text-rose-700 font-medium leading-normal">Rescue inhaler is designated in cabinet #3.</p>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Dashboard Layout Grid (Row 2 Stack: Clinical Visits Left, Files & Notes Right) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          
+          <!-- Column Span 8: Interactive Visits Table -->
+          <div class="dashboard-card lg:col-span-8 p-6 flex flex-col justify-between print:col-span-12">
+            <div>
+              <!-- Custom Tabs Navigation (Direct representation from Screenshot 2026-06-29 214051.jpg) -->
+              <div class="flex items-center justify-between border-b border-slate-100 pb-3 flex-wrap gap-2">
+                <div class="flex gap-4 sm:gap-6">
+                  <button id="tab-future" onclick="switchVisitTab('future')" class="pb-3 border-b-2 border-brand-sidebar text-brand-sidebar text-xs font-bold uppercase tracking-wider transition-all">
+                    Future visits (2)
+                  </button>
+                  <button id="tab-past" onclick="switchVisitTab('past')" class="pb-3 border-b-2 border-transparent text-slate-400 hover:text-slate-600 text-xs font-semibold uppercase tracking-wider transition-all">
+                    Past visits (15)
+                  </button>
+                  <button id="tab-treatment" onclick="switchVisitTab('treatment')" class="pb-3 border-b-2 border-transparent text-slate-400 hover:text-slate-600 text-xs font-semibold uppercase tracking-wider transition-all">
+                    Planned treatments
+                  </button>
+                </div>
+                
+                <!-- Schedule Action button -->
+                <button onclick="addNewVisitInteractive()" class="no-print bg-indigo-50 text-indigo-600 hover:bg-indigo-100 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors">
+                  <span class="text-sm">+</span> Book Session
+                </button>
+              </div>
+
+              <!-- Dynamic Interactive Tabs Container -->
+              <div id="visits-content" class="mt-6 space-y-4">
+                <!-- Visited cards are loaded here dynamically via Javascript -->
+              </div>
+            </div>
+
+            <!-- Care progress indicator slider summary -->
+            <div class="mt-8 pt-6 border-t border-slate-100">
+              <div class="flex justify-between items-center text-xs text-slate-500 mb-2">
+                <span class="font-semibold">Treatment Compliance Target Tracker</span>
+                <span class="font-extrabold text-indigo-600">82% Completed</span>
+              </div>
+              <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                <div class="bg-gradient-to-r from-brand-sidebar to-brand-coral h-full rounded-full" style="width: 82%"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Column Span 4: Stacked Files & Notes Cards -->
+          <div class="lg:col-span-4 space-y-6 print:col-span-12">
+            
+            <!-- Files Card -->
+            <div class="dashboard-card p-6 flex flex-col">
+              <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                <h3 class="font-bold text-slate-800 text-xs tracking-wide uppercase flex items-center gap-2">
+                  📂 Patient Files
+                </h3>
+                <button onclick="simulateFileUpload()" class="text-xs font-extrabold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition-colors">
+                  UPLOAD
+                </button>
+              </div>
+
+              <!-- File List Container -->
+              <div id="files-list" class="mt-4 space-y-3 max-h-[195px] overflow-y-auto pr-1">
+                <div class="flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100/80 rounded-xl border border-slate-100 transition-all">
+                  <div class="flex items-center gap-3.5">
+                    <span class="text-xl">📄</span>
+                    <div>
+                      <p class="text-xs font-bold text-slate-700 leading-none">Check Up Result.pdf</p>
+                      <p class="text-[9px] text-slate-400 mt-1">123kb · June 26, 2026</p>
+                    </div>
+                  </div>
+                  <button onclick="simDownload('Check Up Result')" class="text-slate-400 hover:text-indigo-600 transition-colors text-xs">📥</button>
+                </div>
+
+                <div class="flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100/80 rounded-xl border border-slate-100 transition-all">
+                  <div class="flex items-center gap-3.5">
+                    <span class="text-xl">📄</span>
+                    <div>
+                      <p class="text-xs font-bold text-slate-700 leading-none">Medical Prescriptions.pdf</p>
+                      <p class="text-[9px] text-slate-400 mt-1">123kb · June 24, 2026</p>
+                    </div>
+                  </div>
+                  <button onclick="simDownload('Medical Prescriptions')" class="text-slate-400 hover:text-indigo-600 transition-colors text-xs">📥</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Notes Card -->
+            <div class="dashboard-card p-6 flex flex-col">
+              <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                <h3 class="font-bold text-slate-800 text-xs tracking-wide uppercase flex items-center gap-2">
+                  📝 Doctor Notes
+                </h3>
+                <button onclick="addNewNotePrompt()" class="text-xs font-extrabold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition-colors">
+                  ADD NOTE
+                </button>
+              </div>
+
+              <!-- Note List Container -->
+              <div id="notes-list" class="mt-4 space-y-3 max-h-[195px] overflow-y-auto pr-1">
+                <div class="p-3 bg-amber-50/50 rounded-xl border border-amber-100">
+                  <div class="flex items-center justify-between pb-2 border-b border-amber-100/60">
+                    <span class="text-[9px] font-bold text-indigo-600 uppercase tracking-wide">Dr. Helena Ross</span>
+                    <span class="text-[9px] text-slate-400">June 23, 2026</span>
+                  </div>
+                  <p class="text-[11px] text-slate-600 mt-2 leading-relaxed">
+                    Patient notes mild respiratory tightness in mornings. Prescribed temporary nebulizer use until follow-up allergy reports.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
     </main>
-  </div>
-</div>
 
-<script src="js/symptom_checker.js"></script>
+  </div>
+
+  <!-- FLOATING NOTIFICATION CONSOLE (Custom replacement for browser alerts) -->
+  <div id="custom-toast" class="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none">
+    <span class="text-brand-coral font-bold text-lg">✨</span>
+    <p id="toast-message" class="text-xs font-semibold"></p>
+  </div>
+
+  <!-- NOTIFICATION TRAY SIDEBAR -->
+  <div id="alert-tray" class="fixed right-0 top-0 bottom-0 w-80 bg-white shadow-2xl border-l border-slate-100 z-50 transform translate-x-full transition-transform duration-300 no-print">
+    <div class="p-6 flex flex-col h-full">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+        <h3 class="font-bold text-slate-800 text-sm">Notifications Panel</h3>
+        <button onclick="toggleAlertTray()" class="text-xs font-bold text-slate-400 hover:text-slate-600">CLOSE</button>
+      </div>
+      <div class="flex-1 overflow-y-auto py-4 space-y-3">
+        <div class="p-3 bg-indigo-50 rounded-xl border border-indigo-100">
+          <p class="text-xs font-bold text-indigo-800">New Lab Upload Available</p>
+          <p class="text-[10px] text-indigo-600/80 mt-1">Check Up Result.pdf was updated by Cardiology Labs.</p>
+        </div>
+        <div class="p-3 bg-coral-50 rounded-xl border border-coral-100">
+          <p class="text-xs font-bold text-brand-coral">Pending Signature</p>
+          <p class="text-[10px] text-coral-600 mt-1">Teeth whitening follow-up treatment requires doctor validation signature.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // -------------------------------------------------------------
+    // Dashboard States (Default datasets)
+    // -------------------------------------------------------------
+    let currentTab = 'future';
+    let isEditMode = false;
+
+    // Direct adaptations of the schedule table layout in Screenshot 2026-06-29 214051.jpg
+    const visitsData = {
+      future: [
+        {
+          time: "11.00 - 12.30",
+          date: "26 Jun 2026",
+          service: "Treatment and cleaning of canals",
+          doctor: "Dr. Oksana Max",
+          doctorTitle: "Dental Surgeon",
+          status: "Scheduled",
+          statusClass: "bg-indigo-50 text-indigo-600 border-indigo-100"
+        },
+        {
+          time: "14.30 - 15.30",
+          date: "27 Jul 2026",
+          service: "Teeth whitening routine session",
+          doctor: "Dr. Max Oched",
+          doctorTitle: "Aesthetic Dentistry",
+          status: "Scheduled",
+          statusClass: "bg-teal-50 text-teal-600 border-teal-100"
+        }
+      ],
+      past: [
+        {
+          time: "09.00 - 10.00",
+          date: "14 May 2026",
+          service: "Primary Cardiology Diagnosis Consultation",
+          doctor: "Dr. Helena Ross",
+          doctorTitle: "Cardiology",
+          status: "Completed",
+          statusClass: "bg-emerald-50 text-emerald-600 border-emerald-100"
+        },
+        {
+          time: "10.00 - 11.00",
+          date: "22 Apr 2026",
+          service: "Allergies Skin Scratch Pre-Test",
+          doctor: "Dr. Sarah Jenkins",
+          doctorTitle: "Immunology",
+          status: "Completed",
+          statusClass: "bg-emerald-50 text-emerald-600 border-emerald-100"
+        }
+      ],
+      treatment: [
+        {
+          time: "Daily Intake",
+          date: "Active Plan",
+          service: "Antihistamine Tablet Adherence Cycles",
+          doctor: "Dr. Sarah Jenkins",
+          doctorTitle: "Immunology",
+          status: "In Progress",
+          statusClass: "bg-amber-50 text-amber-600 border-amber-100"
+        }
+      ]
+    };
+
+    // -------------------------------------------------------------
+    // Interactive Tab Switching Engine
+    // -------------------------------------------------------------
+    function switchVisitTab(tabKey) {
+      currentTab = tabKey;
+      
+      // Update styling on tabs
+      ['future', 'past', 'treatment'].forEach(key => {
+        const tabEl = document.getElementById(`tab-${key}`);
+        if (key === tabKey) {
+          tabEl.className = "pb-3 border-b-2 border-brand-sidebar text-brand-sidebar text-xs font-bold uppercase tracking-wider transition-all";
+        } else {
+          tabEl.className = "pb-3 border-b-2 border-transparent text-slate-400 hover:text-slate-600 text-xs font-semibold uppercase tracking-wider transition-all";
+        }
+      });
+
+      renderVisits();
+    }
+
+    function renderVisits() {
+      const container = document.getElementById('visits-content');
+      const data = visitsData[currentTab];
+      
+      if (data.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-400 italic">No visit logs found for this category.</p>`;
+        return;
+      }
+
+      container.innerHTML = data.map((visit, index) => `
+        <div class="p-4 bg-slate-50/60 hover:bg-slate-50 rounded-2xl border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:translate-x-1">
+          <div class="flex items-start gap-4">
+            <!-- Left Date pill -->
+            <div class="bg-white border border-slate-200/80 p-3 rounded-xl shadow-sm text-center min-w-[100px]">
+              <span class="block text-[9px] text-slate-400 font-extrabold uppercase tracking-widest">${visit.time}</span>
+              <span class="block text-xs font-bold text-slate-800 mt-1">${visit.date}</span>
+            </div>
+
+            <!-- Middle Service Details -->
+            <div>
+              <span class="text-[9px] text-indigo-500 font-bold uppercase tracking-wider block">Service & Procedure</span>
+              <p class="text-xs font-bold text-slate-800 mt-0.5">${visit.service}</p>
+              
+              <!-- Doctor -->
+              <div class="flex items-center gap-1.5 mt-2">
+                <span class="text-xs">🩺</span>
+                <span class="text-xs text-slate-500 font-medium">${visit.doctor} <span class="text-[10px] text-slate-400">(${visit.doctorTitle})</span></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Status badge + Action panel -->
+          <div class="flex items-center gap-3 justify-between md:justify-end">
+            <span class="text-[10px] font-bold px-3 py-1 rounded-full border ${visit.statusClass}">
+              ${visit.status}
+            </span>
+            <button onclick="showToast('Loading medical diagnostic file for consultation date: ${visit.date}')" class="no-print p-2.5 bg-white hover:bg-indigo-50 text-slate-500 hover:text-indigo-600 border border-slate-200 hover:border-indigo-100 rounded-xl transition-all shadow-sm text-xs font-semibold">
+              View Chart →
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // -------------------------------------------------------------
+    // Inline Edit Mechanism Toggle (From Edit button)
+    // -------------------------------------------------------------
+    function toggleEditMode() {
+      isEditMode = !isEditMode;
+      const btn = document.getElementById('master-edit-btn');
+      
+      const fields = [
+        { id: 'name', type: 'text' },
+        { id: 'phone', type: 'text' },
+        { id: 'email', type: 'text' },
+        { id: 'dob', type: 'text' },
+        { id: 'address', type: 'textarea' },
+        { id: 'allergies', type: 'text' },
+        { id: 'chronic', type: 'text' },
+        { id: 'blood', type: 'text' },
+        { id: 'past', type: 'text' }
+      ];
+
+      if (isEditMode) {
+        btn.innerText = "💾 Save";
+        btn.classList.replace('bg-brand-sidebar', 'bg-emerald-600');
+        btn.classList.replace('hover:bg-brand-sidebarHover', 'hover:bg-emerald-700');
+
+        fields.forEach(field => {
+          document.getElementById(`view-${field.id}`).classList.add('hidden');
+          document.getElementById(`edit-${field.id}`).classList.remove('hidden');
+        });
+        showToast("Profile editing enabled. Make your modifications.");
+      } else {
+        btn.innerText = "✏️ Edit";
+        btn.classList.replace('bg-emerald-600', 'bg-brand-sidebar');
+        btn.classList.replace('hover:bg-emerald-700', 'hover:bg-brand-sidebarHover');
+
+        fields.forEach(field => {
+          const val = document.getElementById(`edit-${field.id}`).value;
+          document.getElementById(`view-${field.id}`).innerText = val;
+          document.getElementById(`view-${field.id}`).classList.remove('hidden');
+          document.getElementById(`edit-${field.id}`).classList.add('hidden');
+        });
+        showToast("Patient medical profile saved and synchronized.");
+      }
+    }
+
+    // -------------------------------------------------------------
+    // Add/Upload Simulation Functions
+    // -------------------------------------------------------------
+    function addNewVisitInteractive() {
+      const futureService = prompt("Enter planned clinical service description:", "Routine Orthodontic Bracket Control");
+      if (!futureService) return;
+
+      visitsData.future.push({
+        time: "10.00 - 11.30",
+        date: "14 Aug 2026",
+        service: futureService,
+        doctor: "Dr. Oksana Max",
+        doctorTitle: "Dental Surgeon",
+        status: "Scheduled",
+        statusClass: "bg-indigo-50 text-indigo-600 border-indigo-100"
+      });
+      
+      renderVisits();
+      showToast("Scheduled new clinical visit successfully!");
+    }
+
+    function simulateFileUpload() {
+      const mockFiles = [
+        "CardioElectrocardiogram.pdf",
+        "PollenAllergenChart.pdf",
+        "RespiratoryAdherenceCheck.pdf"
+      ];
+      const selected = mockFiles[Math.floor(Math.random() * mockFiles.length)];
+      
+      const fileContainer = document.getElementById('files-list');
+      const doc = document.createElement('div');
+      doc.className = "flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100/80 rounded-xl border border-slate-100 transition-all";
+      doc.innerHTML = `
+        <div class="flex items-center gap-3.5">
+          <span class="text-xl">📄</span>
+          <div>
+            <p class="text-xs font-bold text-slate-700 leading-none">${selected}</p>
+            <p class="text-[9px] text-slate-400 mt-1">112kb · Today</p>
+          </div>
+        </div>
+        <button onclick="simDownload('${selected}')" class="text-slate-400 hover:text-indigo-600 transition-colors text-xs">📥</button>
+      `;
+      fileContainer.prepend(doc);
+      showToast(`Uploaded file: ${selected}`);
+    }
+
+    function addNewNotePrompt() {
+      const val = prompt("Type patient clinical consultation note:", "Patient shows steady recovery from sinus allergies.");
+      if (!val) return;
+
+      const noteContainer = document.getElementById('notes-list');
+      const note = document.createElement('div');
+      note.className = "p-3 bg-amber-50/50 rounded-xl border border-amber-100";
+      note.innerHTML = `
+        <div class="flex items-center justify-between pb-2 border-b border-amber-100/60">
+          <span class="text-[9px] font-bold text-indigo-600 uppercase tracking-wide font-sans">Dr. Helena Ross</span>
+          <span class="text-[9px] text-slate-400">Today</span>
+        </div>
+        <p class="text-[11px] text-slate-600 mt-2 leading-relaxed">
+          ${val}
+        </p>
+      `;
+      noteContainer.prepend(note);
+      showToast("Added physician consultation summary note.");
+    }
+
+    function simDownload(fileName) {
+      showToast(`Downloading: ${fileName}.pdf`);
+    }
+
+    function triggerUpgradeSimulation() {
+      showToast("Upgrading workspace to NovaCare OS Pro features... synced!");
+    }
+
+    // -------------------------------------------------------------
+    // UI Notification Popups & Trays
+    // -------------------------------------------------------------
+    function showToast(text) {
+      const toast = document.getElementById('custom-toast');
+      const msg = document.getElementById('toast-message');
+      
+      msg.innerText = text;
+      toast.classList.remove('translate-y-24', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-24', 'opacity-0');
+      }, 3500);
+    }
+
+    function toggleAlertTray() {
+      const tray = document.getElementById('alert-tray');
+      if (tray.classList.contains('translate-x-full')) {
+        tray.classList.remove('translate-x-full');
+      } else {
+        tray.classList.add('translate-x-full');
+      }
+    }
+
+    // Initialize interactive modules
+    window.onload = function() {
+      switchVisitTab('future');
+    }
+  </script>
 </body>
 </html>
