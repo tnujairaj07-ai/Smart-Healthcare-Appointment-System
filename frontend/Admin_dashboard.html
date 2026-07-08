@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-[#f4f7fc]">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NovaCare OS | Admin Control Centre</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Alpine.js for interactive state management -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              sidebar: '#5c6dfa',      // Vibrant Blue/Indigo from Patient Dashboard
+              sidebarHover: '#4e5ee6',
+              sidebarActive: '#eff2ff',
+              coral: '#ff6b35',        // Signature Coral Accent
+              coralHover: '#e5531d',
+            },
+            medical: {
+              light: '#f8fafc',
+              slate: '#64748b',
+              dark: '#0f172a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom elegant card styles matching Patient Profile Dashboard */
+    .dashboard-card {
+      background: #ffffff;
+      border-radius: 24px;
+      border: 1px solid #eef2f6;
+      box-shadow: 0 4px 20px -2px rgba(148, 163, 184, 0.06), 0 2px 8px -1px rgba(148, 163, 184, 0.04);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .dashboard-card:hover {
+      box-shadow: 0 12px 30px -5px rgba(148, 163, 184, 0.12), 0 4px 16px -2px rgba(148, 163, 184, 0.06);
+    }
+
+    /* Scrollbar Customization */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    /* Active selected doctor item styling matching the reference pattern */
+    .active-doctor-item {
+      border: 2px solid #5c6dfa !important;
+      background-color: #eff2ff !important;
+    }
+  </style>
+</head>
+<body class="h-full font-sans antialiased text-slate-800 bg-[#f4f7fc]" x-data="{
+  activeTab: 'Doctor Profile',
+  searchQuery: '',
+  selectedQueueTab: 'All',
+  showAddEmployeeModal: false,
+  showEditModal: false,
+  showToast: false,
+  toastMessage: '',
+  showInactiveLicenses: true,
+  currentDateIndex: 2, // Default Sunday selected
+  activeDoctorId: 0, // Default Brooklyn Simmons
+
+  // Dynamic Database of Doctors matching the original dataset
+  doctors: [
+    {
+      id: 0,
+      name: 'Dr. Brooklyn Simmons',
+      specialty: 'Cardiologist',
+      type: 'old',
+      image: 'https://images.unsplash.com/photo-1594824813573-246434de83fb?auto=format&fit=crop&q=80&w=250',
+      phone: '+(555) 234-9871',
+      email: 'brooklyn.s@novacare.com',
+      address: '12 Emerald Road, Seattle, USA',
+      description: 'Dr. Brooklyn Simmons has over 10 years of experience specialized in non-invasive cardiology. She holds multi-state licenses and is deeply committed to prevention procedures.',
+      npi: '1004509187',
+      specialistType: 'Cardiologist',
+      languages: 'English, Spanish',
+      patientOverview: {
+        old: [40, 35, 45, 30, 38, 42, 35],
+        new: [15, 22, 28, 12, 19, 21, 14]
+      },
+      schedule: [
+        { time: '08:30 AM', patient: 'Theresa Webb', issue: 'Arrhythmia checkup' },
+        { time: '11:15 AM', patient: 'Jane Cooper', issue: 'ECG Analysis' }
+      ],
+      licenses: [
+        { number: '#054112', expiration: '2011 - 2025', state: 'Washington', status: 'Active' },
+        { number: '#14521448', expiration: '3110 - 2024', state: 'California', status: 'Inactive' }
+      ]
+    },
+    {
+      id: 1,
+      name: 'Dr. Farhan Ahmed',
+      specialty: 'Cardiologist Surgeon',
+      type: 'New',
+      image: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=250',
+      phone: '+(555) 764-1095',
+      email: 'farhanahmed@dr.com',
+      address: '123 Maple Street, Springfield, USA',
+      description: 'I am pleased to be part of the Northwest Ohio Community since 2012. I provide Cardiologist Surgeon, medical and medication management services to reduce pain and suffering of patients.',
+      npi: '10030000126',
+      specialistType: 'Cardiologist',
+      languages: 'English, Urdu, Bangla',
+      patientOverview: {
+        old: [30, 25, 40, 15, 30, 35, 40],
+        new: [20, 18, 44, 25, 22, 18, 20]
+      },
+      schedule: [
+        { time: '09:00 AM', patient: 'Jerome Bell', issue: 'Behavioral Issues' },
+        { time: '11:00 AM', patient: 'Darlene Robertson', issue: 'Anxiety Disorder' },
+        { time: '02:00 PM', patient: 'Brooklyn Simmons', issue: 'Post-Op Consultation' }
+      ],
+      licenses: [
+        { number: '#068455', expiration: '2008 - 2024', state: 'Maryland', status: 'Active' },
+        { number: '#563655', expiration: '8455 - 2026', state: 'Australia', status: 'Active' },
+        { number: '#14314412', expiration: '9081 - 2023', state: 'Ohio', status: 'Inactive' }
+      ]
+    },
+    {
+      id: 2,
+      name: 'Dr. Dianne Russell',
+      specialty: 'Gastroenterologist',
+      type: 'old',
+      image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=250',
+      phone: '+(555) 893-1123',
+      email: 'dianne.r@novacareos.com',
+      address: '456 Sapphire Blvd, Boston, USA',
+      description: 'Specializing in advanced digestive wellness programs. Over 15 years diagnosing and treating complex metabolic, esophageal, and gastrointestinal syndromes.',
+      npi: '1009845112',
+      specialistType: 'Gastroenterology Expert',
+      languages: 'English, French, German',
+      patientOverview: {
+        old: [25, 30, 35, 42, 28, 30, 31],
+        new: [10, 15, 20, 14, 18, 22, 19]
+      },
+      schedule: [
+        { time: '10:00 AM', patient: 'Guy Hawkins', issue: 'Gastric Follow-up' },
+        { time: '01:30 PM', patient: 'Albert Flores', issue: 'Ultrasound Scan' }
+      ],
+      licenses: [
+        { number: '#021145', expiration: '2010 - 2026', state: 'Massachusetts', status: 'Active' }
+      ]
+    },
+    {
+      id: 3,
+      name: 'Dr. Jenny Wilson',
+      specialty: 'Endocrinologist',
+      type: 'New',
+      image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=250',
+      phone: '+(555) 431-8971',
+      email: 'jenny.wilson@novacare.com',
+      address: '189 Willow Pass, Denver, USA',
+      description: 'Dedicated endocrinologist focusing on diabetes prevention, thyroid management, and hormonal therapies. Certified clinical instructor and researcher.',
+      npi: '1006734129',
+      specialistType: 'Endocrinology',
+      languages: 'English, Hindi',
+      patientOverview: {
+        old: [35, 40, 22, 33, 41, 38, 45],
+        new: [30, 25, 18, 20, 27, 24, 30]
+      },
+      schedule: [
+        { time: '09:30 AM', patient: 'Leslie Alexander', issue: 'Thyroid Check' },
+        { time: '03:00 PM', patient: 'Wade Warren', issue: 'Diabetes Management' }
+      ],
+      licenses: [
+        { number: '#099812', expiration: '2014 - 2025', state: 'Colorado', status: 'Active' }
+      ]
+    },
+    {
+      id: 4,
+      name: 'Dr. Eleanor Pena',
+      specialty: 'Rheumatologist',
+      type: 'old',
+      image: 'https://images.unsplash.com/photo-1594824813573-246434de83fb?auto=format&fit=crop&q=80&w=250',
+      phone: '+(555) 762-1144',
+      email: 'eleanor.p@novacare.com',
+      address: '102 Oakwood Drive, Austin, USA',
+      description: 'Focuses on clinical immunology and degenerative joint pathology. Published author in modern arthritis treatment breakthroughs.',
+      npi: '1004561129',
+      specialistType: 'Rheumatology Specialist',
+      languages: 'English, Portuguese',
+      patientOverview: {
+        old: [45, 38, 40, 31, 39, 44, 42],
+        new: [12, 19, 21, 28, 20, 15, 18]
+      },
+      schedule: [
+        { time: '11:00 AM', patient: 'Robert Fox', issue: 'Joint Inflammation' },
+        { time: '04:15 PM', patient: 'Esther Howard', issue: 'Rheumatoid assessment' }
+      ],
+      licenses: [
+        { number: '#1081190', expiration: '2013 - 2025', state: 'Texas', status: 'Active' }
+      ]
+    },
+    {
+      id: 5,
+      name: 'Dr. Cameron Williamson',
+      specialty: 'Neurosurgeon',
+      type: 'New',
+      image: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=250',
+      phone: '+(555) 198-4422',
+      email: 'cameron.w@novacare.com',
+      address: '1778 Pine Heights, Chicago, USA',
+      description: 'Expert neurosurgeon skilled in minimally invasive brain surgery, spinal decompression, and advanced neuroscience diagnostics.',
+      npi: '1003112245',
+      specialistType: 'Neurological Surgery',
+      languages: 'English, Russian',
+      patientOverview: {
+        old: [30, 32, 28, 35, 42, 38, 40],
+        new: [18, 20, 15, 24, 25, 21, 23]
+      },
+      schedule: [
+        { time: '08:00 AM', patient: 'Cody Fisher', issue: 'Spine Post-Op Consultation' },
+        { time: '01:00 PM', patient: 'Kristin Watson', issue: 'Brain MRI Review' }
+      ],
+      licenses: [
+        { number: '#041123', expiration: '2016 - 2027', state: 'Illinois', status: 'Active' }
+      ]
+    },
+    {
+      id: 6,
+      name: 'Dr. Courtney Henry',
+      specialty: 'Plastic Surgeon',
+      type: 'old',
+      image: 'https://images.unsplash.com/photo-1614608682850-e0d6ed316d47?auto=format&fit=crop&q=80&w=250',
+      phone: '+(555) 881-2311',
+      email: 'courtney.h@novacare.com',
+      address: '190 Beachside Ave, Miami, USA',
+      description: 'Specializes in aesthetic restoration, burns reconstructive surgery, and clinical micro-suturing technologies.',
+      npi: '1002235612',
+      specialistType: 'Plastic & Reconstructive',
+      languages: 'English, Spanish, Italian',
+      patientOverview: {
+        old: [20, 25, 30, 22, 28, 35, 33],
+        new: [15, 12, 19, 18, 25, 20, 24]
+      },
+      schedule: [
+        { time: '10:30 AM', patient: 'Eleanor Pena', issue: 'Scar Laser treatment' },
+        { time: '02:30 PM', patient: 'Ronald Richards', issue: 'Consultation' }
+      ],
+      licenses: [
+        { number: '#055123', expiration: '2012 - 2026', state: 'Florida', status: 'Active' }
+      ]
+    }
+  ],
+
+  // Calendar dates slider data
+  daysOfWeek: [
+    { label: 'Fri', num: '31', month: 'Aug' },
+    { label: 'Sat', num: '01', month: 'Sep' },
+    { label: 'Sun', num: '02', month: 'Sep' },
+    { label: 'Mon', num: '03', month: 'Sep' },
+    { label: 'Tue', num: '04', month: 'Sep' }
+  ],
+
+  // Form states for creating a new doctor
+  newDocName: '',
+  newDocSpecialty: '',
+  newDocType: 'New',
+  newDocPhone: '',
+  newDocEmail: '',
+  newDocAddress: '',
+  newDocDescription: '',
+  newDocLanguages: 'English',
+  newDocNpi: '1003450918',
+
+  get activeDoctor() {
+    return this.doctors.find(d => d.id === this.activeDoctorId) || this.doctors[0];
+  },
+
+  get filteredQueue() {
+    return this.doctors.filter(d => {
+      const matchesSearch = d.name.toLowerCase().includes(this.searchQuery.toLowerCase()) || 
+                            d.specialty.toLowerCase().includes(this.searchQuery.toLowerCase());
+      if (this.selectedQueueTab === 'All') return matchesSearch;
+      // Normalizing case for type matching
+      return matchesSearch && d.type.toLowerCase() === this.selectedQueueTab.toLowerCase();
+    });
+  },
+
+  triggerToast(message) {
+    this.toastMessage = message;
+    this.showToast = true;
+    setTimeout(() => this.showToast = false, 3000);
+  },
+
+  addNewEmployee() {
+    if (!this.newDocName || !this.newDocSpecialty) {
+      this.triggerToast('Please provide Name and Specialty');
+      return;
+    }
+
+    const newId = this.doctors.length;
+    this.doctors.push({
+      id: newId,
+      name: this.newDocName,
+      specialty: this.newDocSpecialty,
+      type: this.newDocType,
+      image: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&q=80&w=250',
+      phone: this.newDocPhone || '+(555) 000-1111',
+      email: this.newDocEmail || 'new.doctor@novacare.com',
+      address: this.newDocAddress || '100 Medical Plaza, USA',
+      description: this.newDocDescription || 'Newly added medical service staff to assist clinic patients.',
+      npi: this.newDocNpi || '1000000000',
+      specialistType: this.newDocSpecialty,
+      languages: this.newDocLanguages,
+      patientOverview: {
+        old: [15, 20, 25, 20, 22, 28, 30],
+        new: [5, 12, 10, 15, 18, 14, 16]
+      },
+      schedule: [
+        { time: '09:00 AM', patient: 'Quick Intake Case', issue: 'New Patient Assessment' }
+      ],
+      licenses: [
+        { number: '#999111', expiration: '2026 - 2030', state: 'New York', status: 'Active' }
+      ]
+    });
+
+    this.activeDoctorId = newId;
+    this.showAddEmployeeModal = false;
+
+    // Reset Form fields
+    this.newDocName = '';
+    this.newDocSpecialty = '';
+    this.newDocPhone = '';
+    this.newDocEmail = '';
+    this.newDocAddress = '';
+    this.newDocDescription = '';
+    this.triggerToast('New doctor added and loaded successfully!');
+  }
+}">
+
+  <!-- Toast Alert Banner Overlay -->
+  <div x-cloak x-show="showToast"
+       x-transition:enter="transition ease-out duration-300 transform"
+       x-transition:enter-start="translate-y-[-20px] opacity-0"
+       x-transition:enter-end="translate-y-0 opacity-100"
+       x-transition:leave="transition ease-in duration-200 transform"
+       x-transition:leave-start="translate-y-0 opacity-100"
+       x-transition:leave-end="translate-y-[-20px] opacity-0"
+       class="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-6 py-3.5 rounded-2xl shadow-xl flex items-center gap-3 border border-slate-800">
+    <div class="w-8 h-8 rounded-full bg-brand-sidebar/20 flex items-center justify-center text-brand-sidebar">
+      <i class="fa-solid fa-circle-check text-base text-[#5c6dfa]"></i>
+    </div>
+    <span class="font-bold text-xs uppercase tracking-wide text-slate-100" x-text="toastMessage"></span>
+  </div>
+
+  <!-- MAIN APP CONTAINER FRAME -->
+  <div class="flex h-full min-h-screen w-full">
+
+    <!-- LEFT SIDEBAR: Solid color-matched design matching patient dashboard layout -->
+    <aside class="w-64 bg-brand-sidebar flex-shrink-0 flex flex-col text-white relative shadow-xl shadow-indigo-600/10 hidden lg:flex">
+      
+      <!-- Logo Header -->
+      <div class="p-6 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-brand-sidebar font-extrabold text-xl shadow-md">
+          <img src="images/app-logo.jpg"
+               alt="NovaCare OS logo"
+               class="w-8 h-8 rounded object-contain">
+        </div>
+        <div>
+          <span class="font-bold text-xl tracking-tight block">NovaCare OS</span>
+          <span class="text-[10px] text-indigo-100 uppercase tracking-widest font-semibold">Workspace OS</span>
+        </div>
+      </div>
+
+      <!-- Quick Command Search Box in Sidebar -->
+      <div class="px-4 mb-4">
+        <div class="relative w-full">
+          <input type="text"
+                 x-model="searchQuery"
+                 placeholder="Search workspace..."
+                 class="w-full px-4 py-2.5 bg-white/10 hover:bg-white/15 focus:bg-white/20 border border-white/10 focus:border-white/20 rounded-xl text-xs text-white placeholder-indigo-200 focus:outline-none transition-all pr-10">
+          <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[9px] bg-white/10 text-white/70 px-1.5 py-0.5 rounded border border-white/10">
+            <span>⌘K</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation links matching Screenshot items -->
+      <nav class="flex-1 px-4 space-y-1.5 overflow-y-auto pt-2">
+        <h5 class="text-[9px] font-extrabold text-indigo-200 uppercase tracking-widest mb-2 px-3.5">Main Menu</h5>
+        
+        <button @click="activeTab = 'Dashboard'" 
+                :class="activeTab === 'Dashboard' ? 'bg-white/15 text-white font-semibold shadow-inner' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white font-medium'"
+                class="w-full flex items-center gap-3.5 px-4.5 py-3 rounded-xl transition-all text-sm text-left">
+          <i class="fa-solid fa-table-cells-large text-sm shrink-0"></i>
+          <span>Dashboard</span>
+        </button>
+
+        <!-- Doctor section with inner highlights -->
+        <div class="space-y-1">
+          <button @click="activeTab = 'Doctor Profile'" 
+                  :class="activeTab.startsWith('Doctor') ? 'bg-white/15 text-white font-bold shadow-inner' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white font-medium'"
+                  class="w-full flex items-center justify-between gap-3 px-4.5 py-3 rounded-xl transition-all text-sm text-left">
+            <span class="flex items-center gap-3.5">
+              <i class="fa-solid fa-user-doctor text-sm shrink-0"></i>
+              <span>Doctors</span>
+            </span>
+            <i class="fa-solid fa-chevron-down text-[9px] text-white/75"></i>
+          </button>
+          
+          <!-- Dropdown items inside styling template -->
+          <div class="pl-6 space-y-1 pt-0.5 text-xs font-medium">
+            <button @click="activeTab = 'Doctor List'; triggerToast('Loading complete doctors master roster...')" class="w-full text-left py-2 px-3 text-indigo-100 hover:text-white hover:bg-white/5 rounded-lg transition flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-indigo-300"></span> Doctor List
+            </button>
+            <button @click="activeTab = 'Doctor Profile'" class="w-full text-left py-2 px-3 text-indigo-100 hover:text-white hover:bg-white/5 rounded-lg transition flex items-center gap-2" :class="activeTab === 'Doctor Profile' ? 'text-white font-semibold bg-white/5' : ''">
+              <span class="w-1.5 h-1.5 rounded-full bg-brand-coral"></span> Doctor Profile
+            </button>
+            <button @click="showAddEmployeeModal = true" class="w-full text-left py-2 px-3 text-indigo-100 hover:text-white hover:bg-white/5 rounded-lg transition flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-indigo-300"></span> Add Doctor
+            </button>
+          </div>
+        </div>
+
+        <button @click="activeTab = 'Patient'" 
+                :class="activeTab === 'Patient' ? 'bg-white/15 text-white font-semibold shadow-inner' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white font-medium'"
+                class="w-full flex items-center gap-3.5 px-4.5 py-3 rounded-xl transition-all text-sm text-left">
+          <i class="fa-solid fa-hospital-user text-sm shrink-0"></i>
+          <span>Patients</span>
+        </button>
+
+        <button @click="activeTab = 'Appointment'" 
+                :class="activeTab === 'Appointment' ? 'bg-white/15 text-white font-semibold shadow-inner' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white font-medium'"
+                class="w-full flex items-center gap-3.5 px-4.5 py-3 rounded-xl transition-all text-sm text-left">
+          <i class="fa-regular fa-calendar-check text-sm shrink-0"></i>
+          <span>Appointments</span>
+        </button>
+
+        <button @click="activeTab = 'Departments'" 
+                :class="activeTab === 'Departments' ? 'bg-white/15 text-white font-semibold shadow-inner' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white font-medium'"
+                class="w-full flex items-center gap-3.5 px-4.5 py-3 rounded-xl transition-all text-sm text-left">
+          <i class="fa-solid fa-network-wired text-sm shrink-0"></i>
+          <span>Departments</span>
+        </button>
+
+        <div class="h-px bg-white/10 my-4"></div>
+        <h5 class="text-[9px] font-extrabold text-indigo-200 uppercase tracking-widest mb-2 px-3.5">Record</h5>
+
+        <button @click="triggerToast('Loading performance reports...')" 
+                class="w-full text-left px-4.5 py-3 rounded-xl text-indigo-100 hover:bg-brand-sidebarHover hover:text-white flex items-center gap-3.5 transition text-sm font-medium">
+          <i class="fa-solid fa-chart-line text-sm shrink-0"></i>
+          <span>Reports</span>
+        </button>
+
+        <button @click="triggerToast('Opening contacts directories...')" 
+                class="w-full text-left px-4.5 py-3 rounded-xl text-indigo-100 hover:bg-brand-sidebarHover hover:text-white flex items-center gap-3.5 transition text-sm font-medium">
+          <i class="fa-regular fa-address-book text-sm shrink-0"></i>
+          <span>Contacts</span>
+        </button>
+
+        <div class="h-px bg-white/10 my-4"></div>
+        <h5 class="text-[9px] font-extrabold text-indigo-200 uppercase tracking-widest mb-2 px-3.5">System</h5>
+
+        <button @click="triggerToast('Opening workspace configuration...')" 
+                class="w-full text-left px-4.5 py-3 rounded-xl text-indigo-100 hover:bg-brand-sidebarHover hover:text-white flex items-center gap-3.5 transition text-sm font-medium">
+          <i class="fa-solid fa-gear text-sm shrink-0"></i>
+          <span>Settings</span>
+        </button>
+
+        <button @click="triggerToast('Opening marketplace integrations...')" 
+                class="w-full text-left px-4.5 py-3 rounded-xl text-indigo-100 hover:bg-brand-sidebarHover hover:text-white flex items-center gap-3.5 transition text-sm font-medium">
+          <i class="fa-solid fa-circle-nodes text-sm shrink-0"></i>
+          <span>Integrations</span>
+        </button>
+
+        <button @click="triggerToast('Opening help desk...')" 
+                class="w-full text-left px-4.5 py-3 rounded-xl text-indigo-100 hover:bg-brand-sidebarHover hover:text-white flex items-center gap-3.5 transition text-sm font-medium">
+          <i class="fa-regular fa-circle-question text-sm shrink-0"></i>
+          <span>Help Center</span>
+        </button>
+      </nav>
+
+      <!-- Sidebar Foot Signature matching patient portfolio -->
+      <div class="p-6 border-t border-white/10 text-center">
+        <p class="text-[10px] text-indigo-200">v1.6.50 · © 2026 NovaCare OS</p>
+      </div>
+    </aside>
+
+    <!-- RIGHT SIDE CONTENT AREA -->
+    <div class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+
+      <!-- TOP HEADER ACTION BAR -->
+      <header class="bg-white/75 backdrop-blur-md border-b border-slate-100 px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 sticky top-0 z-10">
+        <div>
+          <h1 class="text-xl font-bold text-slate-900 tracking-tight" x-text="activeTab">Doctor Profile</h1>
+          <!-- Last update banner indicator -->
+          <div class="mt-1.5 inline-flex items-center gap-2 px-3 py-1 bg-slate-100/80 rounded-lg border border-slate-200 text-xs text-slate-500 font-semibold cursor-pointer hover:bg-slate-150 transition"
+               @click="triggerToast('Calendar scope: January 2024 to October 2024')">
+            <i class="fa-regular fa-calendar-days text-brand-sidebar text-xs"></i>
+            <span>Last Update: Jan 2024 - Oct 2024</span>
+          </div>
+        </div>
+
+        <!-- Right Hand Toolbar items aligned beautifully -->
+        <div class="flex items-center gap-4">
+          
+          <!-- Inbox messaging quick key -->
+          <button class="w-10 h-10 rounded-full bg-slate-50 hover:bg-slate-100 transition flex items-center justify-center border border-slate-200 text-slate-500 hover:text-indigo-600 shadow-sm relative"
+                  @click="triggerToast('No new unread system messages')">
+            <i class="fa-regular fa-envelope text-sm"></i>
+            <span class="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-brand-coral"></span>
+          </button>
+
+          <!-- System Notifications -->
+          <button class="w-10 h-10 rounded-full bg-slate-50 hover:bg-slate-100 transition flex items-center justify-center border border-slate-200 text-slate-500 hover:text-indigo-600 shadow-sm relative"
+                  @click="triggerToast('All server logs and schedules are running optimally')">
+            <i class="fa-regular fa-bell text-sm"></i>
+            <span class="absolute top-2.5 right-2.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border border-white"></span>
+          </button>
+
+          <!-- Divider -->
+          <div class="h-6 w-px bg-slate-200"></div>
+
+          <!-- User Profile Dropdown Badge -->
+          <div class="flex items-center gap-3 bg-slate-50 p-1.5 px-4 rounded-full border border-slate-200 cursor-pointer hover:bg-slate-100 transition shadow-sm"
+               @click="triggerToast('Super User Admin Profile Menu Opened')">
+            <img class="w-8 h-8 rounded-full object-cover border border-white shadow-sm"
+                 src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150" alt="Sarah Admin">
+            <div class="text-left hidden md:block">
+              <h4 class="text-xs font-bold text-slate-800 leading-none">Nola Hawkins</h4>
+              <span class="text-[9px] text-slate-400 font-semibold mt-0.5">Administrator</span>
+            </div>
+            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 ml-1"></i>
+          </div>
+
+          <!-- Add Employee Trigger Button -->
+          <button class="px-5 py-2.5 rounded-xl bg-brand-sidebar hover:bg-brand-sidebarHover text-white text-xs font-bold transition flex items-center gap-2 shadow-md shadow-indigo-600/15"
+                  @click="showAddEmployeeModal = true">
+            <i class="fa-solid fa-plus text-xs"></i> <span>Add Employee</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- CORE CONTAINER GRID WORKSPACE (Adapted beautifully from visual references) -->
+      <main class="p-6 md:p-8 max-w-[1400px] w-full mx-auto grid grid-cols-1 xl:grid-cols-12 gap-6 flex-1">
+
+        <!-- COLUMN 1: DOCTOR QUEUE SIDE-LIST (col-span-3) -->
+        <section class="xl:col-span-3 flex flex-col gap-4">
+          <div class="dashboard-card p-4 space-y-4">
+            <div class="flex justify-between items-center pb-2">
+              <h3 class="text-sm font-extrabold text-slate-900 tracking-wider uppercase">Doctor Queue</h3>
+              <button class="w-7 h-7 rounded-lg bg-slate-50 border border-slate-200/80 hover:bg-slate-100 transition flex items-center justify-center text-slate-400">
+                <i class="fa-solid fa-magnifying-glass text-xs"></i>
+              </button>
+            </div>
+
+            <!-- Filters matching original layout (All, Old, New) -->
+            <div class="flex bg-slate-100 p-1 rounded-xl gap-1">
+              <button @click="selectedQueueTab = 'All'"
+                      :class="selectedQueueTab === 'All' ? 'bg-white text-slate-800 font-bold shadow-sm' : 'text-slate-500 hover:bg-white/40'"
+                      class="flex-1 text-center py-1.5 rounded-lg text-xs transition select-none font-semibold">
+                All
+              </button>
+              <button @click="selectedQueueTab = 'old'"
+                      :class="selectedQueueTab === 'old' ? 'bg-white text-slate-800 font-bold shadow-sm' : 'text-slate-500 hover:bg-white/40'"
+                      class="flex-1 text-center py-1.5 rounded-lg text-xs transition select-none font-semibold">
+                Old
+              </button>
+              <button @click="selectedQueueTab = 'New'"
+                      :class="selectedQueueTab === 'New' ? 'bg-white text-slate-800 font-bold shadow-sm' : 'text-slate-500 hover:bg-white/40'"
+                      class="flex-1 text-center py-1.5 rounded-lg text-xs transition select-none font-semibold">
+                New
+              </button>
+            </div>
+
+            <!-- Scrollable Queue matching original styling details -->
+            <div class="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+              <template x-for="doc in filteredQueue" :key="doc.id">
+                <div @click="activeDoctorId = doc.id; triggerToast('Switched command context to ' + doc.name)"
+                     :class="activeDoctorId === doc.id ? 'active-doctor-item shadow-inner' : 'border border-slate-100'"
+                     class="p-3 rounded-xl bg-white hover:bg-slate-50 transition flex items-center justify-between group cursor-pointer">
+                  <div class="flex items-center gap-3">
+                    <img :src="doc.image" class="w-10 h-10 rounded-lg object-cover border border-slate-200" alt="Avatar">
+                    <div class="text-left">
+                      <h4 class="text-xs font-bold text-slate-800 group-hover:text-brand-sidebar transition" x-text="doc.name"></h4>
+                      <span class="text-[10px] text-slate-400 font-semibold" x-text="doc.specialty"></span>
+                    </div>
+                  </div>
+                  
+                  <button class="w-6 h-6 rounded-md bg-slate-50 group-hover:bg-white border border-slate-200/80 flex items-center justify-center text-slate-400 hover:text-indigo-600 transition"
+                          @click.stop="triggerToast('Opening quick actions for ' + doc.name)">
+                    <i class="fa-solid fa-ellipsis text-[10px]"></i>
+                  </button>
+                </div>
+              </template>
+
+              <!-- Empty fallbacks -->
+              <div x-show="filteredQueue.length === 0" class="text-center py-12 space-y-2">
+                <i class="fa-regular fa-folder-open text-slate-300 text-2xl"></i>
+                <p class="text-xs text-slate-400 font-semibold">No doctors found matching query.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- COLUMN 2: ACTIVE DOCTOR SUMMARY & DAILY CALENDAR (col-span-4) -->
+        <section class="xl:col-span-4 flex flex-col gap-6">
+          
+          <!-- Center Profile Dashboard Card with solid premium elements -->
+          <div class="dashboard-card p-6 space-y-5 relative">
+            
+            <!-- Quick credential editing trigger -->
+            <button class="absolute top-4 right-4 w-8 h-8 rounded-lg bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200 transition shadow-sm"
+                    @click="showEditModal = true">
+              <i class="fa-regular fa-pen-to-square text-xs"></i>
+            </button>
+
+            <!-- Main Doctor demographics banner layout -->
+            <div class="flex flex-col items-center text-center pt-2">
+              <img :src="activeDoctor.image" class="w-24 h-24 rounded-2xl object-cover border-2 border-slate-100 shadow-md mb-3" alt="Doctor Face">
+              <h3 class="text-base font-extrabold text-slate-900 leading-tight" x-text="activeDoctor.name"></h3>
+              <p class="text-xs text-slate-500 font-bold tracking-wide mt-1" x-text="activeDoctor.specialty"></p>
+            </div>
+
+            <!-- Detail stats row blocks using premium medical palette icons -->
+            <div class="space-y-3 pt-4 border-t border-slate-100 text-xs">
+              
+              <!-- Phone -->
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-brand-sidebar shrink-0">
+                  <i class="fa-solid fa-phone text-xs"></i>
+                </div>
+                <div>
+                  <span class="block text-[9px] uppercase font-bold text-slate-400">Phone Number</span>
+                  <span class="font-bold text-slate-800" x-text="activeDoctor.phone"></span>
+                </div>
+              </div>
+
+              <!-- Email -->
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-brand-sidebar shrink-0">
+                  <i class="fa-regular fa-envelope text-xs"></i>
+                </div>
+                <div class="min-w-0">
+                  <span class="block text-[9px] uppercase font-bold text-slate-400">Email Address</span>
+                  <span class="font-bold text-slate-800 break-all truncate max-w-[200px] block" x-text="activeDoctor.email"></span>
+                </div>
+              </div>
+
+              <!-- Address -->
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-brand-sidebar shrink-0">
+                  <i class="fa-solid fa-location-dot text-xs"></i>
+                </div>
+                <div>
+                  <span class="block text-[9px] uppercase font-bold text-slate-400">Clinic Address</span>
+                  <span class="font-bold text-slate-800 text-[11px]" x-text="activeDoctor.address"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Solid buttons aligning the medical platform layout -->
+            <div class="grid grid-cols-2 gap-3 pt-2">
+              <button class="py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition text-slate-700 font-bold text-xs"
+                      @click="showEditModal = true">
+                Edit
+              </button>
+              <button class="py-2.5 rounded-xl bg-brand-sidebar hover:bg-brand-sidebarHover text-white font-bold text-xs transition shadow-md shadow-indigo-600/10"
+                      @click="triggerToast('Opening Secure Encrypted Messenger for ' + activeDoctor.name)">
+                Message
+              </button>
+            </div>
+          </div>
+
+          <!-- Todays Schedule Component inside solid white styling -->
+          <div class="dashboard-card p-6 space-y-4">
+            <div class="flex justify-between items-center">
+              <h3 class="text-xs font-extrabold uppercase tracking-widest text-slate-400">Today's Schedule</h3>
+              <button class="w-7 h-7 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 transition flex items-center justify-center text-slate-500">
+                <i class="fa-solid fa-ellipsis-vertical text-xs"></i>
+              </button>
+            </div>
+
+            <!-- Dates Selector matching Sun 02 highlighted design style -->
+            <div class="flex justify-between bg-slate-100/80 p-1 rounded-xl">
+              <template x-for="(day, index) in daysOfWeek" :key="index">
+                <button @click="currentDateIndex = index; triggerToast('Showing schedules for ' + day.label + ' ' + day.num)"
+                        :class="currentDateIndex === index ? 'bg-brand-sidebar text-white font-extrabold shadow-md' : 'text-slate-500 hover:bg-white/40'"
+                        class="flex-1 py-1.5 px-1 rounded-lg text-center transition flex flex-col items-center">
+                  <span class="text-[9px] opacity-75 uppercase font-bold" x-text="day.label"></span>
+                  <span class="text-xs font-bold" x-text="day.num"></span>
+                </button>
+              </template>
+            </div>
+
+            <!-- Dynamic Appointments Lists -->
+            <div class="space-y-3 max-h-[190px] overflow-y-auto pr-1">
+              <template x-for="(item, sidx) in activeDoctor.schedule" :key="sidx">
+                <div class="p-3 rounded-xl bg-slate-50/60 border border-slate-100 transition flex items-start justify-between hover:bg-slate-50">
+                  <div class="flex gap-3">
+                    <span class="w-1.5 h-10 rounded-full bg-brand-sidebar block shrink-0 mt-0.5"></span>
+                    <div class="text-left">
+                      <div class="flex flex-wrap items-center gap-2">
+                        <span class="text-xs font-extrabold text-slate-800" x-text="item.patient"></span>
+                        <span class="text-[9px] bg-indigo-50/80 px-2 py-0.5 rounded-full text-indigo-600 font-bold" x-text="item.time"></span>
+                      </div>
+                      <span class="text-[10px] text-slate-500 font-semibold block mt-1" x-text="item.issue"></span>
+                    </div>
+                  </div>
+                  
+                  <button class="text-slate-400 hover:text-brand-coral transition text-xs p-1"
+                          @click="triggerToast('Reminding patient via SMS & Email gateway...')">
+                    <i class="fa-regular fa-bell"></i>
+                  </button>
+                </div>
+              </template>
+
+              <!-- Fallback -->
+              <div x-show="activeDoctor.schedule.length === 0" class="text-center py-6">
+                <p class="text-xs text-slate-400 font-semibold">No appointments scheduled for this date.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- COLUMN 3: CLINICAL ANALYTICS & LICENSES (col-span-5) -->
+        <section class="xl:col-span-5 flex flex-col gap-6">
+          
+          <!-- Analytical Chart showing Old vs New Patient distributions -->
+          <div class="dashboard-card p-6 space-y-4">
+            <div class="flex justify-between items-center flex-wrap gap-2">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-brand-sidebar">
+                  <i class="fa-solid fa-chart-simple text-sm"></i>
+                </div>
+                <h3 class="text-sm font-extrabold text-slate-800 tracking-wider uppercase">Patient Overview</h3>
+              </div>
+
+              <!-- Color-coded legends -->
+              <div class="flex items-center gap-4 text-xs font-semibold">
+                <div class="flex items-center gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full bg-brand-sidebar"></span>
+                  <span class="text-slate-500 text-[11px]">Old Patient</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full bg-brand-coral"></span>
+                  <span class="text-slate-500 text-[11px]">New Patient</span>
+                </div>
+                
+                <button class="px-2.5 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 transition flex items-center gap-1 text-[11px] font-bold"
+                        @click="triggerToast('Switched Overview Graph Interval Filter')">
+                  <span>Monthly</span>
+                  <i class="fa-solid fa-chevron-down text-[8px] text-slate-400"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Custom Premium SVG bar graph with dynamic active overlays -->
+            <div class="relative pt-2 h-44">
+              <svg class="w-full h-full" viewBox="0 0 500 150">
+                <!-- Grid Lines -->
+                <line x1="0" y1="30" x2="500" y2="30" stroke="#f1f5f9" stroke-dasharray="4" />
+                <line x1="0" y1="65" x2="500" y2="65" stroke="#f1f5f9" stroke-dasharray="4" />
+                <line x1="0" y1="100" x2="500" y2="100" stroke="#f1f5f9" stroke-dasharray="4" />
+                <line x1="0" y1="135" x2="500" y2="135" stroke="#f1f5f9" stroke-dasharray="4" />
+
+                <!-- Column 1: Sat -->
+                <rect x="30" y="55" width="12" height="80" rx="3" fill="#5c6dfa" opacity="0.9" class="transition-all duration-300" />
+                <rect x="45" y="95" width="12" height="40" rx="3" fill="#ff6b35" opacity="0.9" class="transition-all duration-300" />
+
+                <!-- Column 2: Sun -->
+                <rect x="100" y="75" width="12" height="60" rx="3" fill="#5c6dfa" opacity="0.9" class="transition-all duration-300" />
+                <rect x="115" y="105" width="12" height="30" rx="3" fill="#ff6b35" opacity="0.9" class="transition-all duration-300" />
+
+                <!-- Column 3: Mon (Active highlight matched) -->
+                <rect x="170" y="35" width="14" height="100" rx="3" fill="#5c6dfa" class="transition-all duration-300 shadow-md" />
+                <rect x="187" y="70" width="14" height="65" rx="3" fill="#ff6b35" class="transition-all duration-300 shadow-md" />
+
+                <!-- Column 4: Tue -->
+                <rect x="240" y="65" width="12" height="70" rx="3" fill="#5c6dfa" opacity="0.9" class="transition-all duration-300" />
+                <rect x="255" y="90" width="12" height="45" rx="3" fill="#ff6b35" opacity="0.9" class="transition-all duration-300" />
+
+                <!-- Column 5: Wed -->
+                <rect x="310" y="50" width="12" height="85" rx="3" fill="#5c6dfa" opacity="0.9" class="transition-all duration-300" />
+                <rect x="325" y="80" width="12" height="55" rx="3" fill="#ff6b35" opacity="0.9" class="transition-all duration-300" />
+
+                <!-- Column 6: Thu -->
+                <rect x="380" y="60" width="12" height="75" rx="3" fill="#5c6dfa" opacity="0.9" class="transition-all duration-300" />
+                <rect x="395" y="95" width="12" height="40" rx="3" fill="#ff6b35" opacity="0.9" class="transition-all duration-300" />
+
+                <!-- Column 7: Fri -->
+                <rect x="450" y="45" width="12" height="90" rx="3" fill="#5c6dfa" opacity="0.9" class="transition-all duration-300" />
+                <rect x="465" y="80" width="12" height="55" rx="3" fill="#ff6b35" opacity="0.9" class="transition-all duration-300" />
+
+                <!-- Wave line trend overlaps -->
+                <path d="M 36,65 L 107,95 L 178,40 L 317,60 L 456,55" fill="none" stroke="#5c6dfa" stroke-width="2.5" class="transition-all duration-500" />
+                <path d="M 50,105 L 121,115 L 193,80 L 331,95 L 470,85" fill="none" stroke="#ff6b35" stroke-width="2" stroke-dasharray="3" class="transition-all duration-500" />
+              </svg>
+
+              <!-- Interactive Tooltip overlay aligned beautifully on standard active day (Monday) -->
+              <div class="absolute top-2 left-[210px] bg-slate-900/95 backdrop-blur-md text-white p-3 rounded-xl text-[10px] space-y-1 shadow-xl pointer-events-none border border-slate-800">
+                <span class="block font-bold border-b border-slate-800 pb-1 text-slate-300">September 03</span>
+                <span class="block text-indigo-300 font-semibold">Old Patients: <strong class="text-white text-xs ml-1" x-text="activeDoctor.patientOverview.old[currentDateIndex]"></strong></span>
+                <span class="block text-orange-300 font-semibold">New Patients: <strong class="text-white text-xs ml-1" x-text="activeDoctor.patientOverview.new[currentDateIndex]"></strong></span>
+              </div>
+            </div>
+
+            <!-- Footer alignments -->
+            <div class="flex justify-between px-3 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+              <span>Sat</span>
+              <span>Sun</span>
+              <span>Mon</span>
+              <span>Tue</span>
+              <span>Wed</span>
+              <span>Thu</span>
+              <span>Fri</span>
+            </div>
+          </div>
+
+          <!-- About Doctor Biography Card with solid components -->
+          <div class="dashboard-card p-6 space-y-4">
+            <div class="flex justify-between items-center">
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-brand-sidebar">
+                  <i class="fa-regular fa-user text-sm"></i>
+                </div>
+                <h3 class="text-sm font-extrabold text-slate-800 tracking-wider uppercase">About Doctor</h3>
+              </div>
+
+              <button class="px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-[10px] font-bold transition flex items-center gap-1"
+                      @click="triggerToast('Viewing full clinical portfolio and certifications...')">
+                <i class="fa-solid fa-expand text-[8px]"></i> Portfolio
+              </button>
+            </div>
+
+            <p class="text-xs text-slate-600 leading-relaxed text-left font-semibold" x-text="activeDoctor.description"></p>
+
+            <!-- Specification details metrics inside solid layouts -->
+            <div class="grid grid-cols-3 gap-2.5 pt-3 border-t border-slate-100">
+              <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-left">
+                <i class="fa-solid fa-id-card text-brand-sidebar text-xs mb-1 block"></i>
+                <span class="block text-[8.5px] uppercase font-bold text-slate-400">NPI Number</span>
+                <span class="text-[10px] font-extrabold text-slate-800 block truncate" x-text="activeDoctor.npi"></span>
+              </div>
+
+              <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-left">
+                <i class="fa-solid fa-stethoscope text-brand-sidebar text-xs mb-1 block"></i>
+                <span class="block text-[8.5px] uppercase font-bold text-slate-400">Specialist</span>
+                <span class="text-[10px] font-extrabold text-slate-800 block truncate" x-text="activeDoctor.specialistType"></span>
+              </div>
+
+              <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-left">
+                <i class="fa-solid fa-language text-brand-sidebar text-xs mb-1 block"></i>
+                <span class="block text-[8.5px] uppercase font-bold text-slate-400">Languages</span>
+                <span class="text-[10px] font-extrabold text-slate-800 block truncate" x-text="activeDoctor.languages"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Doctor Licenses with Active/Inactive Switch Filter -->
+          <div class="dashboard-card p-6 space-y-4">
+            <div class="flex justify-between items-center">
+              <h3 class="text-sm font-extrabold text-slate-900 tracking-wider uppercase">Active Licenses</h3>
+              
+              <!-- Clean solid switch filter -->
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] font-bold text-slate-400 uppercase">Show Inactive</span>
+                <button @click="showInactiveLicenses = !showInactiveLicenses; triggerToast('Toggled inactive licenses view')"
+                        :class="showInactiveLicenses ? 'bg-[#5c6dfa]' : 'bg-slate-300'"
+                        class="w-9 h-5 rounded-full p-0.5 transition duration-200 focus:outline-none flex items-center shrink-0">
+                  <span :class="showInactiveLicenses ? 'translate-x-4' : 'translate-x-0'"
+                        class="w-4 h-4 rounded-full bg-white shadow-sm transform transition duration-200"></span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Dynamic Render list of licenses -->
+            <div class="space-y-2.5">
+              <template x-for="lic in activeDoctor.licenses" :key="lic.number">
+                <div x-show="lic.status === 'Active' || showInactiveLicenses"
+                     class="p-3.5 rounded-xl border border-slate-100 bg-slate-50 hover:bg-slate-100/60 transition flex items-center justify-between">
+                  <div class="text-left space-y-1">
+                    <h4 class="text-xs font-extrabold text-slate-800" x-text="lic.number"></h4>
+                    <span class="text-[10px] text-slate-400 font-bold block" x-text="lic.state + ' · ' + lic.expiration"></span>
+                  </div>
+
+                  <div class="flex items-center gap-2 shrink-0">
+                    <span :class="lic.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-slate-100 text-slate-500 border-slate-200'"
+                          class="text-[9.5px] font-extrabold px-2.5 py-0.5 rounded-full border"
+                          x-text="lic.status"></span>
+                    
+                    <button class="w-7 h-7 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 hover:text-[#5c6dfa] transition shadow-sm"
+                            @click="triggerToast('Downloading license credential document ' + lic.number)">
+                      <i class="fa-solid fa-cloud-arrow-down text-xs"></i>
+                    </button>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- ADD EMPLOYEE SYSTEM MODAL CONTAINER -->
+  <div x-cloak x-show="showAddEmployeeModal"
+       class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm"
+       x-transition:enter="transition ease-out duration-300"
+       x-transition:enter-start="opacity-0"
+       x-transition:enter-end="opacity-100"
+       x-transition:leave="transition ease-in duration-200"
+       x-transition:leave-start="opacity-100"
+       x-transition:leave-end="opacity-0">
+    
+    <div class="bg-white border border-slate-100 rounded-3xl p-6 md:p-8 w-full max-w-lg shadow-2xl relative space-y-5"
+         @click.away="showAddEmployeeModal = false"
+         x-transition:enter="transition ease-out duration-300 transform"
+         x-transition:enter-start="scale-95 translate-y-4"
+         x-transition:enter-end="scale-100 translate-y-0">
+      
+      <!-- Header Title -->
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-user-plus text-brand-sidebar"></i> Register New Employee
+        </h3>
+        <button class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400"
+                @click="showAddEmployeeModal = false">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <!-- Scrollable Input Coordinates -->
+      <div class="space-y-4 max-h-[55vh] overflow-y-auto pr-1">
+        
+        <!-- Full Name -->
+        <div>
+          <label class="block text-xs font-bold text-slate-500 mb-1">Full Name</label>
+          <input type="text" x-model="newDocName" placeholder="e.g. Dr. Sarah Jenkins"
+                 class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-brand-sidebar text-sm font-semibold text-slate-800 focus:outline-none">
+        </div>
+
+        <!-- Specialty / NPI Registration -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1">Medical Specialty</label>
+            <input type="text" x-model="newDocSpecialty" placeholder="e.g. Neurologist"
+                   class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-brand-sidebar text-sm font-semibold text-slate-800 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1">NPI Registration No.</label>
+            <input type="text" x-model="newDocNpi" placeholder="e.g. 1003450918"
+                   class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-brand-sidebar text-sm font-semibold text-slate-800 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Queue Type & Phone number -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1">Queue Group Tab</label>
+            <select x-model="newDocType"
+                    class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-brand-sidebar text-sm font-semibold text-slate-800 focus:outline-none">
+              <option value="New">New Staff Member</option>
+              <option value="Old">Established Practitioner</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1">Phone Number</label>
+            <input type="text" x-model="newDocPhone" placeholder="+(555) 765-1029"
+                   class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-brand-sidebar text-sm font-semibold text-slate-800 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Email & Languages -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1">Email Address</label>
+            <input type="email" x-model="newDocEmail" placeholder="doctor.name@novacare.com"
+                   class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-brand-sidebar text-sm font-semibold text-slate-800 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1">Languages Spoken</label>
+            <input type="text" x-model="newDocLanguages" placeholder="English, German, etc"
+                   class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-brand-sidebar text-sm font-semibold text-slate-800 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Address -->
+        <div>
+          <label class="block text-xs font-bold text-slate-500 mb-1">Clinic Office Address</label>
+          <input type="text" x-model="newDocAddress" placeholder="Room 58, Northeast Wing"
+                 class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-brand-sidebar text-sm font-semibold text-slate-800 focus:outline-none">
+        </div>
+
+        <!-- Biography description -->
+        <div>
+          <label class="block text-xs font-bold text-slate-500 mb-1">Biography / About Doctor</label>
+          <textarea x-model="newDocDescription" rows="3" placeholder="Describe the medical services, certifications, and philosophy of the doctor..."
+                    class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-brand-sidebar text-sm font-semibold text-slate-800 focus:outline-none"></textarea>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+        <button class="px-5 py-2.5 text-xs font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-xl transition"
+                @click="showAddEmployeeModal = false">
+          Cancel
+        </button>
+        <button class="px-6 py-2.5 text-xs font-bold text-white bg-brand-sidebar hover:bg-brand-sidebarHover rounded-xl transition shadow-md shadow-indigo-600/10"
+                @click="addNewEmployee()">
+          Add Employee
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL: MODIFY DOCTOR DETAILS CREDENTIALS -->
+  <div x-cloak x-show="showEditModal"
+       class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm"
+       x-transition:enter="transition ease-out duration-300"
+       x-transition:enter-start="opacity-0"
+       x-transition:enter-end="opacity-100"
+       x-transition:leave="transition ease-in duration-200"
+       x-transition:leave-start="opacity-100"
+       x-transition:leave-end="opacity-0">
+    
+    <div class="bg-white border border-slate-100 rounded-3xl p-6 md:p-8 w-full max-w-lg shadow-2xl relative space-y-5"
+         @click.away="showEditModal = false"
+         x-transition:enter="transition ease-out duration-300 transform"
+         x-transition:enter-start="scale-95 translate-y-4"
+         x-transition:enter-end="scale-100 translate-y-0">
+      
+      <!-- Edit Header -->
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3.5">
+        <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-user-pen text-brand-sidebar"></i> Modify Doctor Credentials
+        </h3>
+        <button class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400"
+                @click="showEditModal = false">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <!-- Fields edit inputs -->
+      <div class="space-y-4 max-h-[55vh] overflow-y-auto pr-1">
+        
+        <!-- Full Name edit -->
+        <div>
+          <label class="block text-xs font-bold text-slate-500 mb-1">Full Name</label>
+          <input type="text" x-model="activeDoctor.name"
+                 class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-brand-sidebar text-sm font-semibold text-slate-800 focus:outline-none">
+        </div>
+
+        <!-- Specialty & Spoken Languages -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1">Medical Specialty</label>
+            <input type="text" x-model="activeDoctor.specialty"
+                   class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-brand-sidebar text-sm font-semibold text-slate-800 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1">Languages Spoken</label>
+            <input type="text" x-model="activeDoctor.languages"
+                   class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-brand-sidebar text-sm font-semibold text-slate-800 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Phone & Email coordinates -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1">Phone Number</label>
+            <input type="text" x-model="activeDoctor.phone"
+                   class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-brand-sidebar text-sm font-semibold text-slate-800 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1">Email Address</label>
+            <input type="email" x-model="activeDoctor.email"
+                   class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-brand-sidebar text-sm font-semibold text-slate-800 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Clinic Office Location Address -->
+        <div>
+          <label class="block text-xs font-bold text-slate-500 mb-1">Clinic Address</label>
+          <input type="text" x-model="activeDoctor.address"
+                 class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-brand-sidebar text-sm font-semibold text-slate-800 focus:outline-none">
+        </div>
+
+        <!-- Biography / Description -->
+        <div>
+          <label class="block text-xs font-bold text-slate-500 mb-1">Biography / About Doctor</label>
+          <textarea x-model="activeDoctor.description" rows="3"
+                    class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-brand-sidebar text-sm font-semibold text-slate-800 focus:outline-none"></textarea>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+        <button class="px-5 py-2.5 text-xs font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-xl transition"
+                @click="showEditModal = false">
+          Discard
+        </button>
+        <button class="px-6 py-2.5 text-xs font-bold text-white bg-brand-sidebar hover:bg-brand-sidebarHover rounded-xl transition shadow-md shadow-indigo-600/10"
+                @click="showEditModal = false; triggerToast('Credentials and metadata updated live!')">
+          Save Updates
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>
