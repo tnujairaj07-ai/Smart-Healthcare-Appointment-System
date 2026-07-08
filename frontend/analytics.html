@@ -1,73 +1,866 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full bg-[#f4f7fc]">
 <head>
   <meta charset="UTF-8">
-  <title>Analytics | NovaCare OS</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="css/styles.css">
+  <title>NovaCare OS | Patient Health Analytics Workspace</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Plus Jakarta Sans for clinical legibility -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Alpine.js for robust interactive state handling -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <!-- Tailwind Token Configurations matching Patient Profile Dashboard -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              sidebar: '#5c6dfa',      // Vibrant Blue/Indigo from Patient Dashboard
+              sidebarHover: '#4e5ee6',
+              sidebarActive: '#eff2ff',
+              coral: '#ff6b35',        // Signature Coral Accent
+              coralHover: '#e5531d',
+            },
+            medical: {
+              light: '#f8fafc',
+              slate: '#64748b',
+              dark: '#0f172a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Styling elements matching the solid visual cards from Screenshot 2026-07-07 222816.png */
+    .dashboard-card {
+      background: #ffffff;
+      border-radius: 24px;
+      border: 1px solid #eef2f6;
+      box-shadow: 0 4px 20px -2px rgba(148, 163, 184, 0.06), 0 2px 8px -1px rgba(148, 163, 184, 0.04);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .dashboard-card:hover {
+      box-shadow: 0 12px 30px -5px rgba(148, 163, 184, 0.12), 0 4px 16px -2px rgba(148, 163, 184, 0.06);
+    }
+
+    /* Track bar animation for Blood Pressure capsule tracker in screenshot */
+    .capsule-bp-track {
+      stroke-dasharray: 400;
+      stroke-dashoffset: 400;
+      animation: fillCapsule 1.5s ease-out forwards;
+    }
+
+    @keyframes fillCapsule {
+      to {
+        stroke-dashoffset: 120;
+      }
+    }
+
+    /* Custom elegant scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
 </head>
-<body>
-<div class="app-shell">
-  <header class="app-navbar">
-    <div class="app-brand">
-      <div class="app-logo"></div>
-      <span class="app-title">NovaCare OS</span>
+<body class="h-full font-sans antialiased text-slate-800 bg-[#f4f7fc]" x-data="{
+  // State elements modeled directly after Screenshot 2026-07-07 222816.png
+  activeTab: 'Overview',
+  glucoseUnit: 'mmol/L',
+  activeGlucoseReading: 'Day 12: 88 mmol/L',
+  showControlDrawer: false,
+  showToast: false,
+  toastMessage: '',
+  showBookingModal: false,
+  selectedDay: 12,
+  
+  // Real-time parameter targets editable via simulator panel
+  vitals: {
+    glucose: 88,
+    calories: 1575,
+    heartRate: 65,
+    bloodPressure: 120
+  },
+
+  // Interactive Appointments List
+  appointments: [
+    { date: '14 Feb', doctor: 'Dr. Waqer Jaman', type: 'Blood Pressure Test', status: 'Completed' },
+    { date: '28 Feb', doctor: 'Dr. Sofia Frank', type: 'Cardiogram Test', status: 'Completed' }
+  ],
+
+  // Medicine Dosage Datasets representing the columns in Screenshot 2026-07-07 222816.png
+  doseData: [
+    { month: 'Jan', hydro: 20, omep: 18, total: 38 },
+    { month: 'Feb', hydro: 31, omep: 15, total: 46 },
+    { month: 'Mar', hydro: 44, omep: 25, total: 69 },
+    { month: 'Apr', hydro: 52, omep: 22, total: 74 },
+    { month: 'May', hydro: 49, omep: 18, total: 67 },
+    { month: 'Jun', hydro: 46, omep: 21, total: 67 },
+    { month: 'July', hydro: 33, omep: 25, total: 58 },
+    { month: 'Aug', hydro: 53, omep: 24, total: 77 },
+    { month: 'Sep', hydro: 35, omep: 20, total: 55 }
+  ],
+  selectedDoseMonth: null,
+
+  // Calendar State Configuration for May 2025 as in Screenshot 2026-07-07 222816.png
+  calendarMonth: 'May 2025',
+  calendarDays: [
+    { dayNum: '', isCurrentMonth: false },
+    { dayNum: '', isCurrentMonth: false },
+    { dayNum: '', isCurrentMonth: false },
+    { dayNum: '', isCurrentMonth: false },
+    { dayNum: '01', isCurrentMonth: true },
+    { dayNum: '02', isCurrentMonth: true },
+    { dayNum: '03', isCurrentMonth: true },
+    { dayNum: '04', isCurrentMonth: true },
+    { dayNum: '05', isCurrentMonth: true },
+    { dayNum: '06', isCurrentMonth: true },
+    { dayNum: '08', isCurrentMonth: true },
+    { dayNum: '09', isCurrentMonth: true },
+    { dayNum: '10', isCurrentMonth: true },
+    { dayNum: '11', isCurrentMonth: true },
+    { dayNum: '12', isCurrentMonth: true, selected: true }, // Highlighted matching the blue circle in screenshot
+    { dayNum: '13', isCurrentMonth: true },
+    { dayNum: '14', isCurrentMonth: true },
+    { dayNum: '15', isCurrentMonth: true },
+    { dayNum: '16', isCurrentMonth: true },
+    { dayNum: '17', isCurrentMonth: true },
+    { dayNum: '18', isCurrentMonth: true },
+    { dayNum: '19', isCurrentMonth: true },
+    { dayNum: '20', isCurrentMonth: true },
+    { dayNum: '21', isCurrentMonth: true },
+    { dayNum: '22', isCurrentMonth: true },
+    { dayNum: '23', isCurrentMonth: true },
+    { dayNum: '24', isCurrentMonth: true },
+    { dayNum: '25', isCurrentMonth: true },
+    { dayNum: '26', isCurrentMonth: true },
+    { dayNum: '27', isCurrentMonth: true },
+    { dayNum: '28', isCurrentMonth: true },
+    { dayNum: '29', isCurrentMonth: true },
+    { dayNum: '30', isCurrentMonth: true },
+    { dayNum: '31', isCurrentMonth: true }
+  ],
+
+  triggerToast(msg) {
+    this.toastMessage = msg;
+    this.showToast = true;
+    setTimeout(() => this.showToast = false, 3500);
+  },
+
+  toggleGlucoseUnit() {
+    if (this.glucoseUnit === 'mmol/L') {
+      this.glucoseUnit = 'mg/dL';
+      this.vitals.glucose = Math.round(this.vitals.glucose * 18);
+    } else {
+      this.glucoseUnit = 'mmol/L';
+      this.vitals.glucose = Math.round(this.vitals.glucose / 18);
+    }
+    this.triggerToast('Units updated to ' + this.glucoseUnit);
+  },
+
+  selectCalendarDay(day) {
+    if(!day.dayNum) return;
+    this.calendarDays.forEach(d => d.selected = false);
+    day.selected = true;
+    this.selectedDay = parseInt(day.dayNum);
+    this.showBookingModal = true;
+  },
+
+  bookAppointment(docName) {
+    const newBooking = {
+      date: this.selectedDay + ' May',
+      doctor: docName,
+      type: 'General Check-up Consultation',
+      status: 'Confirmed'
+    };
+    this.appointments.unshift(newBooking);
+    this.showBookingModal = false;
+    this.triggerToast('Session successfully booked with ' + docName + ' for May ' + this.selectedDay);
+  }
+}">
+
+
+  <!-- Toast Notification Overlay -->
+  <div x-cloak x-show="showToast"
+       x-transition:enter="transition ease-out duration-300 transform"
+       x-transition:enter-start="translate-y-[-20px] opacity-0"
+       x-transition:enter-end="translate-y-0 opacity-100"
+       x-transition:leave="transition ease-in duration-200 transform"
+       x-transition:leave-start="translate-y-0 opacity-100"
+       x-transition:leave-end="translate-y-[-20px] opacity-0"
+       class="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-6 py-3.5 rounded-2xl shadow-xl flex items-center gap-3 border border-slate-800">
+    <div class="w-8 h-8 rounded-full bg-brand-sidebar/20 flex items-center justify-center text-brand-sidebar">
+      <i class="fa-solid fa-heart-pulse text-[#5c6dfa]"></i>
     </div>
-    <nav class="app-nav-links">
-      <a href="patient_dashboard.html">Patient</a>
-      <a href="doctor_dashboard.html">Doctor</a>
-      <a href="analytics.html">Analytics</a>
-    </nav>
+    <span class="font-bold text-xs uppercase tracking-wide text-slate-100" x-text="toastMessage"></span>
+  </div>
+
+  <!-- MAIN NAVIGATION APP HEADER BAR (Adapting NovaCare OS style from Screenshot 2026-07-07 222816.png to our system theme) -->
+  <header class="bg-white border-b border-slate-100 px-8 py-4 sticky top-0 z-40 shadow-sm">
+    <div class="max-w-[1400px] mx-auto flex items-center justify-between">
+      
+      <!-- Logo Branding matching NovaCare OS screenshot configuration -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-brand-sidebar font-extrabold text-xl shadow-md">
+          <img src="images/app-logo.jpg"
+               alt="NovaCare OS logo"
+               class="w-8 h-8 rounded object-contain">
+        </div>
+        <div>
+          <span class="font-extrabold text-slate-900 text-lg tracking-tight block">NovaCare</span>
+          <span class="text-[9px] text-brand-sidebar font-extrabold uppercase tracking-widest block -mt-1">Health OS</span>
+        </div>
+      </div>
+
+      <!-- Navigation Pill Strip verbatim to Screenshot 2026-07-07 222816.png tabs -->
+      <nav class="hidden md:flex bg-slate-100/80 p-1.5 rounded-full border border-slate-200/50 gap-1 text-xs">
+        <template x-for="tab in ['Overview', 'Doctors', 'Appointment', 'Message', 'Statistics', 'Others']">
+          <button @click="activeTab = tab; triggerToast('Switched to ' + tab + ' channel')"
+                  :class="activeTab === tab ? 'bg-brand-sidebar text-white font-bold shadow-sm' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'"
+                  class="px-5 py-2 rounded-full transition-all duration-200 select-none uppercase tracking-wide text-[11px]"
+                  x-text="tab">
+          </button>
+        </template>
+      </nav>
+
+      <!-- Right Hand Actions Layout -->
+      <div class="flex items-center gap-3">
+        <!-- Interactive Calibration Control Trigger -->
+        <button @click="showControlDrawer = !showControlDrawer" 
+                class="px-4.5 py-2 rounded-xl bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 text-brand-sidebar transition text-xs font-bold flex items-center gap-2">
+          <i class="fa-solid fa-sliders"></i> <span class="hidden sm:inline">Calibration Panel</span>
+        </button>
+
+        <!-- Search trigger -->
+        <button class="w-10 h-10 rounded-full bg-slate-50 hover:bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 transition shadow-sm"
+                @click="triggerToast('Opening Clinical Search Overlay...')">
+          <i class="fa-solid fa-magnifying-glass text-xs"></i>
+        </button>
+
+        <!-- Dynamic Notifications -->
+        <button class="w-10 h-10 rounded-full bg-slate-50 hover:bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 hover:text-indigo-600 relative transition shadow-sm"
+                @click="triggerToast('Notifications up-to-date')">
+          <i class="fa-regular fa-bell text-xs"></i>
+          <span class="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-brand-coral animate-ping"></span>
+        </button>
+
+        <!-- Divider -->
+        <div class="h-6 w-px bg-slate-200 hidden sm:block"></div>
+
+        <!-- User profile badge matching screenshot details -->
+        <div class="flex items-center gap-2">
+          <img class="w-9 h-9 rounded-full object-cover border border-white shadow"
+               src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150" alt="Sarah Johnson">
+        </div>
+      </div>
+
+    </div>
   </header>
 
-  <main class="app-main">
-    <header class="page-header">
-      <h1 class="page-title">Analytics overview</h1>
-      <p class="page-subtitle">Visits, outcomes, and platform usage in one view.</p>
-    </header>
 
-    <section class="section-block grid-3">
-      <article class="glass-card card card-tilt">
-        <p class="section-eyebrow">Total visits</p>
-        <h3>4,320</h3>
-        <p class="page-subtitle">Last 30 days · clinic + online.</p>
-      </article>
-      <article class="glass-card card card-tilt">
-        <p class="section-eyebrow">Adherence rate</p>
-        <h3>84%</h3>
-        <p class="page-subtitle">Patients following prescription schedule.</p>
-      </article>
-      <article class="glass-card card card-tilt">
-        <p class="section-eyebrow">Average wait time</p>
-        <h3>9 minutes</h3>
-        <p class="page-subtitle">Before consultation start.</p>
-      </article>
-    </section>
+  <!-- CORE HEALTH ANALYTICS CONTENT AREA -->
+  <main class="p-4 sm:p-6 lg:p-8 max-w-[1400px] w-full mx-auto space-y-6">
 
-    <section class="section-block grid-2">
-      <article class="glass-card card card-tilt">
-        <div class="section-header">
-          <p class="section-eyebrow">Visits trend</p>
-          <h2 class="section-title">Clinic vs online</h2>
-        </div>
-        <div id="visits-chart" style="height:220px; background:#EEF2FF; border-radius:12px; border:1px dashed var(--line);">
-          <!-- analytics.js: draw chart here -->
-        </div>
-      </article>
+    <!-- Overview dynamic page header -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-2">
+      <div>
+        <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
+          <span class="p-2 bg-indigo-50 text-brand-sidebar rounded-xl inline-flex items-center justify-center"><i class="fa-solid fa-square-poll-vertical"></i></span>
+          Kate Prokopchuk’s Analytics Roster
+        </h1>
+        <p class="text-xs text-slate-400 font-medium mt-1">Real-time parameters loaded from connected IoT wearables. Adapted from Screenshot 2026-07-07 222816.png.</p>
+      </div>
 
-      <article class="glass-card card card-tilt">
-        <div class="section-header">
-          <p class="section-eyebrow">Risk distribution</p>
-          <h2 class="section-title">Checker outputs</h2>
+      <div class="flex gap-2">
+        <button @click="triggerToast('Exporting clinical health data portfolio...')"
+                class="px-4 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition shadow-sm">
+          <i class="fa-solid fa-arrow-up-from-bracket mr-1.5"></i> Export Portfolio
+        </button>
+      </div>
+    </div>
+
+    <!-- UPPER STATS GRID: Directly replicates the 4 Vitals Metric Panels from top of Screenshot 2026-07-07 222816.png -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+
+      <!-- Vital 1: Blood Glucose Levels -->
+      <div class="dashboard-card p-6 flex flex-col justify-between relative group hover:-translate-y-1">
+        <div>
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Blood Glucose</span>
+            <span @click="toggleGlucoseUnit()" class="text-[9.5px] cursor-pointer bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-extrabold px-2.5 py-0.5 rounded-full border border-indigo-100" x-text="glucoseUnit"></span>
+          </div>
+
+          <!-- Dynamic 3x8 Glucose level tracking matrix visually identical to screenshot -->
+          <div class="grid grid-cols-8 gap-1.5 my-5">
+            <template x-for="idx in Array.from({length: 24})">
+              <div @mouseenter="activeGlucoseReading = 'Day ' + (Math.floor(Math.random() * 20) + 1) + ': ' + (Math.floor(Math.random() * 40) + 70) + ' ' + glucoseUnit"
+                   :class="idx % 3 === 0 ? 'bg-[#5c6dfa]/20' : (idx % 2 === 0 ? 'bg-[#5c6dfa]/50' : 'bg-[#5c6dfa]')"
+                   class="h-5 rounded-[4px] transition-all duration-300 cursor-pointer hover:scale-110 shadow-sm hover:ring-2 hover:ring-brand-coral"></div>
+            </template>
+          </div>
         </div>
-        <div id="risk-chart" style="height:220px; background:#EEF2FF; border-radius:12px; border:1px dashed var(--line);">
-          <!-- analytics.js: draw chart here -->
+
+        <div class="pt-2 border-t border-slate-50">
+          <div class="flex items-baseline gap-1">
+            <span class="text-4xl font-extrabold text-slate-900 tracking-tight" x-text="vitals.glucose">88</span>
+            <span class="text-xs text-slate-400 font-bold" x-text="glucoseUnit">mmol/L</span>
+          </div>
+          <!-- Live hover label display -->
+          <span class="text-[10px] text-slate-400 font-semibold block mt-1" x-text="activeGlucoseReading"></span>
         </div>
-      </article>
-    </section>
+      </div>
+
+      <!-- Vital 2: Calorie -->
+      <div class="dashboard-card p-6 flex flex-col justify-between hover:-translate-y-1">
+        <div>
+          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Calorie</span>
+          
+          <!-- Custom Step Line SVG mimicking screenshot step-line plot -->
+          <div class="h-20 my-2 flex items-center justify-center">
+            <svg class="w-full h-full" viewBox="0 0 200 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M0 30 H25 V15 H65 V45 H105 V20 H145 V5 H180" stroke="#5c6dfa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+              <!-- Pulsing current coordinate point -->
+              <circle cx="180" cy="5" r="4.5" fill="#5c6dfa" class="animate-pulse" />
+              <circle cx="180" cy="5" r="7.5" stroke="#5c6dfa" stroke-width="1.5" stroke-opacity="0.5" />
+            </svg>
+          </div>
+        </div>
+
+        <div class="pt-2 border-t border-slate-50">
+          <div class="flex items-baseline gap-1">
+            <span class="text-4xl font-extrabold text-slate-900 tracking-tight" x-text="vitals.calories.toLocaleString()">1,575</span>
+            <span class="text-xs text-slate-400 font-bold">mmcg</span>
+          </div>
+          <span class="text-[10px] text-emerald-600 font-bold block mt-1"><i class="fa-solid fa-arrow-trend-up"></i> Optimal metabolic energy load</span>
+        </div>
+      </div>
+
+      <!-- Vital 3: Heart Rate -->
+      <div class="dashboard-card p-6 flex flex-col justify-between hover:-translate-y-1">
+        <div>
+          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Heart Rate</span>
+
+          <!-- Perfect Sinus Wave Visual from Screenshot 2026-07-07 222816.png -->
+          <div class="h-20 my-2 flex items-center justify-center">
+            <svg class="w-full h-full" viewBox="0 0 200 60" fill="none">
+              <!-- Grid line overlays -->
+              <line x1="0" y1="30" x2="200" y2="30" stroke="#f1f5f9" stroke-width="1.5"/>
+              <path d="M0 30 L40 30 L45 15 L50 45 L55 30 L80 30 L85 0 L90 55 L95 30 L115 30 L120 15 L125 45 L130 30 L200 30" 
+                    stroke="#5c6dfa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </div>
+        </div>
+
+        <div class="pt-2 border-t border-slate-50">
+          <div class="flex items-baseline gap-1">
+            <span class="text-4xl font-extrabold text-slate-900 tracking-tight" x-text="vitals.heartRate">65</span>
+            <span class="text-xs text-slate-400 font-bold">bpm</span>
+          </div>
+          <span class="text-[10px] text-slate-400 font-semibold block mt-1">Sinus pulse: Rhythm fully consistent</span>
+        </div>
+      </div>
+
+      <!-- Vital 4: Blood Pressure -->
+      <div class="dashboard-card p-6 flex flex-col justify-between hover:-translate-y-1">
+        <div>
+          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Blood Pressure</span>
+
+          <!-- Capsule track visual representing relative pressure loading in Screenshot -->
+          <div class="h-20 my-2 flex items-center justify-center">
+            <svg class="w-full h-12" viewBox="0 0 160 40">
+              <!-- Background tracking loop -->
+              <rect x="2" y="2" width="156" height="36" rx="18" fill="none" stroke="#e2e8f0" stroke-width="4.5" />
+              <!-- Highlight active fill representing the custom capsule line on Screenshot -->
+              <rect x="2" y="2" width="156" height="36" rx="18" fill="none" stroke="#5c6dfa" stroke-width="4.5" stroke-linecap="round"
+                    class="capsule-bp-track" />
+            </svg>
+          </div>
+        </div>
+
+        <div class="pt-2 border-t border-slate-50">
+          <div class="flex items-baseline gap-1">
+            <span class="text-4xl font-extrabold text-slate-900 tracking-tight" x-text="vitals.bloodPressure">120</span>
+            <span class="text-xs text-slate-400 font-bold">mmHg</span>
+          </div>
+          <span class="text-[10px] text-emerald-600 font-bold block mt-1"><i class="fa-solid fa-circle-check"></i> Normal Systemic Pressure</span>
+        </div>
+      </div>
+
+    </div>
+
+
+    <!-- TWO-COLUMN WORKSPACE: Detailed Medicine Dose Left, Tests and Clinic Right -->
+    <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+      
+      <!-- COLUMN 1: Large Medicine Dose Chart Card (Replicates "Your Medicine Dose" from Screenshot) -->
+      <div class="xl:col-span-8 dashboard-card p-6 space-y-6">
+        
+        <div class="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <h3 class="text-base font-extrabold text-slate-900 tracking-tight">Your Medicine Dose</h3>
+            <p class="text-[11px] text-slate-400 font-semibold">Active pharmaceutical adherence cycles</p>
+          </div>
+
+          <!-- Legends & Month dropdown verbatim to Screenshot -->
+          <div class="flex items-center gap-4 text-xs font-semibold">
+            <!-- Hydrochlorothiazide Legend block -->
+            <div class="flex items-center gap-1.5">
+              <span class="w-3 h-3 rounded bg-brand-sidebar block"></span>
+              <span class="text-slate-500 text-[11px]">Hydrochlorothiazide</span>
+            </div>
+
+            <!-- Omeprazole stripe legend block matching the diagonal shading -->
+            <div class="flex items-center gap-1.5">
+              <div class="w-3 h-3 rounded block border border-slate-300" style="background: repeating-linear-gradient(45deg, #f1f5f9, #f1f5f9 2px, #cbd5e1 2px, #cbd5e1 4px);"></div>
+              <span class="text-slate-500 text-[11px]">Omeprazole</span>
+            </div>
+
+            <!-- Year Dropdown -->
+            <button @click="triggerToast('Loading dosage history registry...')"
+                    class="px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-600 text-[11px] font-bold transition-all flex items-center gap-1 hover:bg-slate-100">
+              <span>Month</span> <i class="fa-solid fa-chevron-down text-[8px] text-slate-400"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Dynamic Stacked bar chart mimicking visual columns of the Screenshot -->
+        <div class="relative pt-4">
+          
+          <!-- Custom SVG for rendering diagonal striped patterns for Omeprazole blocks -->
+          <svg class="absolute" width="0" height="0">
+            <defs>
+              <pattern id="diagonal-stripe" width="8" height="8" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+                <line x1="0" y1="0" x2="0" y2="8" stroke="#cbd5e1" stroke-width="2.5" />
+              </pattern>
+            </defs>
+          </svg>
+
+          <!-- Main Chart Plot Area -->
+          <div class="flex justify-between items-end h-64 border-b border-slate-200/60 pb-2 relative">
+            
+            <!-- Horizontal Grid lines -->
+            <div class="absolute inset-x-0 bottom-0 top-0 flex flex-col justify-between pointer-events-none">
+              <div class="border-t border-dashed border-slate-100 w-full relative"><span class="absolute -top-2 left-0 text-[9px] text-slate-400 font-bold bg-white pr-2">70D</span></div>
+              <div class="border-t border-dashed border-slate-100 w-full relative"><span class="absolute -top-2 left-0 text-[9px] text-slate-400 font-bold bg-white pr-2">50D</span></div>
+              <div class="border-t border-dashed border-slate-100 w-full relative"><span class="absolute -top-2 left-0 text-[9px] text-slate-400 font-bold bg-white pr-2">40D</span></div>
+              <div class="border-t border-dashed border-slate-100 w-full relative"><span class="absolute -top-2 left-0 text-[9px] text-slate-400 font-bold bg-white pr-2">20D</span></div>
+              <div class="border-t border-dashed border-slate-100 w-full relative"><span class="absolute -top-2 left-0 text-[9px] text-slate-400 font-bold bg-white pr-2">10D</span></div>
+              <div class="border-t border-dashed border-slate-100 w-full relative"><span class="absolute -top-2 left-0 text-[9px] text-slate-400 font-bold bg-white pr-2">5D</span></div>
+              <div class="h-0 w-full relative"><span class="absolute -top-2 left-0 text-[9px] text-slate-400 font-bold bg-white pr-2">0</span></div>
+            </div>
+
+            <!-- Grouped/Stacked Column Columns -->
+            <template x-for="(data, idx) in doseData" :key="idx">
+              <div class="flex-1 flex flex-col items-center justify-end h-full group relative cursor-pointer z-10"
+                   @click="selectedDoseMonth = data.month; triggerToast(data.month + ' Dosage Info: Hydrochlorothiazide ' + data.hydro + 'mg, Omeprazole ' + data.omep + 'mg')">
+                
+                <!-- Grouped Stack -->
+                <div class="w-10 sm:w-12 md:w-14 rounded-2xl overflow-hidden shadow-sm transition-all duration-300 group-hover:scale-105 flex flex-col justify-end bg-slate-50 border border-slate-100 group-hover:border-indigo-400/30">
+                  
+                  <!-- Top Layer: Omeprazole (Striped/hatched background visual block matching Screenshot) -->
+                  <div class="w-full transition-all duration-300 border-b border-white"
+                       :style="'height: ' + (data.omep * 2.5) + 'px; background: repeating-linear-gradient(45deg, #f1f5f9, #f1f5f9 3px, #cbd5e1 3px, #cbd5e1 6px);'">
+                  </div>
+
+                  <!-- Bottom Layer: Hydrochlorothiazide (Solid Indigo) -->
+                  <div class="w-full bg-[#5c6dfa] transition-all duration-300"
+                       :style="'height: ' + (data.hydro * 2.5) + 'px;'">
+                  </div>
+
+                </div>
+
+                <!-- Hover micro-tooltip for detail readings -->
+                <div class="absolute bottom-full mb-2 bg-slate-900 text-white text-[10px] p-2.5 rounded-xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-20 shadow-xl space-y-0.5 text-left min-w-[120px]">
+                  <span class="block font-bold border-b border-slate-800 pb-1 text-slate-300" x-text="data.month + ' Intake'"></span>
+                  <span class="block text-indigo-300 font-semibold">Hydro: <strong class="text-white ml-1" x-text="data.hydro + 'mg'"></strong></span>
+                  <span class="block text-slate-300 font-semibold">Omeprazole: <strong class="text-white ml-1" x-text="data.omep + 'mg'"></strong></span>
+                </div>
+
+              </div>
+            </template>
+
+          </div>
+
+          <!-- Bottom Axis matching screenshot month markers exactly -->
+          <div class="flex justify-between pt-3 px-1 text-[11px] text-slate-400 font-extrabold uppercase tracking-wide">
+            <template x-for="data in doseData">
+              <span class="flex-1 text-center" x-text="data.month"></span>
+            </template>
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- COLUMN 2: Cardiologist Tests & Calendar Booking Planner (Right side blocks) -->
+      <div class="xl:col-span-4 space-y-6">
+
+        <!-- Cardiologist Diagnostic Cards: Directly matching top-right list of Screenshot 2026-07-07 222816.png -->
+        <div class="space-y-4">
+          <div class="flex justify-between items-center">
+            <h3 class="text-xs font-extrabold uppercase tracking-widest text-slate-400">Cardiology Diagnostics</h3>
+            <span class="text-[9px] font-bold text-[#5c6dfa] bg-indigo-50 border border-indigo-100 px-2.5 py-0.5 rounded-full">LIVE FEED</span>
+          </div>
+
+          <!-- Card A: Dr. Waqer Jaman (Blood Pressure Test) -->
+          <div class="dashboard-card p-4 flex flex-col justify-between hover:border-indigo-400/30 transition-all cursor-pointer"
+               @click="triggerToast('Opening BP Diagnostic analysis file for Dr. Waqer Jaman...')">
+            <div class="flex items-start justify-between">
+              <div class="flex items-center gap-3">
+                <img src="https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=150" 
+                     class="w-10 h-10 rounded-xl object-cover border border-slate-200 shadow-sm" alt="Dr. Waqer Jaman">
+                <div>
+                  <h4 class="text-xs font-bold text-slate-800">Dr. Waqer Jaman</h4>
+                  <span class="text-[9px] text-slate-400 font-semibold">Cardiologist Lead</span>
+                </div>
+              </div>
+              <span class="text-[10px] text-slate-400 font-bold font-mono">14 Feb</span>
+            </div>
+
+            <!-- Double Axis blood pressure reading representation from Screenshot -->
+            <div class="mt-4 pt-3 border-t border-slate-50 flex items-center justify-between">
+              <div>
+                <span class="block text-[8px] font-bold text-slate-400 uppercase tracking-widest">Diagnosed Test</span>
+                <span class="text-xs font-extrabold text-slate-800 block mt-0.5">Blood Pressure Test</span>
+              </div>
+              
+              <!-- Sparkline vector grid representing BP thresholds -->
+              <div class="flex items-end gap-1.5 h-8">
+                <span class="w-1.5 h-4 bg-slate-200 rounded-full"></span>
+                <span class="w-1.5 h-6 bg-slate-200 rounded-full"></span>
+                <span class="w-1.5 h-8 bg-brand-sidebar rounded-full relative">
+                  <span class="absolute -top-1 left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-brand-coral rounded-full border-2 border-white"></span>
+                </span>
+                <span class="w-1.5 h-5 bg-slate-200 rounded-full"></span>
+                <span class="w-1.5 h-7 bg-slate-200 rounded-full"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card B: Dr. Sofia Frank (Cardiogram Test) -->
+          <div class="dashboard-card p-4 flex flex-col justify-between hover:border-indigo-400/30 transition-all cursor-pointer"
+               @click="triggerToast('Opening Cardiogram EKG wave archives for Dr. Sofia Frank...')">
+            <div class="flex items-start justify-between">
+              <div class="flex items-center gap-3">
+                <img src="https://images.unsplash.com/photo-1594824813573-246434de83fb?auto=format&fit=crop&q=80&w=150" 
+                     class="w-10 h-10 rounded-xl object-cover border border-slate-200 shadow-sm" alt="Dr. Sofia Frank">
+                <div>
+                  <h4 class="text-xs font-bold text-slate-800">Dr. Sofia Frank</h4>
+                  <span class="text-[9px] text-slate-400 font-semibold">Cardiologist</span>
+                </div>
+              </div>
+              <span class="text-[10px] text-slate-400 font-bold font-mono">28 Feb</span>
+            </div>
+
+            <!-- Sinus EKG Wave Sparkline from Screenshot -->
+            <div class="mt-4 pt-3 border-t border-slate-50 flex items-center justify-between">
+              <div>
+                <span class="block text-[8px] font-bold text-slate-400 uppercase tracking-widest">Diagnosed Test</span>
+                <span class="text-xs font-extrabold text-slate-800 block mt-0.5">Cardiogram Test</span>
+              </div>
+              
+              <!-- Mini Sinus wave graphics visually identical to the screenshot block -->
+              <div class="w-20 h-8">
+                <svg class="w-full h-full" viewBox="0 0 100 30" fill="none">
+                  <path d="M0 15 L25 15 L30 5 L35 25 L40 15 L55 15 L60 0 L65 30 L75 15 L100 15" stroke="#5c6dfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Clinic Highlight & Calendar: Matching Bottom-Right block of Screenshot 2026-07-07 222816.png -->
+        <div class="space-y-4">
+          
+          <!-- "the Medical Clinic" prompt container -->
+          <div class="dashboard-card p-5 relative overflow-hidden bg-[#5c6dfa] text-white">
+            <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
+            
+            <div class="flex justify-between items-start">
+              <div>
+                <span class="text-[10px] uppercase tracking-widest font-extrabold text-indigo-200 block">Organize a Visit to</span>
+                <h3 class="text-xl font-serif font-extrabold tracking-tight mt-1">the Medical Clinic</h3>
+              </div>
+              
+              <!-- Quick book icon -->
+              <button @click="triggerToast('Select a day below to secure an analytical consultation session...')"
+                      class="w-10 h-10 rounded-full bg-white text-[#5c6dfa] flex items-center justify-center shadow-lg transition hover:scale-105 active:scale-95">
+                <i class="fa-solid fa-arrow-right"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Solid Calendar widget: May 2025 Month block verbatim to Screenshot -->
+          <div class="dashboard-card p-5 space-y-4 bg-white">
+            
+            <!-- Week headers with navigation arrows -->
+            <div class="flex justify-between items-center border-b border-slate-50 pb-3">
+              <button @click="triggerToast('Schedules are locked to May 2025 for synchronization accuracy')"
+                      class="w-7 h-7 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400">
+                <i class="fa-solid fa-chevron-left text-[10px]"></i>
+              </button>
+              
+              <span class="text-xs font-extrabold text-slate-800 tracking-wide uppercase" x-text="calendarMonth">May 2025</span>
+
+              <button @click="triggerToast('Schedules are locked to May 2025 for synchronization accuracy')"
+                      class="w-7 h-7 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400">
+                <i class="fa-solid fa-chevron-right text-[10px]"></i>
+              </button>
+            </div>
+
+            <!-- Days Grid column layout (Sun to Sat) -->
+            <div class="grid grid-cols-7 gap-2 text-center text-xs font-semibold text-slate-400">
+              <span>Sun</span>
+              <span>Mon</span>
+              <span>Tue</span>
+              <span>Wed</span>
+              <span>Thu</span>
+              <span>Fri</span>
+              <span>Sat</span>
+            </div>
+
+            <!-- Days Grid Numbers matched to layout of Screenshot -->
+            <div class="grid grid-cols-7 gap-1">
+              <template x-for="(day, index) in calendarDays" :key="index">
+                <div @click="selectCalendarDay(day)"
+                     :class="{
+                       'cursor-pointer hover:bg-slate-50 rounded-xl': day.dayNum !== '',
+                       'bg-brand-sidebar text-white font-extrabold rounded-full shadow-md shadow-indigo-600/20 scale-105': day.selected,
+                       'text-slate-400 font-medium': day.dayNum === '' || !day.isCurrentMonth,
+                       'text-slate-800 font-bold': day.isCurrentMonth && !day.selected
+                     }"
+                     class="h-9 flex items-center justify-center text-[11px] transition duration-200 relative">
+                  <span x-text="day.dayNum"></span>
+                  
+                  <!-- Small bottom indicator point for days with scheduled tasks -->
+                  <span x-show="day.dayNum === '14' || day.dayNum === '28'" 
+                        class="absolute bottom-1 w-1 h-1 rounded-full bg-brand-coral"></span>
+                </div>
+              </template>
+            </div>
+
+          </div>
+
+          <!-- Appointments List Tray (Sync panel adding slots booked in calendar modal) -->
+          <div class="dashboard-card p-5 space-y-3">
+            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Scheduled Diagnostics Checklist</h4>
+            <div class="space-y-2 max-h-[140px] overflow-y-auto pr-1">
+              <template x-for="(appt, index) in appointments" :key="index">
+                <div class="p-3 bg-slate-50/70 border border-slate-200/50 rounded-xl flex items-center justify-between hover:bg-slate-50 transition-colors">
+                  <div>
+                    <span class="text-[9px] font-bold text-brand-sidebar block" x-text="appt.date"></span>
+                    <p class="text-xs font-extrabold text-slate-800" x-text="appt.doctor"></p>
+                    <span class="text-[10px] text-slate-500 font-medium" x-text="appt.type"></span>
+                  </div>
+                  <span class="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                        :class="appt.status === 'Confirmed' ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' : 'bg-emerald-50 text-emerald-700 border border-emerald-100'"
+                        x-text="appt.status"></span>
+                </div>
+              </template>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
   </main>
-</div>
 
-<script src="js/analytics.js"></script>
+  <!-- COLLAPSIBLE SIMULATOR SIDEBAR DRAWER (Added calibration panel for dynamic visual updates) -->
+  <div x-cloak x-show="showControlDrawer" class="fixed inset-0 z-50 overflow-hidden" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
+    <div class="absolute inset-0 overflow-hidden">
+      <!-- Backdrop overlay -->
+      <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" @click="showControlDrawer = false"></div>
+
+      <div class="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
+        <div class="pointer-events-auto w-screen max-w-md transform transition duration-500 ease-in-out"
+             x-transition:enter="transform transition ease-out duration-300"
+             x-transition:enter-start="translate-x-full"
+             x-transition:enter-end="translate-x-0"
+             x-transition:leave="transform transition ease-in duration-300"
+             x-transition:leave-start="translate-x-0"
+             x-transition:leave-end="translate-x-full">
+          
+          <div class="flex h-full flex-col bg-white border-l border-slate-100 shadow-2xl p-6 space-y-6">
+            
+            <!-- Drawer Header -->
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+              <h2 class="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-square-sliders text-brand-sidebar"></i> Vitals Calibration Board
+              </h2>
+              <button @click="showControlDrawer = false" class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400">
+                <i class="fa-solid fa-xmark text-sm"></i>
+              </button>
+            </div>
+
+            <!-- Description -->
+            <p class="text-xs text-slate-400 font-medium leading-relaxed">
+              Use the calibration sliders below to simulate live vitals modifications. Watch the high-fidelity EKG vectors, Blood Pressure track capsule gauges, and glucose metrics update instantly across the dashboards.
+            </p>
+
+            <!-- Sliders list -->
+            <div class="space-y-5 flex-1 overflow-y-auto pr-1">
+              
+              <!-- Slider 1: Glucose -->
+              <div class="p-4 bg-slate-50 border border-slate-200/50 rounded-2xl space-y-2">
+                <div class="flex justify-between items-center text-xs font-bold text-slate-700">
+                  <span>Target Blood Glucose</span>
+                  <span class="text-brand-sidebar font-extrabold" x-text="vitals.glucose + ' ' + glucoseUnit"></span>
+                </div>
+                <input type="range" :min="glucoseUnit === 'mmol/L' ? 40 : 70" :max="glucoseUnit === 'mmol/L' ? 180 : 320" 
+                       x-model="vitals.glucose" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#5c6dfa]">
+                <span class="text-[9px] text-slate-400 block font-semibold">Toggles automatically to accommodate system conversions.</span>
+              </div>
+
+              <!-- Slider 2: Calories -->
+              <div class="p-4 bg-slate-50 border border-slate-200/50 rounded-2xl space-y-2">
+                <div class="flex justify-between items-center text-xs font-bold text-slate-700">
+                  <span>Target Metabolic Calories</span>
+                  <span class="text-brand-sidebar font-extrabold" x-text="vitals.calories + ' mmcg'"></span>
+                </div>
+                <input type="range" min="800" max="3500" step="25" 
+                       x-model="vitals.calories" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#5c6dfa]">
+              </div>
+
+              <!-- Slider 3: Heart Rate -->
+              <div class="p-4 bg-slate-50 border border-slate-200/50 rounded-2xl space-y-2">
+                <div class="flex justify-between items-center text-xs font-bold text-slate-700">
+                  <span>Target Heart Rate Pulse</span>
+                  <span class="text-brand-sidebar font-extrabold" x-text="vitals.heartRate + ' bpm'"></span>
+                </div>
+                <input type="range" min="45" max="180" 
+                       x-model="vitals.heartRate" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#5c6dfa]">
+              </div>
+
+              <!-- Slider 4: Blood Pressure -->
+              <div class="p-4 bg-slate-50 border border-slate-200/50 rounded-2xl space-y-2">
+                <div class="flex justify-between items-center text-xs font-bold text-slate-700">
+                  <span>Target Systolic Pressure</span>
+                  <span class="text-brand-sidebar font-extrabold" x-text="vitals.bloodPressure + ' mmHg'"></span>
+                </div>
+                <input type="range" min="90" max="190" 
+                       x-model="vitals.bloodPressure" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#5c6dfa]">
+              </div>
+
+            </div>
+
+            <!-- Action button -->
+            <div class="pt-4 border-t border-slate-100 flex items-center gap-3">
+              <button @click="vitals = { glucose: 88, calories: 1575, heartRate: 65, bloodPressure: 120 }; triggerToast('Parameters reset to default standards')"
+                      class="flex-1 py-3 text-xs font-bold bg-slate-100 hover:bg-slate-200 rounded-xl transition text-slate-600">
+                Reset Calibration
+              </button>
+              <button @click="showControlDrawer = false; triggerToast('Calibration variables synchronized live')"
+                      class="flex-1 py-3 text-xs font-bold bg-brand-sidebar hover:bg-brand-sidebarHover text-white rounded-xl transition shadow-md shadow-indigo-600/15">
+                Save & Sync
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOOKING DIALOG MODAL -->
+  <div x-cloak x-show="showBookingModal"
+       class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm"
+       x-transition:enter="transition ease-out duration-300"
+       x-transition:enter-start="opacity-0"
+       x-transition:enter-end="opacity-100"
+       x-transition:leave="transition ease-in duration-200"
+       x-transition:leave-start="opacity-100"
+       x-transition:leave-end="opacity-0">
+    
+    <div class="bg-white border border-slate-100 rounded-3xl p-6 sm:p-8 w-full max-w-md shadow-2xl relative space-y-5"
+         @click.away="showBookingModal = false"
+         x-transition:enter="transition ease-out duration-300 transform"
+         x-transition:enter-start="scale-95 translate-y-4"
+         x-transition:enter-end="scale-100 translate-y-0">
+      
+      <!-- Modal Header -->
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h3 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+          <i class="fa-regular fa-calendar-check text-[#5c6dfa]"></i> Schedule Session Slot
+        </h3>
+        <button class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400"
+                @click="showBookingModal = false">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <!-- Detail prompt -->
+      <p class="text-xs text-slate-500 leading-relaxed font-semibold">
+        You are booking a specialized diagnostic check-up session at **the Medical Clinic** for the date: <strong class="text-brand-sidebar" x-text="'May ' + selectedDay + ', 2025'"></strong>. Choose your matched cardiologist:
+      </p>
+
+      <!-- Physicians Selector matching screenshot diagnostic rosters -->
+      <div class="space-y-3">
+        
+        <!-- Option A -->
+        <div @click="bookAppointment('Dr. Waqer Jaman')"
+             class="p-4 rounded-2xl border border-slate-200/80 bg-slate-50 hover:bg-indigo-50/40 hover:border-indigo-400/30 transition duration-200 cursor-pointer flex items-center justify-between group">
+          <div class="flex items-center gap-3">
+            <img src="https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=150" 
+                 class="w-10 h-10 rounded-xl object-cover border border-slate-200 shadow-sm" alt="Waqer">
+            <div>
+              <h4 class="text-xs font-bold text-slate-800">Dr. Waqer Jaman</h4>
+              <span class="text-[9px] text-slate-400 font-semibold block">Blood Pressure Analysis Target</span>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-right text-slate-400 group-hover:text-[#5c6dfa] transition-colors text-xs"></i>
+        </div>
+
+        <!-- Option B -->
+        <div @click="bookAppointment('Dr. Sofia Frank')"
+             class="p-4 rounded-2xl border border-slate-200/80 bg-slate-50 hover:bg-indigo-50/40 hover:border-indigo-400/30 transition duration-200 cursor-pointer flex items-center justify-between group">
+          <div class="flex items-center gap-3">
+            <img src="https://images.unsplash.com/photo-1594824813573-246434de83fb?auto=format&fit=crop&q=80&w=150" 
+                 class="w-10 h-10 rounded-xl object-cover border border-slate-200 shadow-sm" alt="Sofia">
+            <div>
+              <h4 class="text-xs font-bold text-slate-800">Dr. Sofia Frank</h4>
+              <span class="text-[9px] text-slate-400 font-semibold block">Cardiogram & EKG Wave Specialist</span>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-right text-slate-400 group-hover:text-[#5c6dfa] transition-colors text-xs"></i>
+        </div>
+
+      </div>
+
+      <!-- Disclaimers footer -->
+      <span class="text-[9px] text-slate-400 block font-semibold text-center border-t border-slate-100 pt-2 uppercase">May 2025 schedules sync via clinical FHIR protocol integrations.</span>
+
+    </div>
+  </div>
+
 </body>
 </html>
