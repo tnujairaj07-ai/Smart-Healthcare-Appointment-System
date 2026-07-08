@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-[#f4f7fc]">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title> NovaCare OS | Calendar & Scheduling Workspace</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Plus Jakarta Sans for clinical legibility -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Alpine.js for interactive state handling -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <!-- Tailwind Token Configuration matching Patient Profile Dashboard -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              sidebar: '#5c6dfa',      // Vibrant Blue/Indigo from Patient Dashboard
+              sidebarHover: '#4e5ee6',
+              sidebarActive: '#eff2ff',
+              coral: '#ff6b35',        // Signature Coral Accent
+              coralHover: '#e5531d',
+            },
+            medical: {
+              light: '#f8fafc',
+              slate: '#64748b',
+              dark: '#0f172a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Styling matching visual cards from Patient Profile Dashboard & Reference Screenshot */
+    .dashboard-card {
+      background: #ffffff;
+      border-radius: 24px;
+      border: 1px solid #eef2f6;
+      box-shadow: 0 4px 20px -2px rgba(148, 163, 184, 0.06), 0 2px 8px -1px rgba(148, 163, 184, 0.04);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .dashboard-card:hover {
+      box-shadow: 0 12px 30px -5px rgba(148, 163, 184, 0.12), 0 4px 16px -2px rgba(148, 163, 184, 0.06);
+    }
+
+    /* Custom scrollbar matching Patient Dashboard */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="h-full font-sans antialiased text-slate-800 bg-[#f4f7fc]" x-data="{
+  activeTab: 'Calendar',
+  showToast: false,
+  toastMessage: '',
+  showAddEventModal: false,
+  
+  // Timeline states matching August 2025 as in Screenshot 2026-07-07 223708.jpg
+  selectedDay: 9,
+  currentMonth: 7, // August (0-indexed base alignment)
+  currentYear: 2025,
+  simulatedMinutes: 150, // 150 mins after 07:00 AM = 09:30 AM (simulated slider marker)
+  filterType: 'All',
+
+  // Master events matching exact layout metrics from Screenshot 2026-07-07 223708.jpg
+  events: [
+    { id: 1, name: 'Jane Cooper', time: '07:00 AM', rawMins: 0, lane: 0, status: 'Done', day: 9, image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=150', spec: 'Diagnostic Review' },
+    { id: 2, name: 'Brooklyn Simmons', time: '07:35 AM', rawMins: 35, lane: 1, status: 'Done', day: 9, image: 'https://images.unsplash.com/photo-1594824813573-246434de83fb?auto=format&fit=crop&q=80&w=150', spec: 'Cardio Evaluation' },
+    { id: 3, name: 'Jenny Wilson', time: '07:15 AM', rawMins: 15, lane: 2, status: 'Done', day: 9, image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=150', spec: 'Endocrine Intake' },
+    { id: 4, name: 'Courtney Henry', time: '08:35 AM', rawMins: 95, lane: 1, status: 'Done', day: 9, image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150', spec: 'Suture Check-up' },
+    { id: 5, name: 'Guy Hawkins', time: '09:00 AM', rawMins: 120, lane: 0, status: 'Join', day: 9, image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150', spec: 'Therapy Session' },
+    { id: 6, name: 'Kristin Watson', time: '09:45 AM', rawMins: 165, lane: 2, status: 'Start', day: 9, image: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=150', spec: 'Metabolic Consultation' },
+    { id: 7, name: 'Robert Fox', time: '10:30 AM', rawMins: 210, lane: 1, status: 'Start', day: 9, image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=150', spec: 'Orthopedic Diagnostics' },
+    { id: 8, name: 'Jacob Jones', time: '11:15 AM', rawMins: 255, lane: 0, status: 'Start', day: 9, image: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=150', spec: 'Post-Op Review' },
+    { id: 9, name: 'Cameron Williamson', time: '11:45 AM', rawMins: 285, lane: 2, status: 'Start', day: 9, image: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=150', spec: 'Neurology Scan' }
+  ],
+
+  // Reminder checklist from left side of screenshot
+  reminders: [
+    { title: 'Client Strategy Call', date: '12 August 2025', type: 'Meetings', color: 'blue' },
+    { title: 'Project Kickoff', date: '17 August 2025', type: 'Appointment', color: 'pink' },
+    { title: 'Team Check-in', date: '19 August 2025', type: 'Evaluation', color: 'orange' },
+    { title: 'Stakeholder Meeting', date: '24 August 2025', type: 'Meetings', color: 'blue' },
+    { title: 'Sprint Review', date: '26 August 2025', type: 'Meetings', color: 'blue' },
+    { title: 'Performance Review', date: '31 August 2025', type: 'Evaluation', color: 'pink' }
+  ],
+
+  // Form states for new scheduled event entries
+  newEventName: '',
+  newEventTime: '09:00',
+  newEventLane: '0',
+  newEventStatus: 'Start',
+  newEventSpec: 'General Check-up',
+
+  triggerToast(msg) {
+    this.toastMessage = msg;
+    this.showToast = true;
+    setTimeout(() => this.showToast = false, 3500);
+  },
+
+  // Coordinate positioning calculation: Maps raw minute values into percentage offsets
+  getLeftOffset(mins) {
+    // 7:00 AM to 12:00 PM is 5 Hours = 300 minutes
+    const pct = (mins / 300) * 100;
+    return `left: ${Math.min(Math.max(pct, 0), 96)}%;`;
+  },
+
+  // Returns formatted simulated hour block representation
+  getSimulatedTimeStr() {
+    const totalMins = 7 * 60 + parseInt(this.simulatedMinutes);
+    const hours = Math.floor(totalMins / 60);
+    const mins = totalMins % 60;
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours > 12 ? hours - 12 : (hours === 0 ? 12 : hours);
+    return `${String(displayHours).padStart(2, '0')}:${String(mins).padStart(2, '0')} ${ampm}`;
+  },
+
+  // Adds a new schedule element and repositions dynamically
+  addNewEvent() {
+    if (!this.newEventName.trim()) {
+      this.triggerToast('Please provide a valid client name.');
+      return;
+    }
+
+    // Convert time selection (HH:MM) into raw minutes starting from 07:00 AM
+    const [hours, mins] = this.newEventTime.split(':').map(Number);
+    const selectedMins = hours * 60 + mins;
+    const startMins = 7 * 60; // 07:00 AM in minutes
+    let rawMins = selectedMins - startMins;
+
+    // Boundary protection for timeline range
+    if (rawMins < 0 || rawMins > 300) {
+      rawMins = Math.max(0, Math.min(rawMins, 300));
+      this.triggerToast('Event snapped within timeline visibility bounds.');
+    }
+
+    // Format display time
+    const displayHour = hours > 12 ? hours - 12 : (hours === 0 ? 12 : hours);
+    const displayAmpm = hours >= 12 ? 'PM' : 'AM';
+    const formattedTimeStr = `${String(displayHour).padStart(2, '0')}:${String(mins).padStart(2, '0')} ${displayAmpm}`;
+
+    // Push new event structure
+    this.events.push({
+      id: Date.now(),
+      name: this.newEventName,
+      time: formattedTimeStr,
+      rawMins: rawMins,
+      lane: parseInt(this.newEventLane),
+      status: this.newEventStatus,
+      day: this.selectedDay,
+      image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150',
+      spec: this.newEventSpec
+    });
+
+    this.showAddEventModal = false;
+    this.newEventName = '';
+    this.triggerToast('Event successfully added to daily track list!');
+  }
+}">
+
+  <!-- Toast Notification Overlay -->
+  <div x-cloak x-show="showToast"
+       x-transition:enter="transition ease-out duration-300 transform"
+       x-transition:enter-start="translate-y-[-20px] opacity-0"
+       x-transition:enter-end="translate-y-0 opacity-100"
+       x-transition:leave="transition ease-in duration-200 transform"
+       x-transition:leave-start="translate-y-0 opacity-100"
+       x-transition:leave-end="translate-y-[-20px] opacity-0"
+       class="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-6 py-3.5 rounded-2xl shadow-xl flex items-center gap-3 border border-slate-800">
+    <div class="w-8 h-8 rounded-full bg-brand-sidebar/20 flex items-center justify-center text-brand-sidebar">
+      <i class="fa-solid fa-calendar-check text-[#5c6dfa]"></i>
+    </div>
+    <span class="font-bold text-xs uppercase tracking-wide text-slate-100" x-text="toastMessage"></span>
+  </div>
+
+  <!-- MAIN APP WRAPPER FRAME -->
+  <div class="flex h-full min-h-screen w-full">
+
+    <!-- LEFT SIDEBAR: Directly adapts color design and styles of Patient Profile Dashboard sidebar -->
+    <aside class="w-64 bg-brand-sidebar flex-shrink-0 flex flex-col text-white relative shadow-xl shadow-indigo-600/10 hidden lg:flex">
+      
+      <!-- Brand Logo Header -->
+      <div class="p-6 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-brand-sidebar font-extrabold text-xl shadow-md">
+          <img src="images/app-logo.jpg"
+              alt="NovaCare OS logo"
+              class="w-8 h-8 rounded object-contain">
+        </div>
+        <div>
+          <span class="font-bold text-xl tracking-tight block">NovaCare OS</span>
+          <span class="text-[10px] text-indigo-100 uppercase tracking-widest font-semibold">Workspace OS</span>
+        </div>
+      </div>
+
+      <!-- Navigation links adapted from sidebar layouts -->
+      <nav class="flex-1 px-4 space-y-1.5 overflow-y-auto pt-2">
+        <h5 class="text-[9px] font-extrabold text-indigo-200 uppercase tracking-widest mb-2 px-3.5">General</h5>
+        
+        <button @click="triggerToast('Loading NovaCare OS workspace dashboard...')"
+                class="w-full flex items-center gap-3.5 px-4.5 py-3 rounded-xl text-indigo-100 hover:bg-brand-sidebarHover hover:text-white transition-all text-sm text-left font-medium">
+          <i class="fa-solid fa-table-cells-large text-sm shrink-0"></i>
+          <span>Dashboard</span>
+        </button>
+
+        <button @click="triggerToast('Accessing active workspace conversation blocks...')"
+                class="w-full flex items-center gap-3.5 px-4.5 py-3 rounded-xl text-indigo-100 hover:bg-brand-sidebarHover hover:text-white transition-all text-sm text-left font-medium">
+          <i class="fa-regular fa-comment-dots text-sm shrink-0"></i>
+          <span>Conversations</span>
+        </button>
+
+        <!-- Dynamic active highlight selector adapted matching design blueprint -->
+        <button @click="activeTab = 'Calendar'"
+                :class="activeTab === 'Calendar' ? 'bg-white/15 text-white font-bold shadow-inner' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white font-medium'"
+                class="w-full flex items-center gap-3.5 px-4.5 py-3 rounded-xl transition-all text-sm text-left">
+          <i class="fa-regular fa-calendar-check text-sm shrink-0"></i>
+          <span>Calendar</span>
+        </button>
+
+        <div class="h-px bg-white/10 my-4"></div>
+        <h5 class="text-[9px] font-extrabold text-indigo-200 uppercase tracking-widest mb-2 px-3.5">Lead Tools</h5>
+
+        <button @click="triggerToast('Opening workspace Lead management pipeline...')"
+                class="w-full flex items-center gap-3.5 px-4.5 py-3 rounded-xl text-indigo-100 hover:bg-brand-sidebarHover hover:text-white transition-all text-xs text-left font-semibold">
+          <i class="fa-solid fa-user-gear shrink-0"></i> <span>Leads Management</span>
+        </button>
+
+        <button @click="triggerToast('Starting clinical AI assistance...')"
+                class="w-full flex items-center gap-3.5 px-4.5 py-3 rounded-xl text-indigo-100 hover:bg-brand-sidebarHover hover:text-white transition-all text-xs text-left font-semibold">
+          <i class="fa-solid fa-brain shrink-0"></i> <span>AI Messaging</span>
+        </button>
+
+        <button @click="triggerToast('Accessing pre-built system templates...')"
+                class="w-full flex items-center gap-3.5 px-4.5 py-3 rounded-xl text-indigo-100 hover:bg-brand-sidebarHover hover:text-white transition-all text-xs text-left font-semibold">
+          <i class="fa-solid fa-clipboard-list shrink-0"></i> <span>Templates & Tone</span>
+        </button>
+
+        <div class="h-px bg-white/10 my-4"></div>
+        <h5 class="text-[9px] font-extrabold text-indigo-200 uppercase tracking-widest mb-2 px-3.5">Settings</h5>
+
+        <button @click="triggerToast('Opening clinical parameters config...')"
+                class="w-full flex items-center gap-3.5 px-4.5 py-3 rounded-xl text-indigo-100 hover:bg-brand-sidebarHover hover:text-white transition-all text-xs text-left font-semibold">
+          <i class="fa-solid fa-sliders shrink-0"></i> <span>Workspace Settings</span>
+        </button>
+      </nav>
+
+      <!-- Sidebar Promo User profile badge representing "Annisa Azizah" in Oratrix context -->
+      <div class="p-4 m-4 rounded-2xl bg-white/10 border border-white/10 flex items-center gap-3 relative">
+        <img class="w-10 h-10 rounded-xl object-cover border border-white/20"
+             src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150" alt="Annisa Azizah">
+        <div>
+          <h4 class="text-xs font-bold text-white leading-tight">Annisa Azizah</h4>
+          <p class="text-[10px] text-indigo-200 mt-0.5">Manager Office</p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- RIGHT MAIN PANELS AREA -->
+    <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+
+      <!-- TOP BAR AREA matching the layout rules of  NovaCare OS -->
+      <header class="bg-white/75 backdrop-blur-md border-b border-slate-100 px-8 py-4 flex items-center justify-between sticky top-0 z-30">
+        <!-- Welcoming details aligned elegantly -->
+        <div>
+          <h1 class="text-lg font-extrabold text-slate-900 tracking-tight">Calendar Workspace</h1>
+          <p class="text-xs text-slate-400 font-semibold mt-0.5 flex items-center gap-1.5">
+            <span>👋 Welcome back, <strong>Annisa!</strong> Here's your schedule</span>
+          </p>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <!-- simulated time modifier control panel overlay -->
+          <div class="hidden sm:flex items-center gap-3 bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs font-bold">
+            <span class="text-slate-400">Simulate Time:</span>
+            <input type="range" min="0" max="300" x-model="simulatedMinutes" class="w-24 accent-[#5c6dfa] cursor-pointer">
+            <span class="text-brand-sidebar font-extrabold" x-text="getSimulatedTimeStr()"></span>
+          </div>
+
+          <!-- Add Event Action trigger matching screenshot -->
+          <button @click="showAddEventModal = true" 
+                  class="px-5 py-2.5 rounded-xl bg-brand-sidebar hover:bg-brand-sidebarHover text-white text-xs font-bold transition flex items-center gap-2 shadow-md shadow-indigo-600/15">
+            <i class="fa-solid fa-plus text-xs"></i> <span>Add Event</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- CONTENT GRID WORKSPACE (Adapted layout with high visual fidelity representing screenshot parameters) -->
+      <div class="p-6 md:p-8 max-w-[1400px] w-full mx-auto grid grid-cols-1 xl:grid-cols-12 gap-6 flex-1 items-start">
+
+        <!-- COLUMN 1: MINI CALENDAR & REMINDER BLOCK TRAY (col-span-4) -->
+        <section class="xl:col-span-4 space-y-6 flex flex-col">
+
+          <!-- Mini calendar card exactly matching the grid elements of screenshot -->
+          <div class="dashboard-card p-6 space-y-4">
+            <div class="flex justify-between items-center pb-2 border-b border-slate-50">
+              <span class="text-xs font-extrabold uppercase tracking-widest text-slate-400">August 2025</span>
+              <div class="flex gap-1.5">
+                <button @click="triggerToast('Locked to August 2025 range')" class="w-6 h-6 rounded-md hover:bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400 text-[10px]">
+                  <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <button @click="triggerToast('Locked to August 2025 range')" class="w-6 h-6 rounded-md hover:bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400 text-[10px]">
+                  <i class="fa-solid fa-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Calendar Days column markers -->
+            <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+              <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+            </div>
+
+            <!-- Days layout starting on Friday for August 2025 alignment layout -->
+            <div class="grid grid-cols-7 gap-1">
+              <!-- Empty spacer values -->
+              <span class="h-8 flex items-center justify-center text-slate-300 text-xs font-bold">28</span>
+              <span class="h-8 flex items-center justify-center text-slate-300 text-xs font-bold">29</span>
+              <span class="h-8 flex items-center justify-center text-slate-300 text-xs font-bold">30</span>
+              <span class="h-8 flex items-center justify-center text-slate-300 text-xs font-bold">31</span>
+              
+              <!-- Real clickable dates of the month -->
+              <template x-for="dayNum in Array.from({length: 31}, (_, i) => i + 1)">
+                <div @click="selectedDay = dayNum; triggerToast('Showing schedules for August ' + dayNum + ', 2025')"
+                     :class="{
+                       'bg-brand-sidebar text-white font-extrabold rounded-full shadow-md shadow-indigo-600/15 scale-105': selectedDay === dayNum,
+                       'hover:bg-slate-50 text-slate-700 font-bold': selectedDay !== dayNum
+                     }"
+                     class="h-8 flex items-center justify-center text-xs cursor-pointer rounded-full transition-all relative">
+                  <span x-text="String(dayNum).padStart(2, '0')"></span>
+                  <!-- Small blue indicator dot on days with multiple events (e.g. Day 9) -->
+                  <span x-show="dayNum === 9" 
+                        :class="selectedDay === dayNum ? 'bg-white' : 'bg-brand-sidebar'"
+                        class="absolute bottom-1 w-1 h-1 rounded-full"></span>
+                </div>
+              </template>
+            </div>
+          </div>
+
+          <!-- Reminder widget card verbatim to Screenshot 2026-07-07 223708.jpg -->
+          <div class="dashboard-card p-6 space-y-4">
+            <div class="flex justify-between items-center">
+              <h3 class="text-xs font-extrabold uppercase tracking-widest text-slate-400">Reminder</h3>
+              <button class="text-slate-400 hover:text-slate-600" @click="triggerToast('Loading reminder config panel...')">
+                <i class="fa-solid fa-ellipsis-vertical text-xs"></i>
+              </button>
+            </div>
+
+            <div class="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+              <template x-for="item in reminders" :key="item.title">
+                <div class="p-3 bg-slate-50/70 border border-slate-200/50 rounded-xl flex items-center justify-between hover:bg-slate-50 transition-colors">
+                  <div>
+                    <h4 class="text-xs font-extrabold text-slate-800" x-text="item.title"></h4>
+                    <span class="text-[9px] text-slate-400 font-semibold block mt-0.5" x-text="item.date"></span>
+                  </div>
+
+                  <!-- Tag pill categories matching screenshot specifications -->
+                  <span class="text-[9px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider text-center"
+                        :class="{
+                          'bg-indigo-50 text-indigo-600 border border-indigo-100': item.type === 'Meetings',
+                          'bg-purple-50 text-purple-600 border border-purple-100': item.type === 'Appointment',
+                          'bg-rose-50 text-rose-600 border border-rose-100': item.type === 'Evaluation'
+                        }"
+                        x-text="item.type">
+                  </span>
+                </div>
+              </template>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- COLUMN 2: TIMELINE GRID SCHEDULE BOARD (col-span-8) -->
+        <section class="xl:col-span-8 space-y-4 flex flex-col">
+
+          <div class="dashboard-card p-6 space-y-6 overflow-hidden">
+            
+            <!-- Daily Title header & Filter selection dropdown -->
+            <div class="flex items-center justify-between flex-wrap gap-4 border-b border-slate-100 pb-4">
+              <div>
+                <h2 class="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                  <span class="text-[#5c6dfa]"><i class="fa-solid fa-clock-rotate-left"></i></span>
+                  <span x-text="'Saturday, ' + selectedDay + ' August 2025'"></span>
+                </h2>
+                <p class="text-[11px] font-semibold text-slate-400 mt-1">Multi-track patient and physician timeline layout mapping.</p>
+              </div>
+
+              <!-- Filter Selector dropdown matches screenshot dropdown styling -->
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-slate-400 uppercase">Track Filter:</span>
+                <select x-model="filterType" 
+                        class="px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-200">
+                  <option value="All">All Event</option>
+                  <option value="Start">Start Available</option>
+                  <option value="Join">Active Join</option>
+                  <option value="Done">Done Complete</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- TIMELINE CANVAS: Complete horizontal layout structure from Screenshot 2026-07-07 223708.jpg -->
+            <!-- Horizontal axis mapping hours 07:00 AM up to 12:00 PM with guidelines -->
+            <div class="relative pt-8 pb-4 min-h-[500px] overflow-x-auto">
+              <div class="min-w-[750px] relative h-full">
+
+                <!-- Guidelines and Hour Tags across horizontal coordinates -->
+                <div class="absolute inset-x-0 top-0 flex justify-between text-[11px] font-extrabold text-slate-400 border-b border-slate-100 pb-2 mb-1">
+                  <span class="w-1/6 text-left">07:00 AM</span>
+                  <span class="w-1/6 text-left pl-6">08:00 AM</span>
+                  <span class="w-1/6 text-left pl-6">09:00 AM</span>
+                  <span class="w-1/6 text-left pl-6">10:00 AM</span>
+                  <span class="w-1/6 text-left pl-6">11:00 AM</span>
+                  <span class="w-1/6 text-right">12:00 PM</span>
+                </div>
+
+                <!-- Guidelines (Vertical dotted axes) -->
+                <div class="absolute inset-0 pt-8 flex justify-between pointer-events-none">
+                  <div class="h-full border-l border-dashed border-slate-100"></div>
+                  <div class="h-full border-l border-dashed border-slate-100"></div>
+                  <div class="h-full border-l border-dashed border-slate-100"></div>
+                  <div class="h-full border-l border-dashed border-slate-100"></div>
+                  <div class="h-full border-l border-dashed border-slate-100"></div>
+                  <div class="h-full border-l border-dashed border-slate-100"></div>
+                </div>
+
+                <!-- THREE LANES (Vertical Rows to stagger overlapping events cleanly as in screenshot) -->
+                <div class="relative space-y-10 pt-10 h-full">
+                  
+                  <!-- Lane 0 container -->
+                  <div class="h-16 relative w-full border-b border-slate-50"></div>
+                  
+                  <!-- Lane 1 container -->
+                  <div class="h-16 relative w-full border-b border-slate-50"></div>
+                  
+                  <!-- Lane 2 container -->
+                  <div class="h-16 relative w-full border-b border-slate-50"></div>
+
+                  <!-- PLOTTED CARDS: Renders dynamically via Alpine percentage offset coordinate maps -->
+                  <template x-for="item in events" :key="item.id">
+                    <div x-show="(filterType === 'All' || item.status === filterType) && (item.day === selectedDay)"
+                         :style="getLeftOffset(item.rawMins)"
+                         :class="{
+                           'top-[40px]': item.lane === 0,
+                           'top-[130px]': item.lane === 1,
+                           'top-[220px]': item.lane === 2
+                         }"
+                         class="absolute z-10 w-[185px] p-2.5 bg-white border border-slate-200/80 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 hover:scale-[1.03] flex items-center gap-2.5">
+                      
+                      <!-- Practitioner Image avatar -->
+                      <img :src="item.image" class="w-9 h-9 rounded-xl object-cover shrink-0 border border-slate-100 shadow-sm" alt="Avatar">
+                      
+                      <!-- Details -->
+                      <div class="min-w-0 flex-1 text-left">
+                        <h4 class="text-xs font-bold text-slate-800 truncate" :title="item.name" x-text="item.name"></h4>
+                        <div class="flex items-center justify-between gap-1 mt-1">
+                          <span class="text-[9px] text-slate-400 font-bold" x-text="item.time"></span>
+                          
+                          <!-- Dynamic CTA status buttons verbatim to Screenshot -->
+                          <button @click="triggerToast(item.name + ' context loaded successfully!')"
+                                  :class="{
+                                    'bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-indigo-100': item.status === 'Join',
+                                    'bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100': item.status === 'Start',
+                                    'bg-slate-50 text-slate-400 border-slate-100 cursor-not-allowed': item.status === 'Done'
+                                  }"
+                                  class="text-[9px] font-extrabold px-2 py-0.5 rounded-md border transition-all"
+                                  x-text="item.status">
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </template>
+
+                  <!-- SIMULATED BLUE TIME LINE: Matches the precise marker line and pill from Screenshot 2026-07-07 223708.jpg -->
+                  <div class="absolute inset-y-0 z-20 pointer-events-none transition-all duration-300 border-l-2 border-[#5c6dfa]"
+                       :style="getLeftOffset(simulatedMinutes)">
+                    <!-- Time Label Pill at the top -->
+                    <div class="absolute -top-6 -translate-x-1/2 bg-brand-sidebar text-white text-[9.5px] font-extrabold px-3 py-1 rounded-full shadow-md flex items-center gap-1">
+                      <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                      <span x-text="getSimulatedTimeStr()"></span>
+                    </div>
+                    <!-- Indicator Coordinate Circle node -->
+                    <div class="absolute top-[80px] -translate-x-1/2 w-3.5 h-3.5 bg-brand-sidebar rounded-full border-4 border-white shadow"></div>
+                  </div>
+
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Calibration tip section helping user understand interactive timeline coordinates -->
+            <div class="bg-[#eff2ff] p-3 rounded-xl border border-[#5c6dfa]/20 text-[11px] flex items-center gap-2 text-indigo-700 font-medium">
+              <i class="fa-solid fa-circle-info text-sm text-[#5c6dfa]"></i>
+              <span>Use the **Simulate Time** slider in the header bar to dynamically shift the blue timeline marker line. Drag slots or add new bookings to test live coordinate offsets!</span>
+            </div>
+
+          </div>
+
+        </section>
+
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- BOOKING EVENT DIALOG MODAL (Allows adding dynamically scheduled physicians/appointments) -->
+  <div x-cloak x-show="showAddEventModal"
+       class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm"
+       x-transition:enter="transition ease-out duration-300"
+       x-transition:enter-start="opacity-0"
+       x-transition:enter-end="opacity-100"
+       x-transition:leave="transition ease-in duration-200"
+       x-transition:leave-start="opacity-100"
+       x-transition:leave-end="opacity-0">
+    
+    <div class="bg-white border border-slate-100 rounded-3xl p-6 sm:p-8 w-full max-w-md shadow-2xl relative space-y-5"
+         @click.away="showAddEventModal = false"
+         x-transition:enter="transition ease-out duration-300 transform"
+         x-transition:enter-start="scale-95 translate-y-4"
+         x-transition:enter-end="scale-100 translate-y-0">
+      
+      <!-- Modal Header -->
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h3 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+          <i class="fa-regular fa-calendar-plus text-[#5c6dfa]"></i> Schedule Session
+        </h3>
+        <button class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400"
+                @click="showAddEventModal = false">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <!-- Detail inputs fields matching core requirements -->
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-500 mb-1">Practitioner/Patient Name</label>
+          <input type="text" x-model="newEventName" placeholder="e.g. Dr. Helen Ross"
+                 class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1">Start Time</label>
+            <input type="time" x-model="newEventTime" min="07:00" max="12:00"
+                   class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-xs font-semibold text-slate-800 focus:outline-none">
+            <span class="text-[9px] text-slate-400 mt-1 block">Limit range: 07:00 AM - 12:00 PM</span>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1">Clinical Field</label>
+            <input type="text" x-model="newEventSpec" placeholder="e.g. Cardiology"
+                   class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-xs font-semibold text-slate-800 focus:outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1">Stagger Lane Row</label>
+            <select x-model="newEventLane" 
+                    class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-800 focus:outline-none">
+              <option value="0">Lane Row 0 (Top)</option>
+              <option value="1">Lane Row 1 (Middle)</option>
+              <option value="2">Lane Row 2 (Bottom)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1">Status Call Action</label>
+            <select x-model="newEventStatus" 
+                    class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-800 focus:outline-none">
+              <option value="Start">Start</option>
+              <option value="Join">Join</option>
+              <option value="Done">Done</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer dialog buttons matching dashboard styles -->
+      <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+        <button class="px-5 py-2.5 text-xs font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-xl transition"
+                @click="showAddEventModal = false">
+          Discard
+        </button>
+        <button class="px-6 py-2.5 text-xs font-bold text-white bg-[#5c6dfa] hover:bg-[#4e5ee6] rounded-xl transition shadow-md shadow-indigo-600/10"
+                @click="addNewEvent()">
+          Confirm Booking
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>
