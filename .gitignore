@@ -1,0 +1,49 @@
+# --- Python / Backend ---
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+backend/__pycache__/
+backend/instance/
+backend/smart_healthcare.db
+
+# --- Runtime Uploads & Generated Media ---
+# Ignore the contents of these folders, but keep the folders
+uploads/*
+!uploads/.gitkeep
+backend/prescriptions/*
+!backend/prescriptions/.gitkeep
+backend/qr_codes/*
+!backend/qr_codes/.gitkeep
+
+# --- Node / Frontend ---
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+
+# --- Environment & Secrets ---
+.env
+.env.local
+.env.*.local
+*.env
+backend/.env
+frontend/.env
+
+# --- IDEs / Editors & OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# --- Temporary ---
+scratch/
