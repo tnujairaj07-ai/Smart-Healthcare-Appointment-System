@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-[#f4f7fc]">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NovaCare OS | Smart Online Pharmacy &amp; Prescription Workspace</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Plus Jakarta Sans for clean clinical typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Alpine.js for interactive state handling -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <!-- Tailwind Configuration matching Patient Profile Dashboard -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              sidebar: '#5c6dfa',      // Vibrant Blue/Indigo from Dashboard
+              sidebarHover: '#4e5ee6',
+              sidebarActive: '#eff2ff',
+              coral: '#ff6b35',        // Signature Coral Accent from landing page
+              coralHover: '#e5531d',
+              emerald: '#10b981',
+              accent: '#FFC83A'        // Scanned yellow accent color
+            },
+            medical: {
+              light: '#f8fafc',
+              slate: '#64748b',
+              dark: '#0f172a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Styling matching visual cards from our Patient Dashboards */
+    .dashboard-card {
+      background: #ffffff;
+      border-radius: 24px;
+      border: 1px solid #eef2f6;
+      box-shadow: 0 4px 20px -2px rgba(148, 163, 184, 0.06), 0 2px 8px -1px rgba(148, 163, 184, 0.04);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .dashboard-card:hover {
+      box-shadow: 0 12px 30px -5px rgba(148, 163, 184, 0.12), 0 4px 16px -2px rgba(148, 163, 184, 0.06);
+    }
+
+    /* Hide scrollbar for category sliders but keep functionality */
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .hide-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* Custom elegant scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    /* Scanned Hero Banner Gradient background */
+    .hero-gradient {
+      background: linear-gradient(135deg, #07464B 0%, #116A71 100%);
+    }
+
+    .bg-hatched {
+      background: repeating-linear-gradient(
+        45deg,
+        rgba(255, 107, 53, 0.05),
+        rgba(255, 107, 53, 0.05) 4px,
+        rgba(255, 107, 53, 0.1) 4px,
+        rgba(255, 107, 53, 0.1) 8px
+      );
+    }
+  </style>
+</head>
+<body class="h-full font-sans antialiased text-slate-800 bg-[#f4f7fc]" x-data="pharmacyApp()">
+
+  <!-- Toast Notification Overlay -->
+  <div x-cloak x-show="showToast"
+       x-transition:enter="transition ease-out duration-300 transform"
+       x-transition:enter-start="translate-y-[-20px] opacity-0"
+       x-transition:enter-end="translate-y-0 opacity-100"
+       x-transition:leave="transition ease-in duration-200 transform"
+       x-transition:leave-start="translate-y-0 opacity-100"
+       x-transition:leave-end="translate-y-[-20px] opacity-0"
+       class="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-6 py-3.5 rounded-2xl shadow-xl flex items-center gap-3 border border-slate-200"
+       :class="{
+         'bg-slate-900 text-white border-slate-800': toastType === 'success',
+         'bg-brand-sidebar text-white border-blue-500': toastType === 'info',
+         'bg-rose-600 text-white border-rose-500': toastType === 'error'
+       }">
+    <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+      <template x-if="toastType === 'success'"><i class="fa-solid fa-circle-check text-emerald-400"></i></template>
+      <template x-if="toastType === 'info'"><i class="fa-solid fa-info-circle text-white"></i></template>
+      <template x-if="toastType === 'error'"><i class="fa-solid fa-triangle-exclamation text-yellow-300"></i></template>
+    </div>
+    <span class="font-bold text-xs uppercase tracking-wide" x-text="toastMessage"></span>
+  </div>
+
+  <!-- MAIN APP WRAPPER FRAME -->
+  <div class="flex h-full min-h-screen w-full">
+
+    <!-- LEFT SIDEBAR: Directly matches colors and sidebar layout elements from Patient Profile Dashboard -->
+    <aside class="w-64 bg-brand-sidebar flex-shrink-0 flex flex-col text-white relative shadow-xl shadow-indigo-600/10 hidden lg:flex">
+      
+      <!-- Brand Logo Header -->
+      <div class="p-6 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-brand-sidebar font-extrabold text-xl shadow-md">
+          C
+        </div>
+        <div>
+          <span class="font-bold text-xl tracking-tight block">CLINIK</span>
+          <span class="text-[10px] text-indigo-100 uppercase tracking-widest font-semibold">Workspace OS</span>
+        </div>
+      </div>
+
+      <!-- Navigation links adapted from Clinik dashboards -->
+      <nav class="flex-1 px-4 space-y-1.5 overflow-y-auto pt-2">
+        <h5 class="text-[9px] font-extrabold text-indigo-200 uppercase tracking-widest mb-2 px-3.5">General</h5>
+        
+        <a href="patient_profile.html"
+           class="w-full flex items-center gap-3.5 px-4.5 py-3 rounded-xl text-indigo-100 hover:bg-brand-sidebarHover hover:text-white transition-all text-sm text-left font-medium">
+          <i class="fa-solid fa-table-cells-large text-sm shrink-0"></i>
+          <span>Dashboard</span>
+        </a>
+
+        <a href="health_analytics.html"
+           class="w-full flex items-center gap-3.5 px-4.5 py-3 rounded-xl text-indigo-100 hover:bg-brand-sidebarHover hover:text-white transition-all text-sm text-left font-medium">
+          <i class="fa-solid fa-chart-line text-sm shrink-0"></i>
+          <span>Analytics</span>
+        </a>
+
+        <a href="calendar_schedule.html"
+           class="w-full flex items-center gap-3.5 px-4.5 py-3 rounded-xl text-indigo-100 hover:bg-brand-sidebarHover hover:text-white transition-all text-sm text-left font-medium">
+          <i class="fa-regular fa-calendar-check text-sm shrink-0"></i>
+          <span>Calendar</span>
+        </a>
+
+        <!-- Dynamic active highlight pharmacy tab selector -->
+        <button class="w-full flex items-center gap-3.5 px-4.5 py-3 rounded-xl bg-white/15 text-white font-bold shadow-inner text-sm text-left">
+          <i class="fa-solid fa-prescription-bottle-medical text-sm shrink-0"></i>
+          <span>Pharmacy Store</span>
+        </button>
+
+        <div class="h-px bg-white/10 my-4"></div>
+        <h5 class="text-[9px] font-extrabold text-indigo-200 uppercase tracking-widest mb-2 px-3.5">Active Location</h5>
+
+        <!-- Delhi Delivery Target Display -->
+        <div class="px-3.5 py-3 rounded-xl bg-white/10 border border-white/5 space-y-2 mx-1 text-left">
+          <div class="flex items-center justify-between text-[10px] uppercase tracking-wide font-extrabold text-indigo-200">
+            <span>Destination</span>
+            <span class="text-emerald-300">Active</span>
+          </div>
+          <div class="flex items-start gap-2">
+            <i class="fa-solid fa-location-dot text-emerald-400 text-xs mt-0.5"></i>
+            <div>
+              <p class="text-[11px] text-white font-bold leading-tight">Delhi 110001</p>
+              <p class="text-[9px] text-indigo-200">Express delivery verified</p>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <!-- Sidebar Promo User profile badge representing "Kate Prokopchuk" -->
+      <div class="p-4 m-4 rounded-2xl bg-white/10 border border-white/10 flex items-center gap-3 relative">
+        <img class="w-10 h-10 rounded-xl object-cover border border-white/20"
+             src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150" alt="Kate Prokopchuk">
+        <div>
+          <h4 class="text-xs font-bold text-white leading-tight">Kate Prokopchuk</h4>
+          <p class="text-[10px] text-indigo-200 mt-0.5">Patient Account</p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- RIGHT MAIN PANELS AREA -->
+    <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+
+      <!-- TOP BAR AREA matching the layout rules of Clinik OS -->
+      <header class="bg-white/75 backdrop-blur-md border-b border-slate-100 px-8 py-4 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-0 z-30">
+        <!-- Welcoming details aligned elegantly -->
+        <div class="w-full md:w-auto text-left">
+          <h1 class="text-lg font-extrabold text-slate-900 tracking-tight">MediCare Apothecary</h1>
+          <p class="text-xs text-slate-400 font-semibold mt-0.5 flex items-center gap-1.5">
+            <span>👋 Welcome back, <strong>Kate!</strong> Delivery address set to: </span>
+            <span class="text-brand-sidebar font-bold flex items-center gap-1">
+              <i class="fa-solid fa-location-dot"></i> Delhi 110001 <i class="fa-solid fa-chevron-down text-[8px]"></i>
+            </span>
+          </p>
+        </div>
+
+        <!-- Search Bar matching the scanned page structure -->
+        <div class="flex-1 max-w-xl mx-0 md:mx-6 w-full relative">
+          <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </span>
+          <input type="text"
+                 x-model="searchQuery"
+                 placeholder="Search for medicines, health products..."
+                 class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-full pl-11 pr-24 py-3 focus:outline-none focus:ring-2 focus:ring-brand-sidebar transition-all">
+          <button @click="triggerToast('Searching catalog entries...')" 
+                  class="absolute right-1.5 top-1/2 -translate-y-1/2 bg-[#5c6dfa] hover:bg-brand-sidebarHover text-white text-[10px] px-5 py-1.5 rounded-full font-bold transition-all shadow-md">
+            Search
+          </button>
+        </div>
+
+        <div class="flex items-center gap-4 self-end md:self-auto">
+          <!-- Notification Bell with Active Indicator -->
+          <button @click="triggerToast('You have 2 pending order delivery updates.')" 
+                  class="relative p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-all relative">
+            <i class="fa-regular fa-bell text-lg"></i>
+            <span class="absolute top-1 right-1 bg-red-500 text-white text-[9px] w-4.5 h-4.5 rounded-full flex items-center justify-center font-bold border-2 border-white">2</span>
+          </button>
+
+          <!-- Quick Checkout Trigger Button -->
+          <button @click="cartOpen = true" 
+                  class="px-5 py-2.5 rounded-xl bg-brand-sidebar hover:bg-brand-sidebarHover text-white text-xs font-bold transition flex items-center gap-2 shadow-md shadow-indigo-600/15 relative">
+            <i class="fa-solid fa-cart-shopping text-xs"></i> <span>Cart</span>
+            <span class="w-5 h-5 rounded-full bg-brand-coral text-white text-[10px] font-extrabold flex items-center justify-center"
+                  x-text="cart.reduce((sum, item) => sum + item.quantity, 0)">0</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- BROWSE CATEGORIES HORIZONTAL NAV BAR (Scanned Page 3-4) -->
+      <div class="bg-white border-b border-slate-100 px-8 py-2 hidden md:block">
+        <div class="max-w-[1400px] mx-auto flex items-center justify-between">
+          <ul class="flex items-center gap-6 lg:gap-8 text-xs font-semibold text-slate-500">
+            <li>
+              <button @click="activeTab = 'All'" 
+                      :class="activeTab === 'All' ? 'bg-brand-sidebar/10 text-brand-sidebar' : 'hover:bg-slate-50'"
+                      class="flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors font-bold text-slate-700">
+                <i class="fa-solid fa-bars"></i> All Categories
+              </button>
+            </li>
+            <template x-for="category in categoriesList">
+              <li>
+                <button @click="activeTab = category.name" 
+                        x-text="category.name"
+                        :class="activeTab === category.name ? 'text-[#5c6dfa] font-extrabold' : 'hover:text-slate-900'"
+                        class="transition-colors uppercase tracking-wider text-[10px]"></button>
+              </li>
+            </template>
+          </ul>
+
+          <a href="#" @click.prevent="triggerToast('25% First Order Coupon Active!')" 
+             class="text-brand-coral hover:text-brand-coralHover font-bold text-xs flex items-center gap-1.5 transition-all">
+            <i class="fa-solid fa-tag"></i> Active Offers Available
+          </a>
+        </div>
+      </div>
+
+      <!-- CONTENT GRID WORKSPACE -->
+      <div class="p-6 md:p-8 max-w-[1400px] w-full mx-auto space-y-8 flex-1">
+
+        <!-- HERO BANNER SECTION (Scanned Page 4) -->
+        <section class="hero-gradient rounded-[32px] overflow-hidden relative shadow-xl shadow-teal-950/10 text-white">
+          <div class="absolute -right-16 -top-16 w-64 h-64 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+          <div class="absolute -left-16 -bottom-16 w-64 h-64 bg-brand-accent/10 rounded-full blur-2xl pointer-events-none"></div>
+
+          <div class="flex flex-col md:flex-row items-center p-8 lg:p-12 relative z-10">
+            <!-- Text copy block -->
+            <div class="w-full md:w-1/2 text-left space-y-4">
+              <span class="inline-block px-3 py-1 bg-brand-accent text-[#07464B] text-[10px] font-extrabold rounded-full uppercase tracking-wider">
+                Special Offer
+              </span>
+              <h2 class="text-3xl lg:text-5xl font-extrabold leading-tight tracking-tight">
+                Flat <span class="text-brand-accent">25% OFF</span><br>Your First Order
+              </h2>
+              <p class="text-teal-50/85 text-xs lg:text-sm max-w-md leading-relaxed font-semibold">
+                Get authentic medicines, healthcare devices, and wellness products delivered to your doorstep quickly and safely.
+              </p>
+              <div class="pt-2">
+                <button @click="promoInput = 'NOVACARE25'; applyPromoCode(); cartOpen = true" 
+                        class="bg-[#ff6b35] hover:bg-brand-coralHover hover:scale-[1.02] active:scale-95 text-white font-bold text-xs py-3 px-8 rounded-full shadow-lg transition-all flex items-center gap-2">
+                  Order Now <i class="fa-solid fa-arrow-right"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Image visualization placeholder block -->
+            <div class="w-full md:w-1/2 mt-8 md:mt-0 relative h-48 md:h-64 flex justify-center items-center">
+              <div class="absolute inset-0 flex items-center justify-center">
+                <img src="https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&q=80&w=400" 
+                     alt="3D Pills and Bottle" 
+                     class="max-h-full object-contain rounded-2xl shadow-2xl transform rotate-3 hover:rotate-0 transition-transform duration-500"
+                     onerror="this.src='https://placehold.co/400x300/0B5E63/ffffff?text=Medicare+3D+Pills'">
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- CATEGORIES SLIDE CONTAINER SECTION (Scanned Page 5) -->
+        <section class="space-y-4">
+          <div class="flex justify-between items-end">
+            <div class="text-left">
+              <h2 class="text-lg font-extrabold text-slate-900 tracking-tight">Browse by Category</h2>
+              <p class="text-xs text-slate-400 font-semibold mt-0.5">Explore our wide clinical range of products</p>
+            </div>
+            <button @click="activeTab = 'All'" class="text-brand-sidebar font-extrabold text-xs hover:underline">
+              View All
+            </button>
+          </div>
+
+          <!-- Slide scrollable line -->
+          <div class="flex gap-4 overflow-x-auto hide-scrollbar pb-2 snap-x">
+            <template x-for="cat in categoriesList" :key="cat.name">
+              <button @click="activeTab = cat.name"
+                      :class="activeTab === cat.name ? 'border-[#5c6dfa] bg-[#eff2ff] scale-105' : 'border-slate-100 bg-white hover:border-[#5c6dfa]/40'"
+                      class="min-w-[130px] p-4 rounded-2xl flex flex-col items-center justify-center gap-3 shadow-sm border transition-all snap-start group select-none">
+                <div :class="cat.bg" class="w-14 h-14 rounded-full flex items-center justify-center text-xl transition-colors">
+                  <i :class="cat.icon + ' ' + cat.textColor"></i>
+                </div>
+                <span class="text-xs font-bold text-slate-800" x-text="cat.name"></span>
+              </button>
+            </template>
+          </div>
+        </section>
+
+        <!-- DEAL OF THE DAY ROW CONTAINER (Scanned Page 7) -->
+        <section class="space-y-4">
+          <div class="flex justify-between items-center flex-wrap gap-3">
+            <div class="flex items-center gap-2">
+              <h2 class="text-lg font-extrabold text-slate-900 tracking-tight">Deal of the Day</h2>
+              <span class="text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-100 px-2.5 py-0.5 rounded-full animate-pulse flex items-center gap-1">
+                <i class="fa-regular fa-clock"></i> Ends in <span x-text="countdownText">05:20:00</span>
+              </span>
+            </div>
+
+            <!-- Arrow controls matching scanned layout -->
+            <div class="flex gap-1.5">
+              <button @click="triggerToast('First-row deals locked')" class="w-8 h-8 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-400 hover:bg-[#5c6dfa] hover:text-white hover:border-[#5c6dfa] transition-all">
+                <i class="fa-solid fa-chevron-left text-xs"></i>
+              </button>
+              <button @click="triggerToast('Next page deals locked')" class="w-8 h-8 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-400 hover:bg-[#5c6dfa] hover:text-white hover:border-[#5c6dfa] transition-all">
+                <i class="fa-solid fa-chevron-right text-xs"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Grid row featuring dynamic deals and promo blocks side by side -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            
+            <!-- Scanned Deal Product 1: Dettol Instant Hand Sanitizer -->
+            <div class="dashboard-card p-4 flex items-center gap-4 relative group hover:-translate-y-1">
+              <span class="absolute top-2 left-2 bg-red-500 text-white text-[9px] font-extrabold px-2.5 py-0.5 rounded-md">40% OFF</span>
+              <div class="w-20 h-20 bg-slate-50 rounded-xl flex-shrink-0 flex items-center justify-center p-2 border border-slate-100">
+                <img src="https://images.unsplash.com/photo-1584017911766-d451b3d0e843?auto=format&fit=crop&q=80&w=150" 
+                     alt="Sanitizer" class="max-h-full object-contain mix-blend-multiply" onerror="this.src='https://placehold.co/100x100/ffffff/cccccc?text=Sanitizer'">
+              </div>
+              <div class="text-left flex-1">
+                <h3 class="text-xs font-bold text-slate-800 line-clamp-1">Dettol Instant Hand Sanitizer 500ml</h3>
+                <div class="flex items-baseline gap-1.5 mt-1.5">
+                  <span class="text-sm font-extrabold text-slate-900">₹150</span>
+                  <span class="text-[10px] text-slate-400 line-through">₹250</span>
+                </div>
+                <button @click="addToCart(products[4])" class="text-[10px] font-extrabold text-brand-sidebar hover:text-brand-sidebarHover mt-2 transition-all block">
+                  Add to Cart
+                </button>
+              </div>
+            </div>
+
+            <!-- Scanned Deal Product 2: Swisse Ultivite Men's Multivitamin -->
+            <div class="dashboard-card p-4 flex items-center gap-4 relative group hover:-translate-y-1">
+              <span class="absolute top-2 left-2 bg-red-500 text-white text-[9px] font-extrabold px-2.5 py-0.5 rounded-md">15% OFF</span>
+              <div class="w-20 h-20 bg-slate-50 rounded-xl flex-shrink-0 flex items-center justify-center p-2 border border-slate-100">
+                <img src="https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&q=80&w=150" 
+                     alt="Vitamins" class="max-h-full object-contain mix-blend-multiply" onerror="this.src='https://placehold.co/100x100/ffffff/cccccc?text=Vitamins'">
+              </div>
+              <div class="text-left flex-1">
+                <h3 class="text-xs font-bold text-slate-800 line-clamp-1">Swisse Ultivite Men's Multivitamin</h3>
+                <div class="flex items-baseline gap-1.5 mt-1.5">
+                  <span class="text-sm font-extrabold text-slate-900">₹850</span>
+                  <span class="text-[10px] text-slate-400 line-through">₹1000</span>
+                </div>
+                <button @click="addToCart(products[5])" class="text-[10px] font-extrabold text-brand-sidebar hover:text-brand-sidebarHover mt-2 transition-all block">
+                  Add to Cart
+                </button>
+              </div>
+            </div>
+
+            <!-- Promo Banner Box 1: Free Delivery (Scanned Page 8) -->
+            <div @click="triggerToast('Free delivery coupon will be processed dynamically for values above ₹500!')" 
+                 class="bg-blue-50 hover:bg-blue-100/80 rounded-2xl p-5 flex items-center justify-between relative overflow-hidden group cursor-pointer border border-blue-100 text-left">
+              <div class="z-10 w-2/3 space-y-1">
+                <span class="text-[8.5px] font-extrabold text-blue-600 bg-blue-100 px-2 py-0.5 rounded uppercase tracking-wide inline-block">Free Delivery</span>
+                <h3 class="font-bold text-slate-900 text-xs leading-snug">On orders above ₹500</h3>
+                <button class="text-[10px] font-bold text-blue-600 flex items-center gap-1 group-hover:gap-2 transition-all pt-1">
+                  Shop Now <i class="fa-solid fa-arrow-right"></i>
+                </button>
+              </div>
+              <i class="fa-solid fa-truck-fast text-4xl text-blue-200 absolute right-4 bottom-4 z-0 opacity-80"></i>
+            </div>
+
+            <!-- Promo Banner Box 2: Lab Tests (Scanned Page 8) -->
+            <div @click="triggerToast('Redirecting to diagnostic appointment schedule slots...')" 
+                 class="bg-pink-50 hover:bg-pink-100/80 rounded-2xl p-5 flex items-center justify-between relative overflow-hidden group cursor-pointer border border-pink-100 text-left">
+              <div class="z-10 w-2/3 space-y-1">
+                <span class="text-[8.5px] font-extrabold text-pink-600 bg-pink-100 px-2 py-0.5 rounded uppercase tracking-wide inline-block">Lab Tests</span>
+                <h3 class="font-bold text-slate-900 text-xs leading-snug">Book Full Body Checkup</h3>
+                <button class="text-[10px] font-bold text-pink-600 flex items-center gap-1 group-hover:gap-2 transition-all pt-1">
+                  Book Now <i class="fa-solid fa-arrow-right"></i>
+                </button>
+              </div>
+              <i class="fa-solid fa-microscope text-4xl text-pink-200 absolute right-4 bottom-4 z-0 opacity-80"></i>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- MAIN PRODUCT SECTION WITH SIDEBAR ACCORDIONS (Scanned Page 9-11) -->
+        <section class="flex flex-col lg:flex-row gap-8 items-start">
+          
+          <!-- LEFT ACCORDION SIDEBAR FILTERS (Scanned Page 9) -->
+          <aside class="w-full lg:w-64 flex-shrink-0 space-y-6 text-left">
+            
+            <div class="dashboard-card p-5 space-y-5">
+              <div class="flex justify-between items-center pb-2.5 border-b border-slate-100">
+                <h3 class="font-bold text-slate-900 text-sm tracking-wider uppercase">Filters</h3>
+                <button @click="resetFilters()" class="text-[10px] font-bold text-brand-sidebar hover:underline">
+                  Reset
+                </button>
+              </div>
+
+              <!-- Filter Accordion Block: Categories -->
+              <div class="space-y-2.5">
+                <h4 class="font-bold text-xs text-slate-400 uppercase tracking-widest flex justify-between items-center">
+                  Category <i class="fa-solid fa-chevron-up text-[9px]"></i>
+                </h4>
+                <ul class="space-y-2 text-xs font-semibold text-slate-600">
+                  <li class="flex items-center gap-2">
+                    <input type="checkbox" x-model="filterSelection.all" class="rounded border-slate-300 text-[#5c6dfa] focus:ring-indigo-300 cursor-pointer">
+                    <label class="cursor-pointer">All Products</label>
+                  </li>
+                  <li class="flex items-center gap-2">
+                    <input type="checkbox" x-model="filterSelection.ayurvedic" class="rounded border-slate-300 text-[#5c6dfa] focus:ring-indigo-300 cursor-pointer">
+                    <label class="cursor-pointer">Ayurvedic Care</label>
+                  </li>
+                  <li class="flex items-center gap-2">
+                    <input type="checkbox" x-model="filterSelection.baby" class="rounded border-slate-300 text-[#5c6dfa] focus:ring-indigo-300 cursor-pointer">
+                    <label class="cursor-pointer">Baby Care</label>
+                  </li>
+                  <li class="flex items-center gap-2">
+                    <input type="checkbox" x-model="filterSelection.skin" class="rounded border-slate-300 text-[#5c6dfa] focus:ring-indigo-300 cursor-pointer">
+                    <label class="cursor-pointer">Skin Care</label>
+                  </li>
+                  <li class="flex items-center gap-2">
+                    <input type="checkbox" x-model="filterSelection.supplements" class="rounded border-slate-300 text-[#5c6dfa] focus:ring-indigo-300 cursor-pointer">
+                    <label class="cursor-pointer">Supplements</label>
+                  </li>
+                </ul>
+              </div>
+
+              <!-- Filter Accordion Block: Price -->
+              <div class="space-y-2.5 pt-3 border-t border-slate-100">
+                <h4 class="font-bold text-xs text-slate-400 uppercase tracking-widest flex justify-between items-center">
+                  Price Range <i class="fa-solid fa-chevron-up text-[9px]"></i>
+                </h4>
+                <div class="px-1 space-y-1">
+                  <input type="range" min="0" max="5000" step="50" x-model="maxPrice"
+                         class="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#5c6dfa]">
+                  <div class="flex justify-between text-[10px] font-bold text-slate-400 mt-2">
+                    <span>₹0</span>
+                    <span class="text-brand-sidebar" x-text="'Max: ₹' + maxPrice"></span>
+                    <span>₹5000+</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Filter Accordion Block: Brands (Scanned Page 9-10) -->
+              <div class="space-y-2.5 pt-3 border-t border-slate-100">
+                <h4 @click="brandsOpen = !brandsOpen" class="font-bold text-xs text-slate-400 uppercase tracking-widest flex justify-between items-center cursor-pointer select-none">
+                  Brands <i :class="brandsOpen ? 'fa-chevron-up' : 'fa-chevron-down'" class="fa-solid text-[9px]"></i>
+                </h4>
+                <ul x-show="brandsOpen" x-transition class="space-y-2 text-xs font-semibold text-slate-600 pt-1">
+                  <li class="flex items-center gap-2">
+                    <input type="checkbox" x-model="brandSelection.swisse" class="rounded border-slate-300 text-[#5c6dfa]">
+                    <label class="cursor-pointer">Swisse</label>
+                  </li>
+                  <li class="flex items-center gap-2">
+                    <input type="checkbox" x-model="brandSelection.dettol" class="rounded border-slate-300 text-[#5c6dfa]">
+                    <label class="cursor-pointer">Dettol</label>
+                  </li>
+                  <li class="flex items-center gap-2">
+                    <input type="checkbox" x-model="brandSelection.horlicks" class="rounded border-slate-300 text-[#5c6dfa]">
+                    <label class="cursor-pointer">Horlicks</label>
+                  </li>
+                </ul>
+              </div>
+
+            </div>
+
+            <!-- Have a Prescription upload card (Scanned Page 10) -->
+            <div class="bg-[#eff2ff] rounded-3xl p-5 border border-indigo-100 text-center space-y-3">
+              <img src="https://images.unsplash.com/photo-1550572017-edd951b55104?auto=format&fit=crop&q=80&w=150" 
+                   alt="Prescription" class="mx-auto rounded-full w-16 h-16 object-cover border-4 border-white shadow-sm"
+                   onerror="this.src='https://placehold.co/150x150/e0f2fe/0ea5e9?text=Rx'">
+              <div class="space-y-1">
+                <h4 class="font-bold text-slate-900 text-xs">Have a Prescription?</h4>
+                <p class="text-[10px] text-slate-500 font-semibold leading-relaxed">Upload your prescription and we will arrange your medicines.</p>
+              </div>
+
+              <!-- Interactive dummy file select -->
+              <label class="block">
+                <input type="file" @change="simulatePrescriptionUpload" class="hidden">
+                <span class="w-full bg-[#5c6dfa] hover:bg-brand-sidebarHover text-white text-[11px] font-bold py-2.5 rounded-xl transition-all cursor-pointer block shadow-md shadow-indigo-600/10">
+                  <span x-text="uploadRxButtonText">Upload Rx</span>
+                </span>
+              </label>
+            </div>
+
+          </aside>
+
+          <!-- PRODUCTS GRID AREA (Scanned Page 10-11) -->
+          <div class="flex-1 w-full space-y-6 text-left">
+            
+            <div class="flex justify-between items-center flex-wrap gap-4">
+              <h2 class="text-lg font-extrabold text-slate-900 tracking-tight" x-text="activeTab === 'All' ? 'Top Sellers' : activeTab">Top Sellers</h2>
+              <div class="flex items-center gap-2">
+                <span class="text-xs text-slate-400 font-bold hidden sm:inline">Sort by:</span>
+                <select x-model="sortBy"
+                        class="text-xs font-bold border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:border-brand-sidebar text-slate-700">
+                  <option value="popularity">Popularity</option>
+                  <option value="lowHigh">Price: Low to High</option>
+                  <option value="highLow">Price: High to Low</option>
+                  <option value="discount">Discount</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Main Product Catalog Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
+              <template x-for="prod in filteredProducts" :key="prod.id">
+                <div class="bg-white rounded-3xl p-4 border border-slate-100 flex flex-col justify-between hover:-translate-y-1 hover:shadow-xl transition-all duration-300 relative group">
+                  
+                  <!-- Best Seller / Trending badge matching scanned templates -->
+                  <div class="absolute top-3 left-3 z-10 flex flex-col gap-1">
+                    <span x-show="prod.tag" 
+                          :class="prod.tag === 'Best Seller' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-brand-accent/20 text-yellow-700'"
+                          class="text-[9px] font-extrabold px-2 py-0.5 rounded-md border"
+                          x-text="prod.tag"></span>
+                    <span x-show="prod.discount > 0" class="bg-rose-100 text-rose-600 border border-rose-150 text-[9px] font-extrabold px-2 py-0.5 rounded-md" x-text="prod.discount + '% OFF'"></span>
+                  </div>
+
+                  <!-- Wishlist Heart Trigger -->
+                  <button @click="toggleWishlist(prod)" 
+                          class="absolute top-3 right-3 w-8 h-8 rounded-full bg-slate-50 hover:bg-rose-50 border border-slate-200/60 hover:border-rose-100 flex items-center justify-center transition-colors z-10">
+                    <i class="fa-heart text-xs" :class="wishlist.includes(prod.id) ? 'fa-solid text-rose-500' : 'fa-regular text-slate-400'"></i>
+                  </button>
+
+                  <!-- Product Image -->
+                  <div class="h-36 bg-slate-50 rounded-2xl mb-4 flex items-center justify-center p-4 relative overflow-hidden border border-slate-100/60 mt-4">
+                    <img :src="prod.image" 
+                         class="max-h-full object-contain group-hover:scale-105 transition-transform duration-300 mix-blend-multiply" 
+                         :alt="prod.name">
+                  </div>
+
+                  <!-- Details -->
+                  <div class="flex-1 flex flex-col text-left">
+                    <span class="text-[9px] text-slate-400 font-extrabold uppercase tracking-widest block mb-1" x-text="prod.category"></span>
+                    <h3 class="font-bold text-xs text-slate-800 line-clamp-2 leading-snug group-hover:text-brand-sidebar transition-colors" x-text="prod.name"></h3>
+                    
+                    <!-- Ratings block matching layout from Scanned page 11 -->
+                    <div class="flex items-center gap-1.5 my-2">
+                      <div class="flex text-amber-400 text-[10px]">
+                        <template x-for="star in Array.from({length: Math.floor(prod.rating)})">
+                          <i class="fa-solid fa-star"></i>
+                        </template>
+                        <template x-if="prod.rating % 1 !== 0">
+                          <i class="fa-solid fa-star-half-stroke"></i>
+                        </template>
+                      </div>
+                      <span class="text-[10px] text-slate-400 font-semibold" x-text="'(' + prod.reviews + ')'"></span>
+                    </div>
+
+                    <!-- Footer actions (Prices and Quick Add) -->
+                    <div class="mt-auto pt-3 border-t border-slate-50 flex items-center justify-between">
+                      <div>
+                        <span class="font-extrabold text-sm text-slate-900" x-text="'₹' + getDiscountedPrice(prod)"></span>
+                        <div class="text-[10px] text-slate-400 font-semibold mt-0.5" x-show="prod.discount > 0">
+                          <span class="line-through" x-text="'₹' + prod.price"></span>
+                          <span class="text-rose-600 font-extrabold ml-1" x-text="prod.discount + '% Off'"></span>
+                        </div>
+                      </div>
+
+                      <button @click="addToCart(prod)" 
+                              class="w-8 h-8 rounded-full bg-indigo-50 hover:bg-[#5c6dfa] text-brand-sidebar hover:text-white flex items-center justify-center transition-colors shadow-sm">
+                        <i class="fa-solid fa-plus text-xs"></i>
+                      </button>
+                    </div>
+
+                  </div>
+
+                </div>
+              </template>
+
+              <!-- Empty fallbacks for filtering -->
+              <div x-show="filteredProducts.length === 0" class="col-span-full py-16 text-center space-y-3 bg-white border border-slate-100 rounded-[24px]">
+                <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto border border-slate-100 text-slate-400 text-xl">
+                  <i class="fa-solid fa-magnifying-glass"></i>
+                </div>
+                <h5 class="text-sm font-bold text-slate-800">No matches found</h5>
+                <p class="text-xs text-slate-400 max-w-xs mx-auto font-semibold">Try clearing sidebar check filters, lowering pricing limits, or using another search keyword.</p>
+              </div>
+            </div>
+
+          </div>
+
+        </section>
+
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- SLIDE-OUT SHOPPING CART DRAWER PANEL -->
+  <div x-cloak x-show="cartOpen" class="fixed inset-0 z-50 overflow-hidden" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
+    <div class="absolute inset-0 overflow-hidden">
+      <!-- Backdrop overlay -->
+      <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" @click="cartOpen = false"></div>
+
+      <div class="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
+        <div class="pointer-events-auto w-screen max-w-md transform transition duration-500 ease-in-out"
+             x-transition:enter="transform transition ease-out duration-300"
+             x-transition:enter-start="translate-x-full"
+             x-transition:enter-end="translate-x-0"
+             x-transition:leave="transform transition ease-in duration-300"
+             x-transition:leave-start="translate-x-0"
+             x-transition:leave-end="translate-x-full">
+          
+          <div class="flex h-full flex-col bg-white border-l border-slate-100 shadow-2xl p-6 space-y-6">
+            
+            <!-- Drawer Header -->
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+              <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-cart-shopping text-brand-sidebar"></i> Shopping Basket
+              </h2>
+              <button @click="cartOpen = false" class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400">
+                <i class="fa-solid fa-xmark text-sm"></i>
+              </button>
+            </div>
+
+            <!-- Cart Items List Container -->
+            <div class="flex-1 overflow-y-auto pr-1 space-y-4 text-left">
+              
+              <template x-for="(item, idx) in cart" :key="item.id">
+                <div class="p-3 bg-slate-50 border border-slate-100 rounded-2xl flex items-center gap-3 relative">
+                  <!-- Product Mini Avatar -->
+                  <img :src="item.image" class="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0" :alt="item.name">
+
+                  <!-- Product details -->
+                  <div class="min-w-0 flex-1 text-left">
+                    <h4 class="text-xs font-bold text-slate-800 truncate" x-text="item.name"></h4>
+                    <span class="text-[10px] text-slate-400 font-semibold block mt-0.5" x-text="'₹' + item.price + ' each'"></span>
+                    
+                    <!-- Item controls -->
+                    <div class="flex items-center gap-2.5 mt-2">
+                      <div class="flex items-center gap-2 bg-white border border-slate-200/80 rounded-lg px-2 py-0.5 text-[11px] font-bold">
+                        <button @click="item.quantity = Math.max(1, item.quantity - 1)" class="text-slate-400 hover:text-slate-800"><i class="fa-solid fa-minus text-[10px]"></i></button>
+                        <span x-text="item.quantity" class="text-slate-800"></span>
+                        <button @click="item.quantity++" class="text-slate-400 hover:text-slate-800"><i class="fa-solid fa-plus text-[10px]"></i></button>
+                      </div>
+                      <span class="text-xs font-extrabold text-slate-900" x-text="'₹' + (item.price * item.quantity)"></span>
+                    </div>
+                  </div>
+
+                  <!-- Remove item btn -->
+                  <button @click="removeFromCart(idx)" class="w-7 h-7 rounded-lg bg-white border border-slate-200/80 text-slate-400 hover:text-rose-500 hover:border-rose-100 flex items-center justify-center shadow-sm shrink-0">
+                    <i class="fa-solid fa-trash-can text-[11px]"></i>
+                  </button>
+                </div>
+              </template>
+
+              <!-- Empty cart placeholder -->
+              <div x-show="cart.length === 0" class="text-center py-24 space-y-3">
+                <div class="w-14 h-14 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center mx-auto text-slate-400">
+                  <i class="fa-solid fa-basket-shopping text-xl"></i>
+                </div>
+                <h5 class="text-xs font-bold text-slate-800">Your basket is empty</h5>
+                <p class="text-[11px] text-slate-400 font-semibold max-w-[200px] mx-auto">Add prescription drugs, care supplies, or devices from our apothecary library.</p>
+              </div>
+
+            </div>
+
+            <!-- Checkout Price Breakdown Footer Box -->
+            <div class="pt-4 border-t border-slate-100 space-y-4">
+              
+              <!-- Coupon application segment -->
+              <div class="flex items-center gap-2">
+                <input type="text" x-model="promoInput" placeholder="Enter coupon code..."
+                       class="flex-1 px-3 py-2 border border-slate-200 bg-slate-50 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-brand-sidebar focus:bg-white">
+                <button @click="applyPromoCode()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition">
+                  Apply
+                </button>
+              </div>
+
+              <!-- Prices lines -->
+              <div class="space-y-2 text-xs font-semibold text-slate-500 text-left">
+                <div class="flex justify-between">
+                  <span>Subtotal</span>
+                  <span class="text-slate-800 font-extrabold" x-text="'₹' + cartSubtotal"></span>
+                </div>
+                <div x-show="promoDiscount > 0" class="flex justify-between text-emerald-600">
+                  <span x-text="'Discount (' + appliedPromo + ' - 25%)'"></span>
+                  <span class="font-extrabold" x-text="'-₹' + Math.round(cartSubtotal * (promoDiscount / 100))"></span>
+                </div>
+                <div class="flex justify-between">
+                  <span>Delivery Charge</span>
+                  <span class="font-extrabold" :class="cartSubtotal >= 500 ? 'text-emerald-600 line-through' : 'text-slate-800'" x-text="cartSubtotal >= 500 ? 'Free' : '₹50'"></span>
+                </div>
+                <div class="flex justify-between border-t border-dashed border-slate-200 pt-2 text-sm">
+                  <span class="font-extrabold text-slate-900">Total Order Charge</span>
+                  <span class="font-extrabold text-brand-sidebar text-base" x-text="'₹' + cartTotal"></span>
+                </div>
+              </div>
+
+              <!-- Final checkout triggers -->
+              <div class="grid grid-cols-2 gap-3 pt-2">
+                <button @click="cartOpen = false" class="py-3 text-xs font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-xl transition text-center">
+                  Continue Shopping
+                </button>
+                <button @click="handleCheckout()" class="py-3 text-xs font-bold text-white bg-[#5c6dfa] hover:bg-[#4e5ee6] rounded-xl transition shadow-md shadow-indigo-600/10 text-center">
+                  Checkout Order
+                </button>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function pharmacyApp() {
+      return {
+        activeTab: 'All',
+        searchQuery: '',
+        sortBy: 'popularity',
+        showToast: false,
+        toastMessage: '',
+        toastType: 'success',
+        maxPrice: 5000,
+        brandsOpen: true,
+        uploadRxButtonText: 'Upload Rx',
+
+        // Quick Category Checkbox filters
+        filterSelection: {
+          all: true,
+          ayurvedic: false,
+          baby: false,
+          skin: false,
+          supplements: false
+        },
+
+        // Brand checkbox selections
+        brandSelection: {
+          swisse: false,
+          dettol: false,
+          horlicks: false
+        },
+
+        // Shopping Cart state
+        cart: [],
+        cartOpen: false,
+        appliedPromo: '',
+        promoDiscount: 0,
+        promoInput: '',
+
+        // Wishlist
+        wishlist: [],
+
+        // Live ticking variables
+        countdownText: '05:20:00',
+        countdownSecondsRemaining: 19200,
+
+        // Scanned layout Categories (Scanned Page 5-6)
+        categoriesList: [
+          { name: 'Medicines', icon: 'fa-solid fa-pills', bg: 'bg-blue-50 group-hover:bg-blue-100', textColor: 'text-blue-500' },
+          { name: 'Ayurvedic Care', icon: 'fa-solid fa-leaf', bg: 'bg-green-50 group-hover:bg-green-100', textColor: 'text-green-500' },
+          { name: 'Devices', icon: 'fa-solid fa-heart-pulse', bg: 'bg-purple-50 group-hover:bg-purple-100', textColor: 'text-purple-500' },
+          { name: 'Personal Care', icon: 'fa-solid fa-pump-soap', bg: 'bg-pink-50 group-hover:bg-pink-100', textColor: 'text-pink-500' },
+          { name: 'Nutrition', icon: 'fa-solid fa-apple-whole', bg: 'bg-orange-50 group-hover:bg-orange-100', textColor: 'text-orange-500' },
+          { name: 'Baby Care', icon: 'fa-solid fa-baby-carriage', bg: 'bg-teal-50 group-hover:bg-teal-100', textColor: 'text-teal-500' },
+          { name: 'First Aid', icon: 'fa-solid fa-first-aid', bg: 'bg-yellow-50 group-hover:bg-yellow-100', textColor: 'text-yellow-500' }
+        ],
+
+        // Products Database integrating scanned items verbatim from prompt
+        products: [
+          { id: 1, name: 'Horlicks Classic Malt Health Drink Powder 500g', category: 'Nutrition', price: 350, discount: 8, rating: 4.5, reviews: 124, tag: 'Best Seller', image: 'https://images.unsplash.com/photo-1550572017-edd951b55104?auto=format&fit=crop&q=80&w=250', desc: 'Classic malted health drink powder, nutrient-packed for balanced daily nourishment.', brand: 'horlicks' },
+          { id: 2, name: 'Dabur Chyawanprash Premium 1kg', category: 'Ayurvedic Care', price: 450, discount: 12, rating: 4.8, reviews: 210, tag: 'Trending', image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&q=80&w=250', desc: 'Ancient ayurvedic recipe packed with amla and multiple herbs to support systemic immunity.', brand: 'dabur' },
+          { id: 3, name: 'RedOxygen Nebulizer Compressor Condenser', category: 'Devices', price: 2999, discount: 18, rating: 4.9, reviews: 85, tag: 'Best Seller', image: 'https://images.unsplash.com/photo-1584017911766-d451b3d0e843?auto=format&fit=crop&q=80&w=250', desc: 'Clinical nebulizer designed for continuous aerosol drug delivery.', brand: 'redoxygen' },
+          { id: 4, name: 'CeraVe Hydrating Face Wash 236ml', category: 'Skin Care', price: 1450, discount: 13, rating: 4.7, reviews: 194, tag: 'Trending', image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&q=80&w=250', desc: 'Hydrating cleanser containing essential ceramides and hyaluronic acids.', brand: 'cerave' },
+          { id: 5, name: 'Dettol Instant Hand Sanitizer 500ml', category: 'Personal Care', price: 250, discount: 40, rating: 4.6, reviews: 140, tag: 'Best Seller', image: 'https://images.unsplash.com/photo-1584017911766-d451b3d0e843?auto=format&fit=crop&q=80&w=250', desc: 'Alcohol-based instant hand sanitization to keep common bacteria at bay.', brand: 'dettol' },
+          { id: 6, name: 'Swisse Ultivite Mens Multivitamin', category: 'Supplements', price: 1000, discount: 15, rating: 4.8, reviews: 95, tag: 'Trending', image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&q=80&w=250', desc: 'Daily multivitamin packed with essential elements customized for men.', brand: 'swisse' },
+          { id: 7, name: 'Himalaya Purifying Neem Face Wash', category: 'Skin Care', price: 250, discount: 12, rating: 4.5, reviews: 76, tag: '', image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&q=80&w=250', desc: 'Natural neem face wash targeted to prevent daily blemishes and blackheads.', brand: 'himalaya' },
+          { id: 8, name: 'Omnigel Pain Relief Spray 75g', category: 'First Aid', price: 200, discount: 10, rating: 4.7, reviews: 110, tag: 'Trending', image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&q=80&w=250', desc: 'Instant pain relief formula targeting muscular sprains and joints.', brand: 'omnigel' }
+        ],
+
+        init() {
+          // Live countdown ticking cycle
+          setInterval(() => {
+            if (this.countdownSecondsRemaining > 0) {
+              this.countdownSecondsRemaining--;
+              const hrs = Math.floor(this.countdownSecondsRemaining / 3600);
+              const mins = Math.floor((this.countdownSecondsRemaining % 3600) / 60);
+              const secs = this.countdownSecondsRemaining % 60;
+              this.countdownText = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            }
+          }, 1000);
+
+          // Pre-populate with Horlicks scanned item in cart
+          this.addToCart(this.products[0]);
+        },
+
+        triggerToast(msg, type = 'success') {
+          this.toastMessage = msg;
+          this.toastType = type;
+          this.showToast = true;
+          setTimeout(() => this.showToast = false, 3500);
+        },
+
+        // Discount value calculation helper
+        getDiscountedPrice(prod) {
+          if (!prod.discount) return prod.price;
+          return Math.round(prod.price * (1 - prod.discount / 100));
+        },
+
+        // Integrated filtration algorithm based on state checkboxes and sidebar controls
+        get filteredProducts() {
+          return this.products.filter(p => {
+            // Category checking
+            const matchesCategoryTab = this.activeTab === 'All' ? true : p.category === this.activeTab;
+            
+            // Checkbox matching
+            let matchesCategoryCheckbox = false;
+            if (this.filterSelection.all) {
+              matchesCategoryCheckbox = true;
+            } else {
+              if (this.filterSelection.ayurvedic && p.category === 'Ayurvedic Care') matchesCategoryCheckbox = true;
+              if (this.filterSelection.baby && p.category === 'Baby Care') matchesCategoryCheckbox = true;
+              if (this.filterSelection.skin && p.category === 'Skin Care') matchesCategoryCheckbox = true;
+              if (this.filterSelection.supplements && p.category === 'Supplements') matchesCategoryCheckbox = true;
+            }
+
+            // Price filtering matching range selector state
+            const matchesPrice = this.getDiscountedPrice(p) <= this.maxPrice;
+
+            // Brand checkbox selection
+            let matchesBrand = true;
+            const anyBrandSelected = this.brandSelection.swisse || this.brandSelection.dettol || this.brandSelection.horlicks;
+            if (anyBrandSelected) {
+              matchesBrand = false;
+              if (this.brandSelection.swisse && p.brand === 'swisse') matchesBrand = true;
+              if (this.brandSelection.dettol && p.brand === 'dettol') matchesBrand = true;
+              if (this.brandSelection.horlicks && p.brand === 'horlicks') matchesBrand = true;
+            }
+
+            // Text search keyword matching
+            const matchesSearch = p.name.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+                                  p.category.toLowerCase().includes(this.searchQuery.toLowerCase());
+
+            return matchesCategoryTab && matchesCategoryCheckbox && matchesPrice && matchesBrand && matchesSearch;
+          }).sort((a, b) => {
+            // Scanned sorting option rules
+            if (this.sortBy === 'popularity') return b.reviews - a.reviews;
+            if (this.sortBy === 'lowHigh') return this.getDiscountedPrice(a) - this.getDiscountedPrice(b);
+            if (this.sortBy === 'highLow') return this.getDiscountedPrice(b) - this.getDiscountedPrice(a);
+            if (this.sortBy === 'discount') return b.discount - a.discount;
+            return 0;
+          });
+        },
+
+        resetFilters() {
+          this.filterSelection.all = true;
+          this.filterSelection.ayurvedic = false;
+          this.filterSelection.baby = false;
+          this.filterSelection.skin = false;
+          this.filterSelection.supplements = false;
+          this.brandSelection.swisse = false;
+          this.brandSelection.dettol = false;
+          this.brandSelection.horlicks = false;
+          this.maxPrice = 5000;
+          this.sortBy = 'popularity';
+          this.searchQuery = '';
+          this.triggerToast('All filtering states restored to defaults.', 'info');
+        },
+
+        // Shopping Cart Management
+        addToCart(prod) {
+          let existing = this.cart.find(item => item.id === prod.id);
+          if (existing) {
+            existing.quantity++;
+          } else {
+            this.cart.push({
+              id: prod.id,
+              name: prod.name,
+              price: this.getDiscountedPrice(prod),
+              image: prod.image,
+              quantity: 1
+            });
+          }
+          this.triggerToast(`${prod.name} added to basket!`);
+        },
+
+        removeFromCart(index) {
+          this.cart.splice(index, 1);
+          this.triggerToast('Item removed from basket.', 'info');
+        },
+
+        get cartSubtotal() {
+          return this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        },
+
+        get cartTotal() {
+          const sub = this.cartSubtotal;
+          const discountAmount = sub * (this.promoDiscount / 100);
+          const deliveryFee = sub >= 500 ? 0 : 50;
+          return Math.max(0, Math.round(sub - discountAmount) + deliveryFee);
+        },
+
+        applyPromoCode() {
+          const code = this.promoInput.toUpperCase().trim();
+          if (code === 'NOVACARE25' || code === 'MEDICARE25') {
+            this.promoDiscount = 25;
+            this.appliedPromo = code;
+            this.triggerToast('Scanned Promo coupon applied successfully! 25% discount activated.', 'success');
+          } else {
+            this.triggerToast('Invalid coupon code.', 'error');
+          }
+          this.promoInput = '';
+        },
+
+        // Toggle Wishlist
+        toggleWishlist(prod) {
+          if (this.wishlist.includes(prod.id)) {
+            this.wishlist = this.wishlist.filter(id => id !== prod.id);
+            this.triggerToast('Removed from saved items panel.', 'info');
+          } else {
+            this.wishlist.push(prod.id);
+            this.triggerToast('Saved to your prescription wishlist.');
+          }
+        },
+
+        // Simulate file uploads
+        simulatePrescriptionUpload(event) {
+          const files = event.target.files;
+          if (files.length === 0) return;
+          
+          this.uploadRxButtonText = 'Analyzing Rx...';
+          this.triggerToast('Analyzing scanned prescription file...', 'info');
+
+          // Simulated delay representing clinical validation
+          setTimeout(() => {
+            this.uploadRxButtonText = 'Rx Uploaded ✓';
+            
+            // Push Horlicks + Swisse Multivitamins automatically
+            this.addToCart(this.products[0]);
+            this.addToCart(this.products[5]);
+            this.triggerToast('Rx validated successfully! Matched medicines added to cart.', 'success');
+          }, 2500);
+        },
+
+        handleCheckout() {
+          if (this.cart.length === 0) {
+            this.triggerToast('Cart is empty!', 'error');
+            return;
+          }
+          this.cart = [];
+          this.promoDiscount = 0;
+          this.appliedPromo = '';
+          this.cartOpen = false;
+          this.triggerToast('Order placed successfully! Prescriptions synchronized to Delhi 110001 under clinical standards.', 'success');
+        }
+      };
+    }
+  </script>
+</body>
+</html>

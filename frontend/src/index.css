@@ -1,0 +1,198 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Playfair Display", serif;
+  --font-sans: "Plus Jakarta Sans", sans-serif;
+  --font-inter: "Inter", sans-serif;
+
+  --color-brand-50: #EFF6FF;
+  --color-brand-100: #DBEAFE;
+  --color-brand-200: #BFDBFE;
+  --color-brand-500: #2563EB;
+  --color-brand-600: #1D4ED8;
+  --color-brand-700: #1E40AF;
+  --color-brand-sidebar: #5C6DFA;
+  --color-brand-sidebarHover: #4E5EE6;
+  --color-brand-sidebarActive: #EFF2FF;
+  --color-brand-coral: #FF6B35;
+  --color-brand-coralHover: #E5531D;
+
+  --color-medical-50: #F5F9FF;
+  --color-medical-100: #E2E8F0;
+  --color-medical-600: #0F172A;
+  --color-medical-700: #64748B;
+  --color-medical-900: #0B1220;
+  --color-medical-light: #F8FAFC;
+  --color-medical-slate: #64748B;
+  --color-medical-dark: #0F172A;
+}
+
+/* ==========
+   GLOBAL CUSTOM STYLES
+========== */
+
+:root {
+  --bg: #F5F9FF;
+  --card: #FFFFFF;
+  --line: #E2E8F0;
+  --blue: #2563EB;
+  --blue-dark: #1D4ED8;
+  --blue-soft: #DBEAFE;
+  --green: #22C55E;
+  --text: #0F172A;
+  --muted: #64748B;
+  --danger: #EF4444;
+  --shadow: rgba(15, 23, 42, 0.06);
+  --shadow-strong: rgba(15, 23, 42, 0.12);
+}
+
+body {
+  font-family: "Plus Jakarta Sans", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background-color: #f4f7fc;
+  color: #0F172A;
+  min-height: 100vh;
+}
+
+/* Premium radial background simulating high-end studio feel */
+.premium-bg {
+  background-color: #F5F9FF;
+  background-image:
+    radial-gradient(at 0% 0%, rgba(219, 234, 254, 0.6) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(219, 234, 254, 0.4) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(219, 234, 254, 0.35) 0px, transparent 50%);
+}
+
+/* Soft shadows */
+.soft-shadow {
+  box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.05);
+}
+
+.floating-shadow {
+  box-shadow: 0 30px 60px -12px rgba(15, 23, 42, 0.12);
+}
+
+.hero-bg-image {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(15, 23, 42, 0.45),
+      rgba(15, 23, 42, 0.35)
+    ),
+    url("/images/medical-bg.jpg") center top / cover no-repeat;
+  opacity: 0.7;
+}
+
+/* Custom elegant card styles matching Patient Profile Dashboard */
+.dashboard-card {
+  background: #ffffff;
+  border-radius: 24px;
+  border: 1px solid #eef2f6;
+  box-shadow: 0 4px 20px -2px rgba(148, 163, 184, 0.06), 0 2px 8px -1px rgba(148, 163, 184, 0.04);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dashboard-card:hover {
+  box-shadow: 0 12px 30px -5px rgba(148, 163, 184, 0.12), 0 4px 16px -2px rgba(148, 163, 184, 0.06);
+}
+
+/* Track bar animation for Blood Pressure capsule tracker in statistics dashboard */
+.capsule-bp-track {
+  stroke-dasharray: 400;
+  stroke-dashoffset: 400;
+  animation: fillCapsule 1.5s ease-out forwards;
+}
+
+@keyframes fillCapsule {
+  to {
+    stroke-dashoffset: 120;
+  }
+}
+
+/* Active selected doctor item styling in Admin Dashboard queue */
+.active-doctor-item {
+  border: 2px solid #5c6dfa !important;
+  background-color: #eff2ff !important;
+}
+
+/* Scrollbar customization */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Print Styles */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-full {
+    width: 100% !important;
+    grid-column: span 12 !important;
+  }
+  .dashboard-card {
+    box-shadow: none !important;
+    border: 1px solid #cbd5e1 !important;
+    page-break-inside: avoid;
+  }
+}
+
+/* ==========
+   LEGACY CSS STYLES (FROM STYLES.CSS)
+========== */
+
+.glass-card {
+  background: var(--card);
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  box-shadow: 0 16px 40px var(--shadow);
+  backdrop-filter: blur(16px);
+}
+
+.card-tilt {
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  will-change: transform;
+}
+
+.card-tilt:hover {
+  transform: translateY(-4px) translateZ(0) scale(1.01);
+  box-shadow: 0 22px 40px var(--shadow-strong);
+}
+
+.app-logo-gradient {
+  background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+  box-shadow: 0 10px 24px rgba(37,99,235,0.45);
+}
+
+/* Custom utilities for components that might still reference vanilla classes */
+.app-input-field {
+  padding: 9px 11px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #FFFFFF;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.app-input-field:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 1px rgba(37,99,235,0.35);
+  transform: translateY(-1px);
+}
