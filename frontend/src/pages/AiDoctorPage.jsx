@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
 
@@ -56,18 +57,73 @@ const AiDoctorPage = () => {
     setUserInput('');
     setIsTyping(true);
 
-    setTimeout(() => {
-      const response = MOCK_AI_RESPONSES[Math.floor(Math.random() * MOCK_AI_RESPONSES.length)];
-      setIsTyping(false);
-      setMessages((prev) => [
-        ...prev,
-        {
+    const token = localStorage.getItem('token');
+    fetch('/api/ai/diagnose', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ query: content.trim() })
+    })
+      .then((res) => {
+        if (!res.ok) {
+          return res.json().then((errData) => {
+            throw new Error(errData.error || 'Diagnostic evaluation failed.');
+          });
+        }
+        return res.json();
+      })
+      .then((data) => {
+        setIsTyping(false);
+        const assistantMessage = {
           role: 'assistant',
-          content: response,
+          content: data.guidance,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        },
-      ]);
-    }, 1800 + Math.random() * 1200);
+        };
+
+        const diagnosisCard = {
+          role: 'assistant',
+          type: 'diagnosis_card',
+          data: {
+            condition: data.condition,
+            confidence: data.confidence,
+            urgency: data.urgency,
+            description: data.description,
+            precautions: data.precautions
+          },
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+
+        const doctorsCard = {
+          role: 'assistant',
+          type: 'doctors_card',
+          data: {
+            specialty: data.recommended_specialty,
+            doctors: data.doctors
+          },
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+
+        setMessages((prev) => {
+          const list = [...prev, assistantMessage, diagnosisCard];
+          if (data.doctors && data.doctors.length > 0) {
+            list.push(doctorsCard);
+          }
+          return list;
+        });
+      })
+      .catch((err) => {
+        setIsTyping(false);
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: `⚠️ **Diagnostic Evaluation Failed:** ${err.message}`,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          }
+        ]);
+      });
   };
 
   const handleSymptomAnalysis = () => {
@@ -85,6 +141,7 @@ const AiDoctorPage = () => {
   };
 
   const parseMarkdown = (text) => {
+    if (!text) return '';
     return text
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\n/g, '<br />');
@@ -263,20 +320,98 @@ const AiDoctorPage = () => {
                     {msg.role === 'assistant' ? '🤖' : '👤'}
                   </div>
 
-                  {/* Bubble */}
-                  <div className={`max-w-[75%] rounded-2xl px-4 py-3 shadow-sm text-left ${
-                    msg.role === 'user'
-                      ? 'bg-brand-sidebar text-white rounded-br-sm'
-                      : 'bg-white border border-slate-100 text-slate-700 rounded-bl-sm'
-                  }`}>
-                    <p
-                      className="text-xs leading-relaxed font-medium"
-                      dangerouslySetInnerHTML={{ __html: parseMarkdown(msg.content) }}
-                    />
-                    <p className={`text-[9px] mt-1.5 font-semibold ${msg.role === 'user' ? 'text-indigo-200' : 'text-slate-400'}`}>
-                      {msg.time}
-                    </p>
-                  </div>
+                  {/* Bubble / Rich Cards */}
+                  {msg.type === 'diagnosis_card' ? (
+                    <div className="bg-white border border-indigo-100 rounded-2xl rounded-bl-sm p-5 shadow-sm max-w-[75%] text-left space-y-4">
+                      <div className="flex justify-between items-center border-b border-slate-100 pb-2 flex-wrap gap-2">
+                        <div>
+                          <span className="text-[9px] text-indigo-500 font-extrabold uppercase tracking-wider block">Identified Condition</span>
+                          <h4 className="text-sm font-extrabold text-slate-900">{msg.data.condition}</h4>
+                        </div>
+                        <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider border ${
+                          msg.data.urgency === 'critical' ? 'bg-rose-50 text-rose-600 border-rose-100' :
+                          msg.data.urgency === 'high' ? 'bg-orange-50 text-orange-600 border-orange-100' :
+                          msg.data.urgency === 'medium' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                          'bg-emerald-50 text-emerald-600 border-emerald-100'
+                        }`}>
+                          {msg.data.urgency} Urgency
+                        </span>
+                      </div>
+                      
+                      <div>
+                        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Clinical Match Probability</span>
+                        <div className="flex items-center gap-3 mt-1.5">
+                          <div className="flex-1 bg-slate-100 h-2 rounded-full overflow-hidden">
+                            <div className="bg-indigo-500 h-full rounded-full" style={{ width: `${msg.data.confidence}%` }}></div>
+                          </div>
+                          <span className="text-xs font-bold text-slate-700">{msg.data.confidence}%</span>
+                        </div>
+                      </div>
+
+                      <div className="text-xs text-slate-650 font-medium leading-relaxed bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                        {msg.data.description}
+                      </div>
+
+                      <div className="space-y-2">
+                        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Clinical Precautions</span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                          {msg.data.precautions.map((prec, pIdx) => (
+                            <div key={pIdx} className="flex items-center gap-2 p-2 bg-indigo-50/45 rounded-lg border border-indigo-100/30 text-[10px] text-indigo-700 font-bold">
+                              <span>🛡️</span>
+                              <span>{prec.trim()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <p className="text-[9px] text-slate-400 font-semibold">{msg.time}</p>
+                    </div>
+                  ) : msg.type === 'doctors_card' ? (
+                    <div className="bg-white border border-indigo-100 rounded-2xl rounded-bl-sm p-5 shadow-sm max-w-[75%] text-left space-y-4">
+                      <div className="border-b border-slate-100 pb-2">
+                        <span className="text-[9px] text-indigo-500 font-extrabold uppercase tracking-wider block">Recommended Referrals</span>
+                        <h4 className="text-sm font-extrabold text-slate-900">{msg.data.specialty} Specialists</h4>
+                      </div>
+
+                      <div className="space-y-3">
+                        {msg.data.doctors.map((doc, dIdx) => (
+                          <div key={dIdx} className="flex items-center justify-between p-3 bg-slate-50/60 rounded-xl border border-slate-100 gap-4 flex-wrap sm:flex-nowrap">
+                            <div className="flex items-center gap-3">
+                              <span className="text-xl">🩺</span>
+                              <div>
+                                <h5 className="text-xs font-bold text-slate-800">{doc.name}</h5>
+                                <p className="text-[9px] text-slate-400 mt-1 font-semibold">
+                                  Rating: <span className="text-amber-500">★ {doc.rating}</span> · Slots: {doc.availability}
+                                </p>
+                              </div>
+                            </div>
+                            <Link
+                              to={`/book-appointment?doctor_id=${doc.id}`}
+                              className="px-3 py-1.5 bg-brand-sidebar hover:bg-brand-sidebarHover text-white text-[9px] font-bold rounded-lg transition-all shadow-sm uppercase tracking-wide whitespace-nowrap"
+                            >
+                              Book Now
+                            </Link>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <p className="text-[9px] text-slate-400 font-semibold">{msg.time}</p>
+                    </div>
+                  ) : (
+                    <div className={`max-w-[75%] rounded-2xl px-4 py-3 shadow-sm text-left ${
+                      msg.role === 'user'
+                        ? 'bg-brand-sidebar text-white rounded-br-sm'
+                        : 'bg-white border border-slate-100 text-slate-700 rounded-bl-sm'
+                    }`}>
+                      <p
+                        className="text-xs leading-relaxed font-medium"
+                        dangerouslySetInnerHTML={{ __html: parseMarkdown(msg.content) }}
+                      />
+                      <p className={`text-[9px] mt-1.5 font-semibold ${msg.role === 'user' ? 'text-indigo-200' : 'text-slate-400'}`}>
+                        {msg.time}
+                      </p>
+                    </div>
+                  )}
                 </div>
               ))}
 
