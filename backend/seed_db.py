@@ -1,8 +1,29 @@
 import os
 import json
+import csv
 from datetime import datetime
+from collections import defaultdict
 from app import app, db
 from models import User, Doctor, Condition, Appointment, Prescription, MedicalRecord
+
+SPELLING_MAPS = {
+    "peptic ulcer diseae": "Peptic Ulcer Disease",
+    "peptic ulcer disease": "Peptic Ulcer Disease",
+    "dimorphic hemmorhoids(piles)": "Dimorphic Hemorrhoids (Piles)",
+    "osteoarthristis": "Osteoarthritis",
+    "(vertigo) paroymsal  positional vertigo": "(Vertigo) Paroxysmal Positional Vertigo",
+    "hepatitis a": "Hepatitis A",
+    "gerd": "GERD",
+    "aids": "AIDS",
+    "copd": "COPD",
+}
+
+def clean_name(name):
+    n_lower = name.strip().lower()
+    if n_lower in SPELLING_MAPS:
+        return SPELLING_MAPS[n_lower]
+    return " ".join(w.capitalize() for w in n_lower.split())
+
 
 def seed_database():
     db_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'smart_healthcare.db')
@@ -420,6 +441,69 @@ def seed_database():
         db.session.add(m)
         
     db.session.commit()
+
+    # --- SEED CONDITIONS (from metadata & standard symptom files) ---
+    print("Seeding Conditions...")
+    
+    # 1. Map conditions to their union of symptoms
+    condition_symptoms = defaultdict(set)
+    sc1_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), '..', 'data', 'symptoms_conditions1.csv')
+    if os.path.exists(sc1_path):
+        with open(sc1_path, mode='r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                raw_name = row.get("condition_name")
+                if not raw_name:
+                    continue
+                name = clean_name(raw_name)
+                sympt_str = row.get("symptoms", "")
+                for s in sympt_str.split(","):
+                    s_clean = s.strip()
+                    if s_clean:
+                        condition_symptoms[name.lower()].add(s_clean)
+
+    sc_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), '..', 'data', 'symptoms_conditions.csv')
+    if os.path.exists(sc_path):
+        with open(sc_path, mode='r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                raw_name = row.get("condition_name")
+                if not raw_name:
+                    continue
+                name = clean_name(raw_name)
+                sympt_str = row.get("symptoms", "")
+                for s in sympt_str.split(","):
+                    s_clean = s.strip()
+                    if s_clean:
+                        condition_symptoms[name.lower()].add(s_clean)
+
+    # 2. Read conditions_metadata.csv and create Condition records
+    meta_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), '..', 'data', 'conditions_metadata.csv')
+    if os.path.exists(meta_path):
+        with open(meta_path, mode='r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                name = row.get("condition_name")
+                desc = row.get("description")
+                specialty = row.get("recommended_specialty")
+                urgency = row.get("urgency_tier", "Low").lower()
+                
+                syms = condition_symptoms.get(name.lower(), set())
+                syms_str = ", ".join(sorted(list(syms))) if syms else "consult doctor"
+                
+                c = Condition(
+                    name=name,
+                    symptoms=syms_str,
+                    description=desc,
+                    recommended_specialty=specialty,
+                    urgency=urgency
+                )
+                db.session.add(c)
+        db.session.commit()
+        print("Conditions seeded successfully!")
+    else:
+        print("conditions_metadata.csv not found, skipping Condition seeding!")
+
     print("Database seeding completed successfully!")
 
 if __name__ == '__main__':
