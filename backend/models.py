@@ -48,6 +48,9 @@ class Doctor(db.Model):
     type = db.Column(db.String(20), default="old")
     duty_status = db.Column(db.String(50), default="On Duty")
     hospital = db.Column(db.String(100), default="St. Jude General")
+    years_experience = db.Column(db.Integer, default=5)
+    reviews_count = db.Column(db.Integer, default=0)
+    reviews_json = db.Column(db.Text)  # JSON-encoded array of reviews
 
 class Condition(db.Model):
     id = db.Column(db.Integer, primary_key=True)
