@@ -69,6 +69,65 @@ const AdminDashboard = () => {
   const [reschedDate, setReschedDate] = useState('2026-07-15');
   const [reschedTime, setReschedTime] = useState('09:00 AM');
 
+  // Patient Registry filtering states
+  const [patientSearch, setPatientSearch] = useState('');
+  const [patientDateFilter, setPatientDateFilter] = useState('all'); // 'all' | 'today' | 'tomorrow' | 'custom'
+  const [patientCustomDate, setPatientCustomDate] = useState('2026-07-15');
+  const [patientDoctorFilter, setPatientDoctorFilter] = useState('all');
+
+  const getFilteredPatients = () => {
+    let list = [...patientsList];
+
+    // 1. Text Search Filter (patient name, email, or doctor name)
+    if (patientSearch.trim()) {
+      const q = patientSearch.toLowerCase();
+      list = list.filter(p => 
+        p.name.toLowerCase().includes(q) || 
+        p.email.toLowerCase().includes(q) ||
+        (p.doctor && p.doctor.toLowerCase().includes(q))
+      );
+    }
+
+    // 2. Doctor Filter (Direct name match when Date Filter is 'all')
+    if (patientDoctorFilter !== 'all' && patientDateFilter === 'all') {
+      const selectedDoc = doctors.find(d => d.id === parseInt(patientDoctorFilter));
+      if (selectedDoc) {
+        // Last name of doctor (e.g. "Simmons" from "Dr. Brooklyn Simmons")
+        const docLastName = selectedDoc.name.split(" ").pop().toLowerCase();
+        list = list.filter(p => p.doctor && p.doctor.toLowerCase().includes(docLastName));
+      }
+    }
+
+    // 3. Date Filter (optionally combined with Doctor Filter)
+    if (patientDateFilter !== 'all') {
+      let targetDate = '';
+      if (patientDateFilter === 'today') {
+        targetDate = '2026-07-15'; // Reference seeder date
+      } else if (patientDateFilter === 'tomorrow') {
+        targetDate = '2026-07-16';
+      } else if (patientDateFilter === 'custom') {
+        targetDate = patientCustomDate;
+      }
+
+      // Filter allAppointments by date and/or doctor
+      const matchingAppts = allAppointments.filter(appt => {
+        const dateMatch = targetDate ? appt.date === targetDate : true;
+        const doctorMatch = patientDoctorFilter !== 'all' ? appt.doctorId === parseInt(patientDoctorFilter) : true;
+        return dateMatch && doctorMatch;
+      });
+
+      // Get unique patient IDs
+      const patientIds = new Set(matchingAppts.map(appt => appt.patientId));
+
+      // Filter the main patient list by these IDs
+      list = list.filter(p => patientIds.has(p.dbId));
+    }
+
+    return list;
+  };
+
+  const filteredPatients = getFilteredPatients();
+
   // AI & System Configuration settings states
   const [aiTemp, setAiTemp] = useState(0.7);
   const [aiPrompt, setAiPrompt] = useState('You are an expert clinical diagnostic assistant. Analyze the symptoms and match with primary ICD-10 diagnostic codes.');
@@ -98,9 +157,9 @@ const AdminDashboard = () => {
   // SMTP Settings
   const [smtpConfig, setSmtpConfig] = useState({ host: 'smtp.novacare.org', port: '587', user: 'alerts@novacare.org', security: 'STARTTLS' });
 
-  // Fetch All Appointments when activeSection is 'appointments'
+  // Fetch All Appointments when activeSection is 'appointments' or 'patients'
   useEffect(() => {
-    if (activeSection === 'appointments') {
+    if (activeSection === 'appointments' || activeSection === 'patients') {
       fetch('/api/admin/appointments')
         .then((res) => {
           if (!res.ok) throw new Error('Failed to fetch appointments');
@@ -1563,7 +1622,150 @@ const AdminDashboard = () => {
             </div>
           )}
 
+          {/* ======================================================== */}
+          {/* 3. PATIENTS REGISTRY WORKSPACE */}
+          {/* ======================================================== */}
+          {activeSection === 'patients' && (
+            <div className="dashboard-card p-6 space-y-6 text-left">
+              <div className="flex justify-between items-center flex-wrap gap-4 border-b border-slate-100 pb-4">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Patients Registry</h3>
+                  <p className="text-xs text-slate-455 font-bold">Search, filter by scheduled appointment dates, and inspect physician bookings</p>
+                </div>
 
+                <div className="flex items-center gap-3 flex-wrap text-[10px] font-extrabold uppercase tracking-wide">
+                  {/* Date quick filter */}
+                  <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                    {[
+                      { key: 'all', label: 'All Patients' },
+                      { key: 'today', label: "Today's Bookings (Jul 15)" },
+                      { key: 'tomorrow', label: "Tomorrow's" },
+                      { key: 'custom', label: 'Choose Date' }
+                    ].map(({ key, label }) => (
+                      <button
+                        key={key}
+                        onClick={() => {
+                          setPatientDateFilter(key);
+                          triggerToast(`Switched registry date filter to: ${label}`, 'info');
+                        }}
+                        className={`px-3 py-1.5 rounded cursor-pointer transition ${
+                          patientDateFilter === key 
+                            ? 'bg-white text-[#5c6dfa] shadow-sm' 
+                            : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Doctor dropdown filter */}
+                  <div className="flex items-center gap-1.5 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                    <span className="pl-2 text-slate-450 text-[9px] uppercase font-extrabold">Physician:</span>
+                    <select
+                      value={patientDoctorFilter}
+                      onChange={(e) => {
+                        setPatientDoctorFilter(e.target.value);
+                        triggerToast('Filtered patients registry by physician', 'info');
+                      }}
+                      className="bg-white border-0 text-slate-750 font-bold px-2.5 py-1 rounded cursor-pointer outline-none text-[10px] uppercase"
+                    >
+                      <option value="all">ALL DOCTORS</option>
+                      {doctors.map(doc => (
+                        <option key={doc.id} value={doc.id}>{doc.name.toUpperCase()}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Custom Date selector if custom is active */}
+              {patientDateFilter === 'custom' && (
+                <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-150 w-fit text-left">
+                  <span className="font-extrabold text-[9px] text-slate-455 uppercase">Target Date:</span>
+                  <input
+                    type="date"
+                    value={patientCustomDate}
+                    onChange={(e) => setPatientCustomDate(e.target.value)}
+                    className="bg-white border border-slate-200 rounded-lg px-3 py-1 font-bold text-slate-800 outline-none cursor-pointer text-xs"
+                  />
+                </div>
+              )}
+
+              {/* Patient Search and registry count banner */}
+              <div className="flex justify-between items-center flex-wrap gap-3">
+                <input
+                  type="text"
+                  placeholder="Search patients by name or email address..."
+                  value={patientSearch}
+                  onChange={(e) => setPatientSearch(e.target.value)}
+                  className="bg-slate-50 border border-slate-200 focus:border-[#5c6dfa] rounded-xl px-4 py-2.5 text-xs font-semibold outline-none transition w-full max-w-sm"
+                />
+
+                <span className="text-[10px] font-extrabold text-slate-400 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
+                  TOTAL MATCHES: {filteredPatients.length} / {patientsList.length} PATIENTS
+                </span>
+              </div>
+
+              {/* Roster list */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-100">
+                      {['Patient ID', 'Patient Name', 'Email Address', 'Last Visit', 'Assigned Doctor', 'Status', 'Action'].map((h) => (
+                        <th key={h} className="pb-3 pr-4 text-[9px] font-extrabold uppercase tracking-widest text-slate-400 whitespace-nowrap">
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredPatients.map((p) => (
+                      <tr key={p.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition">
+                        <td className="py-3.5 pr-4 font-mono font-bold text-slate-450">{p.id}</td>
+                        <td className="py-3.5 pr-4 font-bold text-slate-800">{p.name}</td>
+                        <td className="py-3.5 pr-4 text-slate-600 font-semibold">{p.email}</td>
+                        <td className="py-3.5 pr-4 font-semibold text-slate-700">{p.lastVisit}</td>
+                        <td className="py-3.5 pr-4">
+                          <span className="font-extrabold text-indigo-650 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded text-[10px]">
+                            {p.doctor || 'N/A'}
+                          </span>
+                        </td>
+                        <td className="py-3.5 pr-4">
+                          <span className={`text-[8px] font-extrabold px-2 py-0.5 rounded-full border uppercase ${
+                            p.status === 'Active' 
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-150' 
+                              : 'bg-slate-100 text-slate-500 border-slate-200'
+                          }`}>
+                            {p.status}
+                          </span>
+                        </td>
+                        <td className="py-3.5 pr-4">
+                          <button
+                            onClick={() => {
+                              setSelectedPatientId(p.dbId);
+                              setPatientDetailModal(true);
+                            }}
+                            className="px-3 py-1.5 rounded-lg bg-[#5c6dfa] hover:bg-[#4e5ee6] text-white text-[10px] font-bold cursor-pointer transition shadow-md shadow-indigo-600/10"
+                          >
+                            View File
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+
+                    {filteredPatients.length === 0 && (
+                      <tr>
+                        <td colSpan="7" className="text-center py-10 text-slate-400 font-bold italic">
+                          No matching records found in patient registry.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {/* ======================================================== */}
           {/* 4. APPOINTMENT MONITOR WORKSPACE */}
@@ -2658,8 +2860,26 @@ const AdminDashboard = () => {
                       </div>
                     </div>
                     <div>
-                      <span className="block text-[8px] uppercase font-bold text-slate-450">Registration Date</span>
+                      <span className="block text-[8px] uppercase font-bold text-slate-455">Registration Date</span>
                       <span className="font-bold text-slate-800">{patientDetail.profile.joined}</span>
+                    </div>
+                    <div>
+                      <span className="block text-[8px] uppercase font-bold text-slate-455">Address</span>
+                      <span className="font-bold text-slate-800 block truncate" title={patientDetail.profile.address}>{patientDetail.profile.address}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <span className="block text-[8px] uppercase font-bold text-slate-455">Blood Type</span>
+                        <span className="font-extrabold text-indigo-650 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 text-[10px] w-fit block">{patientDetail.profile.blood_type}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[8px] uppercase font-bold text-slate-455">Allergies</span>
+                        <span className="font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-100 text-[10px] w-fit block truncate max-w-[90px]" title={patientDetail.profile.allergies}>{patientDetail.profile.allergies}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <span className="block text-[8px] uppercase font-bold text-slate-455">Chronic Illnesses</span>
+                      <span className="font-bold text-slate-700 block truncate" title={patientDetail.profile.chronic}>{patientDetail.profile.chronic}</span>
                     </div>
                   </div>
                 </div>
