@@ -11,12 +11,19 @@ from utils.doctor_matcher import match_doctors
 from utils.qr_generator import generate_prescription_qr
 from config import Config
 import json
+from utils.ai_handler import predict_condition, OllamaClient, get_condition_precautions
 
 app = Flask(__name__)
 app.config.from_object(Config)
 
 db.init_app(app)
 jwt = JWTManager(app)
+
+@jwt.user_identity_loader
+def user_identity_lookup(user_data):
+    if isinstance(user_data, dict):
+        return json.dumps(user_data)
+    return str(user_data)
 
 # Create DB tables
 with app.app_context():
@@ -146,7 +153,16 @@ def login():
 # Helper to get current user id from JWT
 def current_user_id():
     identity = get_jwt_identity()
-    return identity['id'] if identity else None
+    if not identity:
+        return None
+    if isinstance(identity, str):
+        try:
+            identity = json.loads(identity)
+        except Exception:
+            pass
+    if isinstance(identity, dict):
+        return identity.get('id')
+    return identity
 
 # ---------- AI SYMPTOM CHECKER ----------
 
@@ -181,6 +197,90 @@ def symptom_check():
     db.session.commit()
 
     return jsonify({'results': results}), 200
+
+# ---------- AI DIAGNOSIS ENGINE (MedGemma + Custom Naive Bayes) ----------
+
+@app.route('/api/ai/diagnose', methods=['POST'])
+@jwt_required()
+def diagnose_symptoms():
+    data = request.json
+    query = data.get('query', '')
+    if not query:
+        return jsonify({'error': 'Query text is required'}), 400
+        
+    patient_id = current_user_id()
+    user = User.query.get(patient_id) if patient_id else None
+    
+    patient_info = {
+        "name": user.name if user else "Guest Patient",
+        "dob": user.dob if user else "Unknown",
+        "allergies": user.allergies if user else "None",
+        "chronic": user.chronic if user else "None"
+    }
+
+    client = OllamaClient()
+    
+    # 1. Extract symptoms list from patient query using MedGemma (falls back to keyword parsing)
+    extracted_symptoms = client.extract_symptoms(query)
+    
+    if not extracted_symptoms:
+        return jsonify({
+            'error': 'No recognizable symptoms identified. Please describe your symptoms in more detail.'
+        }), 400
+        
+    # 2. Predict condition using our Naive Bayes ML model
+    condition_name, confidence = predict_condition(extracted_symptoms)
+    
+    # 3. Lookup condition details in database
+    cond = Condition.query.filter_by(name=condition_name).first()
+    description = cond.description if cond else "Consult doctor for clinical diagnosis."
+    recommended_specialty = cond.recommended_specialty if cond else "General Medicine"
+    urgency_tier = cond.urgency if cond else "medium"
+    
+    # 4. Fetch precautions from metadata CSV lookup
+    precautions = get_condition_precautions(condition_name)
+    
+    # 5. Generate clinical next steps and guidelines using MedGemma (falls back to pre-defined templates)
+    guidance = client.generate_guidance(condition_name, description, precautions, patient_info)
+    
+    # 6. Retrieve and rank matching doctors for this recommended specialty
+    doctors = Doctor.query.filter_by(specialty=recommended_specialty).all()
+    doctors_list = [
+        {
+            'id': d.id,
+            'name': d.user.name,
+            'specialty': d.specialty,
+            'location': d.location,
+            'rating': d.rating,
+            'availability': d.availability
+        }
+        for d in doctors
+    ]
+    
+    # Sort matching doctors by rating (highest first)
+    doctors_list = sorted(doctors_list, key=lambda x: x['rating'], reverse=True)
+    
+    # Save the symptom check history
+    check = SymptomCheck(
+        patient_id=patient_id,
+        symptoms=", ".join(extracted_symptoms),
+        diagnosed_conditions=json.dumps([condition_name]),
+        confidence_scores=json.dumps([round(confidence * 100, 1)])
+    )
+    db.session.add(check)
+    db.session.commit()
+    
+    return jsonify({
+        'symptoms': extracted_symptoms,
+        'condition': condition_name,
+        'confidence': round(confidence * 100, 1),
+        'description': description,
+        'precautions': [p.strip() for p in precautions.split("|") if p.strip()],
+        'recommended_specialty': recommended_specialty,
+        'urgency': urgency_tier,
+        'guidance': guidance,
+        'doctors': doctors_list
+    }), 200
 
 # ---------- DOCTOR MATCHING ----------
 
