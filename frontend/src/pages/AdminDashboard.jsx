@@ -1723,7 +1723,16 @@ const AdminDashboard = () => {
                     {filteredPatients.map((p) => (
                       <tr key={p.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition">
                         <td className="py-3.5 pr-4 font-mono font-bold text-slate-450">{p.id}</td>
-                        <td className="py-3.5 pr-4 font-bold text-slate-800">{p.name}</td>
+                        <td className="py-3.5 pr-4 font-bold text-slate-800">
+                          <div className="flex items-center gap-2">
+                            <span>{p.name}</span>
+                            {p.isHighRisk && (
+                              <span className="bg-rose-50 border border-rose-150 text-rose-700 font-extrabold text-[8px] px-2 py-0.5 rounded-full uppercase animate-pulse flex items-center gap-1 shadow-sm">
+                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Urgent
+                              </span>
+                            )}
+                          </div>
+                        </td>
                         <td className="py-3.5 pr-4 text-slate-600 font-semibold">{p.email}</td>
                         <td className="py-3.5 pr-4 font-semibold text-slate-700">{p.lastVisit}</td>
                         <td className="py-3.5 pr-4">
