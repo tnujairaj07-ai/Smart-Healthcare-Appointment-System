@@ -66,28 +66,31 @@ const LoginPage = () => {
     setToast({ show: true, message, type });
   };
 
-  const handleLoginSubmit = (e) => {
+  const handleLoginSubmit = async (e) => {
     e.preventDefault();
     if (!isFormValid()) return;
 
     setLoading(true);
 
-    setTimeout(() => {
-      const mockUser = login(email, password, role);
-      triggerToast(`Welcome back! Logged in as: ${mockUser.name}`, 'success');
+    try {
+      const loggedUser = await login(email, password, role);
+      triggerToast(`Welcome back! Logged in as: ${loggedUser.name}`, 'success');
       
       setTimeout(() => {
         setLoading(false);
         // Route redirection based on role
-        if (mockUser.role === 'patient') {
+        if (loggedUser.role === 'patient') {
           navigate('/patient');
-        } else if (mockUser.role === 'doctor') {
+        } else if (loggedUser.role === 'doctor') {
           navigate('/doctor');
-        } else if (mockUser.role === 'admin') {
+        } else if (loggedUser.role === 'admin') {
           navigate('/admin');
         }
       }, 1000);
-    }, 1200);
+    } catch (err) {
+      setLoading(false);
+      triggerToast(err.message || 'Invalid credentials. Please check your email and password.', 'error');
+    }
   };
 
   const handleForgotSubmit = (e) => {
