@@ -241,6 +241,48 @@ class OllamaClient:
         )
         return fallback_guidance
 
+    def generate_general_chat(self, user_text, patient_info):
+        """
+        Generates a conversational response for general queries (non-symptom specific).
+        """
+        patient_name = patient_info.get("name", "Patient")
+        allergies = patient_info.get("allergies", "None reported")
+        chronic = patient_info.get("chronic", "None reported")
+        
+        if self.is_available():
+            prompt = (
+                f"You are MedGemma, a compassionate medical AI assistant based on Google's clinical LLM architectures.\n"
+                f"Patient Name: {patient_name}\n"
+                f"Allergies: {allergies}\n"
+                f"Chronic Conditions: {chronic}\n\n"
+                f"Patient Query: \"{user_text}\"\n\n"
+                f"Respond to the patient's query in an empathetic, clear, and professional conversational manner.\n"
+                f"If they are greeting you, greet them back, introduce yourself, and ask how you can help.\n"
+                f"If they ask general health questions, provide accurate, helpful educational information.\n"
+                f"If they need symptom assessment, gently encourage them to describe their symptoms in detail.\n"
+                f"Keep it concise, friendly, and limited to 2 paragraphs."
+            )
+            payload = {
+                "model": self.model,
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "temperature": 0.6
+                }
+            }
+            try:
+                response = requests.post(self.url, json=payload, timeout=12)
+                if response.status_code == 200:
+                    return response.json().get("response", "").strip()
+            except Exception as e:
+                print(f"Ollama general chat failed: {e}")
+                
+        return (
+            f"Hello {patient_name}! I am MedGemma, your AI clinical assistant. "
+            f"To help you evaluate symptoms, please describe what you are experiencing in detail "
+            f"(e.g., 'I have had a mild headache and nausea for 2 days'). I can also help you find the right specialists!"
+        )
+
 def load_symptom_severities():
     """Loads symptom severity weights from Symptom-severity.csv."""
     severities = {}
