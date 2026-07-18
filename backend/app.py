@@ -11,7 +11,7 @@ from utils.doctor_matcher import match_doctors
 from utils.qr_generator import generate_prescription_qr
 from config import Config
 import json
-from utils.ai_handler import predict_condition, OllamaClient, get_condition_precautions
+from utils.ai_handler import predict_condition, OllamaClient, get_condition_precautions, calculate_symptom_severity_score
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -231,12 +231,19 @@ def diagnose_symptoms():
     # 2. Predict condition using our Naive Bayes ML model
     condition_name, confidence = predict_condition(extracted_symptoms)
     
+    # 2.5 Calculate severity score from Symptom-severity.csv
+    severity_score = calculate_symptom_severity_score(extracted_symptoms)
+    is_urgent = severity_score > 15
+    
     # 3. Lookup condition details in database
     cond = Condition.query.filter_by(name=condition_name).first()
     description = cond.description if cond else "Consult doctor for clinical diagnosis."
     recommended_specialty = cond.recommended_specialty if cond else "General Medicine"
     urgency_tier = cond.urgency if cond else "medium"
     
+    if is_urgent:
+        urgency_tier = "high"
+        
     # 4. Fetch precautions from metadata CSV lookup
     precautions = get_condition_precautions(condition_name)
     
@@ -265,7 +272,9 @@ def diagnose_symptoms():
         patient_id=patient_id,
         symptoms=", ".join(extracted_symptoms),
         diagnosed_conditions=json.dumps([condition_name]),
-        confidence_scores=json.dumps([round(confidence * 100, 1)])
+        confidence_scores=json.dumps([round(confidence * 100, 1)]),
+        severity_score=severity_score,
+        is_urgent=is_urgent
     )
     db.session.add(check)
     db.session.commit()
@@ -824,6 +833,10 @@ def admin_get_patients():
                 if not last_doctor_name.startswith("Dr. "):
                     last_doctor_name = "Dr. " + last_doctor_name
                     
+        # Check if patient has a recent urgent triage check
+        latest_check = SymptomCheck.query.filter_by(patient_id=p.id).order_by(SymptomCheck.created_at.desc()).first()
+        is_high_risk = latest_check.is_urgent if latest_check else False
+                    
         result.append({
             'id': f"#PT-{p.id:03d}",
             'dbId': p.id,
@@ -832,7 +845,8 @@ def admin_get_patients():
             'lastVisit': last_visit_str,
             'doctor': last_doctor_name,
             'status': status,
-            'treatments': treatments_count
+            'treatments': treatments_count,
+            'isHighRisk': is_high_risk
         })
     return jsonify(result), 200
 
@@ -985,6 +999,39 @@ def admin_update_user_status(id):
         user.status = data['status']
     db.session.commit()
     return jsonify({'message': 'User status updated successfully'}), 200
+
+@app.route('/api/pharmacy/products', methods=['GET'])
+def get_products():
+    category = request.args.get('category')
+    search = request.args.get('search')
+    
+    query = Product.query
+    
+    if category and category != 'All':
+        query = query.filter_by(category=category)
+        
+    if search:
+        search_term = f"%{search.strip()}%"
+        query = query.filter(
+            (Product.name.like(search_term)) | 
+            (Product.description.like(search_term))
+        )
+        
+    # Limit to top 50 matches for maximum performance
+    products = query.limit(50).all()
+    
+    result = []
+    for p in products:
+        result.append({
+            'id': p.id,
+            'name': p.name,
+            'price': p.price,
+            'stock': p.stock,
+            'category': p.category,
+            'description': p.description,
+            'status': p.status or 'In Stock'
+        })
+    return jsonify(result), 200
 
 # --- PHARMACY CATALOG MANAGEMENT ---
 @app.route('/api/admin/pharmacy/products', methods=['GET'])
