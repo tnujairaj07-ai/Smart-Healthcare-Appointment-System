@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
 import Toast from '../components/Toast';
@@ -7,6 +8,7 @@ const PatientDashboard = () => {
   // Toast notifications
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const [alertTray, setAlertTray] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Edit Mode state
   const [isEditMode, setIsEditMode] = useState(false);
@@ -28,8 +30,54 @@ const PatientDashboard = () => {
   // Edited Patient Info Temp State
   const [tempInfo, setTempInfo] = useState({ ...patientInfo });
 
-  // Visits Tab selection state
+  // Visits Tab selection state (synced with URL)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const queryTab = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState('future');
+
+  const triggerToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+  };
+
+  useEffect(() => {
+    if (queryTab) {
+      setActiveTab(queryTab);
+    }
+  }, [queryTab]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    fetch('/api/patient/profile', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('Profile fetch failed');
+        return res.json();
+      })
+      .then((data) => {
+        const mappedInfo = {
+          name: data.name,
+          email: data.email,
+          phone: data.phone || '+1 (555) 019-2834',
+          dob: data.dob || '23.07.1994',
+          address: data.address || '100 Medical Plaza, USA',
+          regDate: data.created_at || 'Thursday, May 25',
+          allergies: data.allergies || 'None declared',
+          chronic: data.chronic || 'None declared',
+          bloodType: data.blood_type || 'O+',
+          pastIllnesses: data.past_illnesses || 'None declared'
+        };
+        setPatientInfo(mappedInfo);
+        setTempInfo(mappedInfo);
+        setLoading(false);
+      })
+      .catch((err) => {
+        triggerToast(err.message, 'error');
+        setLoading(false);
+      });
+  }, []);
 
   // Doctor Notes State
   const [notes, setNotes] = useState([
@@ -107,17 +155,36 @@ const PatientDashboard = () => {
     ]
   });
 
-  const triggerToast = (message, type = 'success') => {
-    setToast({ show: true, message, type });
-  };
-
   const handleEditToggle = () => {
     if (isEditMode) {
-      // Save changes
-      setPatientInfo({ ...tempInfo });
-      triggerToast('Patient medical profile saved and synchronized.');
+      const token = localStorage.getItem('token');
+      fetch('/api/patient/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: tempInfo.name,
+          phone: tempInfo.phone,
+          address: tempInfo.address,
+          dob: tempInfo.dob,
+          allergies: tempInfo.allergies,
+          chronic: tempInfo.chronic,
+          blood_type: tempInfo.bloodType,
+          past_illnesses: tempInfo.pastIllnesses
+        })
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error('Failed to update profile settings.');
+          return res.json();
+        })
+        .then(() => {
+          setPatientInfo({ ...tempInfo });
+          triggerToast('Patient medical profile saved and synchronized.');
+        })
+        .catch((err) => triggerToast(err.message, 'error'));
     } else {
-      // Open edit mode
       setTempInfo({ ...patientInfo });
       triggerToast('Profile editing enabled. Make your modifications.');
     }
@@ -443,13 +510,15 @@ const PatientDashboard = () => {
           {/* Lower Grid Row */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             
-            {/* Column Span 8: Visits Scheduler */}
             <div className="dashboard-card lg:col-span-8 p-6 flex flex-col justify-between print:col-span-12">
               <div>
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3 flex-wrap gap-2">
                   <div className="flex gap-4 sm:gap-6">
                     <button 
-                      onClick={() => setActiveTab('future')} 
+                      onClick={() => {
+                        setActiveTab('future');
+                        setSearchParams({ tab: 'future' });
+                      }} 
                       className={`pb-3 border-b-2 text-xs font-bold uppercase tracking-wider transition-all ${
                         activeTab === 'future' ? 'border-brand-sidebar text-brand-sidebar' : 'border-transparent text-slate-400 hover:text-slate-650'
                       }`}
@@ -457,7 +526,10 @@ const PatientDashboard = () => {
                       Future visits ({visits.future.length})
                     </button>
                     <button 
-                      onClick={() => setActiveTab('past')} 
+                      onClick={() => {
+                        setActiveTab('past');
+                        setSearchParams({ tab: 'past' });
+                      }} 
                       className={`pb-3 border-b-2 text-xs font-bold uppercase tracking-wider transition-all ${
                         activeTab === 'past' ? 'border-brand-sidebar text-brand-sidebar' : 'border-transparent text-slate-400 hover:text-slate-650'
                       }`}
@@ -465,12 +537,26 @@ const PatientDashboard = () => {
                       Past visits ({visits.past.length})
                     </button>
                     <button 
-                      onClick={() => setActiveTab('treatment')} 
+                      onClick={() => {
+                        setActiveTab('treatment');
+                        setSearchParams({ tab: 'treatment' });
+                      }} 
                       className={`pb-3 border-b-2 text-xs font-bold uppercase tracking-wider transition-all ${
                         activeTab === 'treatment' ? 'border-brand-sidebar text-brand-sidebar' : 'border-transparent text-slate-400 hover:text-slate-650'
                       }`}
                     >
                       Planned treatments
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setActiveTab('records');
+                        setSearchParams({ tab: 'records' });
+                      }} 
+                      className={`pb-3 border-b-2 text-xs font-bold uppercase tracking-wider transition-all ${
+                        activeTab === 'records' ? 'border-brand-sidebar text-brand-sidebar' : 'border-transparent text-slate-400 hover:text-slate-650'
+                      }`}
+                    >
+                      Medical Records ({files.length})
                     </button>
                   </div>
                   
@@ -483,45 +569,95 @@ const PatientDashboard = () => {
                 </div>
 
                 <div className="mt-6 space-y-4">
-                  {visits[activeTab].map((visit) => (
-                    <div 
-                      key={visit.id}
-                      className="p-4 bg-slate-50/60 hover:bg-slate-50 rounded-2xl border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:translate-x-1"
-                    >
-                      <div className="flex items-start gap-4">
-                        <div className="bg-white border border-slate-200/80 p-3 rounded-xl shadow-sm text-center min-w-[100px]">
-                          <span className="block text-[9px] text-slate-400 font-extrabold uppercase tracking-widest">{visit.time}</span>
-                          <span className="block text-xs font-bold text-slate-800 mt-1">{visit.date}</span>
-                        </div>
+                  {activeTab !== 'records' ? (
+                    visits[activeTab] && visits[activeTab].map((visit) => (
+                      <div 
+                        key={visit.id}
+                        className="p-4 bg-slate-50/60 hover:bg-slate-50 rounded-2xl border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:translate-x-1"
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className="bg-white border border-slate-200/80 p-3 rounded-xl shadow-sm text-center min-w-[100px]">
+                            <span className="block text-[9px] text-slate-400 font-extrabold uppercase tracking-widest">{visit.time}</span>
+                            <span className="block text-xs font-bold text-slate-800 mt-1">{visit.date}</span>
+                          </div>
 
-                        <div className="text-left">
-                          <span className="text-[9px] text-indigo-500 font-bold uppercase tracking-wider block">Service & Procedure</span>
-                          <p className="text-xs font-bold text-slate-800 mt-0.5">{visit.service}</p>
-                          
-                          <div className="flex items-center gap-1.5 mt-2">
-                            <span className="text-xs">🩺</span>
-                            <span className="text-xs text-slate-500 font-medium">
-                              {visit.doctor} <span className="text-[10px] text-slate-400">({visit.doctorTitle})</span>
-                            </span>
+                          <div className="text-left">
+                            <span className="text-[9px] text-indigo-500 font-bold uppercase tracking-wider block">Service & Procedure</span>
+                            <p className="text-xs font-bold text-slate-800 mt-0.5">{visit.service}</p>
+                            
+                            <div className="flex items-center gap-1.5 mt-2">
+                              <span className="text-xs">🩺</span>
+                              <span className="text-xs text-slate-500 font-medium">
+                                {visit.doctor} <span className="text-[10px] text-slate-400">({visit.doctorTitle})</span>
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="flex items-center gap-3 justify-between md:justify-end">
-                        <span className={`text-[10px] font-bold px-3 py-1 rounded-full border ${visit.statusClass}`}>
-                          {visit.status}
-                        </span>
+                        <div className="flex items-center gap-3 justify-between md:justify-end">
+                          <span className={`text-[10px] font-bold px-3 py-1 rounded-full border ${visit.statusClass}`}>
+                            {visit.status}
+                          </span>
+                          <button 
+                            onClick={() => triggerToast(`Loading medical diagnostic chart for date: ${visit.date}`)} 
+                            className="no-print p-2.5 bg-white hover:bg-indigo-50 text-slate-500 hover:text-indigo-600 border border-slate-200 hover:border-indigo-100 rounded-xl transition-all shadow-sm text-xs font-semibold"
+                          >
+                            View Chart →
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    /* Render full-width Medical Records panel */
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                        <span className="text-xs font-bold text-slate-700">Digital Health Record Vault</span>
                         <button 
-                          onClick={() => triggerToast(`Loading medical diagnostic chart for date: ${visit.date}`)} 
-                          className="no-print p-2.5 bg-white hover:bg-indigo-50 text-slate-500 hover:text-indigo-600 border border-slate-200 hover:border-indigo-100 rounded-xl transition-all shadow-sm text-xs font-semibold"
+                          onClick={simulateFileUpload}
+                          className="px-3.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-650 rounded-xl text-xs font-bold transition-all"
                         >
-                          View Chart →
+                          + Upload Medical File
                         </button>
                       </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                        {files.map((file) => (
+                          <div 
+                            key={file.id} 
+                            className="flex items-center justify-between p-4 bg-white hover:bg-slate-50/50 rounded-2xl border border-slate-100 transition-all text-left shadow-sm hover:translate-y-[-2px]"
+                          >
+                            <div className="flex items-center gap-3.5">
+                              <span className="text-2xl">📄</span>
+                              <div>
+                                <p className="text-xs font-bold text-slate-700 leading-none">{file.name}</p>
+                                <p className="text-[10px] text-slate-400 mt-1.5">{file.size} · {file.date} · <span className="bg-emerald-50 text-emerald-650 px-1.5 py-0.5 rounded font-extrabold text-[8px] uppercase">Verified</span></p>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <button 
+                                onClick={() => triggerToast(`Downloading: ${file.name}`)} 
+                                className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 hover:text-indigo-600 transition"
+                              >
+                                📥
+                              </button>
+                              <button 
+                                onClick={() => {
+                                  if (confirm(`Are you sure you want to delete ${file.name}?`)) {
+                                    setFiles(files.filter(f => f.id !== file.id));
+                                    triggerToast(`Deleted file: ${file.name}`);
+                                  }
+                                }} 
+                                className="w-8 h-8 rounded-lg bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-500 hover:text-rose-700 transition"
+                              >
+                                🗑️
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  ))}
+                  )}
 
-                  {visits[activeTab].length === 0 && (
+                  {activeTab !== 'records' && visits[activeTab] && visits[activeTab].length === 0 && (
                     <p className="text-xs text-slate-400 italic py-6">No visit logs found for this category.</p>
                   )}
                 </div>
