@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
+import Toast from '../components/Toast';
 
 const SYSTEM_DOMAINS = [
   { key: 'respiratory', label: 'Respiratory', icon: '🫁' },
@@ -40,6 +41,38 @@ const AiDoctorPage = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [analysisMode, setAnalysisMode] = useState(false);
   const chatEndRef = useRef(null);
+  const [selectedDoctorProfile, setSelectedDoctorProfile] = useState(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [showDoctorModal, setShowDoctorModal] = useState(false);
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+
+  const triggerToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+  };
+
+  const openDoctorProfile = (id) => {
+    setLoadingProfile(true);
+    setShowDoctorModal(true);
+    const token = localStorage.getItem('token');
+    fetch(`/api/doctors/${id}/profile`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to load doctor profile');
+        return res.json();
+      })
+      .then((data) => {
+        setSelectedDoctorProfile(data);
+        setLoadingProfile(false);
+      })
+      .catch((err) => {
+        triggerToast(err.message, 'error');
+        setLoadingProfile(false);
+        setShowDoctorModal(false);
+      });
+  };
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -373,7 +406,7 @@ const AiDoctorPage = () => {
                         <h4 className="text-sm font-extrabold text-slate-900">{msg.data.specialty} Specialists</h4>
                       </div>
 
-                      <div className="space-y-3">
+                       <div className="space-y-3">
                         {msg.data.doctors.map((doc, dIdx) => (
                           <div key={dIdx} className="flex items-center justify-between p-3 bg-slate-50/60 rounded-xl border border-slate-100 gap-4 flex-wrap sm:flex-nowrap">
                             <div className="flex items-center gap-3">
@@ -381,16 +414,24 @@ const AiDoctorPage = () => {
                               <div>
                                 <h5 className="text-xs font-bold text-slate-800">{doc.name}</h5>
                                 <p className="text-[9px] text-slate-400 mt-1 font-semibold">
-                                  Rating: <span className="text-amber-500">★ {doc.rating}</span> · Slots: {doc.availability}
+                                  Rating: <span className="text-amber-500">★ {doc.rating}</span> · Exp: {doc.years_experience || 8} Yrs · Slots: {doc.availability}
                                 </p>
                               </div>
                             </div>
-                            <Link
-                              to={`/book-appointment?doctor_id=${doc.id}`}
-                              className="px-3 py-1.5 bg-brand-sidebar hover:bg-brand-sidebarHover text-white text-[9px] font-bold rounded-lg transition-all shadow-sm uppercase tracking-wide whitespace-nowrap"
-                            >
-                              Book Now
-                            </Link>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => openDoctorProfile(doc.id)}
+                                className="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[9px] font-bold rounded-lg border border-indigo-150 uppercase tracking-wide cursor-pointer transition whitespace-nowrap"
+                              >
+                                View Profile
+                              </button>
+                              <Link
+                                to={`/book-appointment?doctor_id=${doc.id}`}
+                                className="px-2.5 py-1.5 bg-brand-sidebar hover:bg-brand-sidebarHover text-white text-[9px] font-bold rounded-lg transition-all shadow-sm uppercase tracking-wide whitespace-nowrap"
+                              >
+                                Book Now
+                              </Link>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -477,6 +518,130 @@ const AiDoctorPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Doctor Profile Modal */}
+      {showDoctorModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl p-6 md:p-8 w-full max-w-2xl max-h-[85vh] overflow-y-auto shadow-2xl border border-slate-100 text-left space-y-6">
+            
+            {loadingProfile ? (
+              <div className="py-20 text-center space-y-3">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-650 mx-auto"></div>
+                <p className="text-sm text-slate-500 font-bold">Retrieving medical profile & patient reviews...</p>
+              </div>
+            ) : selectedDoctorProfile ? (
+              <>
+                {/* Header */}
+                <div className="flex gap-5 border-b border-slate-100 pb-5 items-start">
+                  <img
+                    src={selectedDoctorProfile.avatar_url || 'https://images.unsplash.com/photo-1594824813573-246434de83fb?auto=format&fit=crop&q=80&w=250'}
+                    alt={selectedDoctorProfile.name}
+                    className="w-20 h-20 rounded-2xl object-cover border border-slate-150 shadow-sm flex-shrink-0"
+                  />
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-lg font-extrabold text-slate-900 leading-tight">{selectedDoctorProfile.name}</h3>
+                      {selectedDoctorProfile.verified && (
+                        <span className="bg-emerald-50 border border-emerald-150 text-emerald-700 text-[8px] font-extrabold px-2 py-0.5 rounded-full uppercase flex items-center gap-1 shadow-sm">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Verified
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs font-bold text-indigo-650 tracking-wide">{selectedDoctorProfile.specialty}</p>
+                    <p className="text-[11px] text-slate-450 font-semibold">{selectedDoctorProfile.hospital}</p>
+                    <div className="flex items-center gap-2 pt-1 text-xs font-extrabold text-slate-500 flex-wrap">
+                      <span className="text-amber-500">★ {selectedDoctorProfile.rating.toFixed(1)}</span>
+                      <span className="text-slate-300">|</span>
+                      <span>{selectedDoctorProfile.years_experience} Years Experience</span>
+                      <span className="text-slate-300">|</span>
+                      <span className="text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded text-[10px] uppercase font-extrabold">{selectedDoctorProfile.duty_status}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* About & Bio */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest">Biography</h4>
+                  <p className="text-xs text-slate-650 leading-relaxed font-medium bg-slate-50 border border-slate-100 p-4 rounded-2xl">
+                    {selectedDoctorProfile.description}
+                  </p>
+                </div>
+
+                {/* Grid Details */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="p-3.5 bg-slate-50 border border-slate-100 rounded-xl text-xs space-y-1 text-left">
+                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Clinic & Contact</span>
+                    <p className="font-bold text-slate-800">📍 {selectedDoctorProfile.location}</p>
+                    <p className="font-semibold text-slate-650">📞 {selectedDoctorProfile.phone}</p>
+                  </div>
+                  <div className="p-3.5 bg-slate-50 border border-slate-100 rounded-xl text-xs space-y-1 text-left">
+                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Languages & NPI</span>
+                    <p className="font-bold text-slate-800">🗣️ {selectedDoctorProfile.languages}</p>
+                    <p className="font-semibold text-slate-650">NPI Number: {selectedDoctorProfile.npi}</p>
+                  </div>
+                </div>
+
+                {/* Patient Reviews Accordion */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest">Patient Reviews ({selectedDoctorProfile.reviews_count})</h4>
+                  <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
+                    {selectedDoctorProfile.reviews && selectedDoctorProfile.reviews.length > 0 ? (
+                      selectedDoctorProfile.reviews.map((rev, rIdx) => (
+                        <div key={rIdx} className="p-4 bg-white border border-slate-150 rounded-2xl space-y-2 text-left shadow-sm">
+                          <div className="flex justify-between items-center flex-wrap gap-2">
+                            <div>
+                              <h5 className="text-xs font-bold text-slate-800">{rev.patient_name}</h5>
+                              <p className="text-[9px] text-slate-400 font-semibold">{rev.date}</p>
+                            </div>
+                            <div className="flex gap-0.5 text-xs text-amber-500 font-bold">
+                              {Array.from({ length: rev.rating }).map((_, starIdx) => (
+                                <span key={starIdx}>★</span>
+                              ))}
+                              {Array.from({ length: 5 - rev.rating }).map((_, starIdx) => (
+                                <span key={starIdx} className="text-slate-200">★</span>
+                              ))}
+                            </div>
+                          </div>
+                          <p className="text-xs text-slate-600 italic font-medium leading-normal">
+                            "{rev.comment}"
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-xs text-slate-400 italic">No patient testimonials found for this practitioner yet.</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Footer Controls */}
+                <div className="flex gap-3 pt-4 border-t border-slate-100">
+                  <button
+                    onClick={() => setShowDoctorModal(false)}
+                    className="flex-1 py-3.5 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl text-center cursor-pointer transition"
+                  >
+                    Close Profile
+                  </button>
+                  <Link
+                    to={`/book-appointment?doctor_id=${selectedDoctorProfile.id}`}
+                    className="flex-1 py-3.5 text-xs font-bold text-white bg-brand-sidebar hover:bg-brand-sidebarHover rounded-xl text-center shadow-lg shadow-indigo-650/15 uppercase tracking-wide"
+                  >
+                    Schedule Consultation
+                  </Link>
+                </div>
+              </>
+            ) : (
+              <div className="py-12 text-center text-slate-400 italic">Could not load medical profile.</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <Toast
+        show={toast.show}
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast({ ...toast, show: false })}
+      />
     </div>
   );
 };
