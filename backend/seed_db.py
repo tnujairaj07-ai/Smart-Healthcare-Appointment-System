@@ -1,6 +1,7 @@
 import os
 import json
 import csv
+import random
 from datetime import datetime
 from collections import defaultdict
 from app import app, db
@@ -21,6 +22,43 @@ SPELLING_MAPS = {
     "aids": "AIDS",
     "copd": "COPD",
 }
+
+PATIENT_REVIEWERS = [
+    "Leslie Alexander", "Devon Lane", "Cody Fisher", "Theresa Webb", 
+    "Bessie Cooper", "Guy Hawkins", "Albert Flores", "Ronald Richards",
+    "Jane Cooper", "Jerome Bell", "Darlene Robertson", "Kristin Watson"
+]
+
+REVIEW_COMMENTS_HIGH = [
+    "Excellent diagnostic capability and very pleasant bedside manner. Highly recommend!",
+    "Listened to all my symptoms carefully and explained the treatment plan in great detail.",
+    "Very professional and knowledgeable. The clinic staff was also wonderful.",
+    "Helpful guidelines provided during recovery. Truly cares about patient well-being.",
+    "Very short waiting time, detailed examination and extremely reassuring.",
+    "Incredibly professional doctor. Walked me through options step by step."
+]
+
+REVIEW_COMMENTS_MID = [
+    "Good consultant, though the clinic was a bit crowded. Reassuring diagnosis.",
+    "Satisfactory visit. Explanations were clear and precise.",
+    "Professional care. Recommended medications worked well.",
+    "Decent consultation. Provided clear answers to my queries."
+]
+
+def generate_mock_reviews(rating):
+    num_reviews = random.randint(3, 5)
+    reviews = []
+    reviewers = random.sample(PATIENT_REVIEWERS, min(num_reviews, len(PATIENT_REVIEWERS)))
+    for reviewer in reviewers:
+        r_val = random.choice([5, 5, 4, 4, 3]) if rating >= 4.5 else random.choice([4, 4, 3, 3, 2])
+        comments = REVIEW_COMMENTS_HIGH if r_val >= 4 else REVIEW_COMMENTS_MID
+        reviews.append({
+            "patient_name": reviewer,
+            "rating": r_val,
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "comment": random.choice(comments)
+        })
+    return reviews
 
 def clean_name(name):
     n_lower = " ".join(name.strip().lower().split())
@@ -297,7 +335,10 @@ def seed_database():
             avatar_url=item["avatar_url"],
             type=item["type"],
             licenses=json.dumps(item["licenses"]),
-            patient_overview=json.dumps(item["patient_overview"])
+            patient_overview=json.dumps(item["patient_overview"]),
+            years_experience=random.randint(5, 20),
+            reviews_count=random.randint(10, 50),
+            reviews_json=json.dumps(generate_mock_reviews(item["rating"]))
         )
         db.session.add(d)
         db.session.commit()
@@ -328,13 +369,18 @@ def seed_database():
                     "new": [15, 12, 19, 18, 25, 20, 24]
                 }
                 
+                # Parse years of experience from CSV
+                csv_exp = row.get("years_experience")
+                exp_val = int(csv_exp) if csv_exp and csv_exp.strip().isdigit() else random.randint(5, 25)
+                doc_rating = float(row.get("rating", 4.0)) if row.get("rating") else 4.0
+                
                 d = Doctor(
                     user_id=u.id,
                     specialty=row.get("specialty", "General Medicine"),
                     location=row.get("location", "Seattle, USA"),
                     latitude=47.6062,
                     longitude=-122.3321,
-                    rating=float(row.get("rating", 4.0)) if row.get("rating") else 4.0,
+                    rating=doc_rating,
                     availability=row.get("availability_hours", "09:00 AM - 05:00 PM"),
                     schedule=row.get("weekly_schedule", "Mon-Fri"),
                     phone=row.get("phone", "+(555) 000-0000"),
@@ -349,7 +395,10 @@ def seed_database():
                     type="old",
                     licenses=json.dumps(licenses_mock),
                     patient_overview=json.dumps(patient_overview_mock),
-                    hospital=row.get("hospital_affiliation", "NovaCare General Hospital")
+                    hospital=row.get("hospital_affiliation", "NovaCare General Hospital"),
+                    years_experience=exp_val,
+                    reviews_count=random.randint(10, 80),
+                    reviews_json=json.dumps(generate_mock_reviews(doc_rating))
                 )
                 db.session.add(d)
                 db.session.commit()
