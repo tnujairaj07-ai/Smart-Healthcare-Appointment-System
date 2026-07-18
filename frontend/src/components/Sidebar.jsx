@@ -35,22 +35,47 @@ const Sidebar = () => {
       case 'patient':
         return (
           <>
-            <h5 className="text-[9px] font-extrabold text-indigo-200 uppercase tracking-widest mb-2 px-3.5">Patient Portal</h5>
+            {/* My Care Section */}
+            <h5 className="text-[9px] font-extrabold text-indigo-200 uppercase tracking-widest mb-1.5 px-3.5">My Care</h5>
             <NavLink 
               to="/patient" 
+              end
               className={({ isActive }) => 
-                `flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-semibold ${
-                  isActive ? 'bg-white/20 text-white shadow-inner' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white'
+                `flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all text-xs font-semibold ${
+                  isActive && !location.search ? 'bg-white/20 text-white shadow-inner font-bold' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white'
                 }`
               }
             >
-              👤 <span>My Profile</span>
+              👤 <span>Care Overview</span>
             </NavLink>
+            <NavLink 
+              to="/patient?tab=future" 
+              className={() => 
+                `flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all text-xs font-semibold ${
+                  location.search.includes('tab=future') || location.search.includes('tab=past') || location.search.includes('tab=treatment') ? 'bg-white/20 text-white shadow-inner font-bold' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white'
+                }`
+              }
+            >
+              📅 <span>My Appointments</span>
+            </NavLink>
+            <NavLink 
+              to="/prescription" 
+              className={({ isActive }) => 
+                `flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all text-xs font-semibold ${
+                  isActive ? 'bg-white/20 text-white shadow-inner font-bold' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white'
+                }`
+              }
+            >
+              💊 <span>Prescriptions & QR</span>
+            </NavLink>
+
+            {/* Services Section */}
+            <h5 className="text-[9px] font-extrabold text-indigo-200 uppercase tracking-widest mt-4 mb-1.5 px-3.5">Services</h5>
             <NavLink 
               to="/ai-doctor" 
               className={({ isActive }) => 
-                `flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-semibold ${
-                  isActive ? 'bg-white/20 text-white shadow-inner' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white'
+                `flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all text-xs font-semibold ${
+                  isActive ? 'bg-white/20 text-white shadow-inner font-bold' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white'
                 }`
               }
             >
@@ -59,42 +84,68 @@ const Sidebar = () => {
             <NavLink 
               to="/book-appointment" 
               className={({ isActive }) => 
-                `flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-semibold ${
-                  isActive ? 'bg-white/20 text-white shadow-inner' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white'
+                `flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all text-xs font-semibold ${
+                  isActive ? 'bg-white/20 text-white shadow-inner font-bold' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white'
                 }`
               }
             >
-              📅 <span>Book Appointment</span>
+              🔍 <span>Find & Book Doctors</span>
+            </NavLink>
+            <NavLink 
+              to="/pharmacy" 
+              className={({ isActive }) => 
+                `flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all text-xs font-semibold ${
+                  isActive ? 'bg-white/20 text-white shadow-inner font-bold' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white'
+                }`
+              }
+            >
+              🏪 <span>Online Pharmacy</span>
+            </NavLink>
+
+            {/* Health Records Section */}
+            <h5 className="text-[9px] font-extrabold text-indigo-200 uppercase tracking-widest mt-4 mb-1.5 px-3.5">Health Records</h5>
+            <NavLink 
+              to="/patient?tab=records" 
+              className={() => 
+                `flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all text-xs font-semibold ${
+                  location.search.includes('tab=records') ? 'bg-white/20 text-white shadow-inner font-bold' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white'
+                }`
+              }
+            >
+              📂 <span>Medical Records</span>
             </NavLink>
             <NavLink 
               to="/analytics" 
               className={({ isActive }) => 
-                `flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-semibold ${
-                  isActive ? 'bg-white/20 text-white shadow-inner' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white'
+                `flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all text-xs font-semibold ${
+                  isActive ? 'bg-white/20 text-white shadow-inner font-bold' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white'
                 }`
               }
             >
               📈 <span>Health Analytics</span>
             </NavLink>
+
+            {/* Account & Support Section */}
+            <h5 className="text-[9px] font-extrabold text-indigo-200 uppercase tracking-widest mt-4 mb-1.5 px-3.5">Account & Support</h5>
             <NavLink 
-              to="/prescription" 
+              to="/settings" 
               className={({ isActive }) => 
-                `flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-semibold ${
-                  isActive ? 'bg-white/20 text-white shadow-inner' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white'
+                `flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all text-xs font-semibold ${
+                  isActive ? 'bg-white/20 text-white shadow-inner font-bold' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white'
                 }`
               }
             >
-              💊 <span>Prescriptions</span>
+              ⚙️ <span>Settings</span>
             </NavLink>
             <NavLink 
-              to="/pharmacy" 
+              to="/support" 
               className={({ isActive }) => 
-                `flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-semibold ${
-                  isActive ? 'bg-white/20 text-white shadow-inner' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white'
+                `flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all text-xs font-semibold ${
+                  isActive ? 'bg-white/20 text-white shadow-inner font-bold' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white'
                 }`
               }
             >
-              🏪 <span>Pharmacy Portal</span>
+              🙋 <span>Support & Help</span>
             </NavLink>
           </>
         );
@@ -163,6 +214,13 @@ const Sidebar = () => {
             >
               <i className="fa-solid fa-user-doctor text-xs w-4 shrink-0 text-center"></i>
               <span>Doctors Directory</span>
+            </Link>
+            <Link 
+              to="/admin?tab=patients" 
+              className={getLinkClass(isTabActive('/admin', 'patients'))}
+            >
+              <i className="fa-solid fa-hospital-user text-xs w-4 shrink-0 text-center"></i>
+              <span>Patients Registry</span>
             </Link>
             <Link 
               to="/admin?tab=appointments" 
