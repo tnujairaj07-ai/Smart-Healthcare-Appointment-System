@@ -164,9 +164,9 @@ class OllamaClient:
                 extracted.append(s)
         return extracted
 
-    def generate_guidance(self, condition, description, precautions, patient_info):
+    def generate_guidance(self, condition, description, precautions, patient_info, doctors_list=None):
         """
-        Generates personalized clinical next steps and guidelines based on patient details and condition.
+        Generates personalized clinical next steps and guidelines based on patient details, condition, and recommended doctors.
         """
         prec_list = [p.strip() for p in precautions.split("|") if p.strip()]
         prec_str = ", ".join(prec_list)
@@ -175,6 +175,16 @@ class OllamaClient:
         dob = patient_info.get("dob", "Unknown")
         allergies = patient_info.get("allergies", "None reported")
         chronic = patient_info.get("chronic", "None reported")
+
+        # Format doctors string
+        docs_str = ""
+        if doctors_list:
+            docs_str = "\n".join(
+                f"- {d['name']} ({d['specialty']}), Rating: {d['rating']} stars, Experience: {d['years_experience']} yrs, Slots: {d['availability']}"
+                for d in doctors_list
+            )
+        else:
+            docs_str = "No specific doctors matching this specialty are currently online."
 
         if self.is_available():
             prompt = (
@@ -187,10 +197,15 @@ class OllamaClient:
                 f"- DOB: {dob}\n"
                 f"- Allergies: {allergies}\n"
                 f"- Chronic Conditions: {chronic}\n\n"
-                f"Provide personalized, clear, and empathetic next steps and guidance for this patient.\n"
-                f"Acknowledge their allergies/chronic conditions if relevant (e.g. remind them to be cautious with certain drugs if they have allergies).\n"
-                f"Emphasize that this is an AI suggestion and they should consult a healthcare professional. "
-                f"Keep it professional and limited to 3 concise paragraphs."
+                f"SUSPECTED DOCTOR REFERRALS from our database:\n"
+                f"{docs_str}\n\n"
+                f"INSTRUCTIONS:\n"
+                f"1. Provide personalized, clear, and empathetic next steps and guidance for this patient.\n"
+                f"2. Suggest basic self-care, home remedies, rest, and safe cures that the patient can take right now to manage the condition before consulting a physician.\n"
+                f"3. Reassure the patient if it is a low-to-medium urgency concern.\n"
+                f"4. If it is a concerning or urgent issue, clearly list warning signs and advise them to schedule a checkup immediately.\n"
+                f"5. Mention that they can click on the recommended doctor cards listed below (such as {', '.join(d['name'] for d in doctors_list[:2]) if doctors_list else 'our specialists'}) to view their full profiles, check their years of experience, read ratings and patient testimonials, and book an appointment directly.\n"
+                f"Keep the response professional, clear, and structured in 3 concise paragraphs."
             )
             
             payload = {
@@ -212,14 +227,17 @@ class OllamaClient:
         # Fallback template guidance
         fallback_guidance = (
             f"Dear {patient_name},\n\n"
-            f"Based on your symptoms, there is a potential match for **{condition}**.\n"
-            f"**About this condition:** {description}\n\n"
-            f"**Immediate steps you should take:**\n"
-            + "\n".join(f"- {p.capitalize()}" for p in prec_list) + "\n\n"
-            f"Please note: This is an automated assessment. "
-            f"Since you reported allergies ({allergies}) and chronic conditions ({chronic}), "
-            f"you should discuss these with a doctor before starting any self-care or medications. "
-            f"We recommend scheduling an appointment with a specialist as soon as possible."
+            f"Based on your symptoms, there is a potential match for **{condition}** ({description}).\n\n"
+            f"**Recommended Self-Care & Cures:**\n"
+            + "\n".join(f"- {p.capitalize()}" for p in prec_list) + "\n"
+            f"- Ensure adequate rest, stay hydrated, and monitor temperature.\n\n"
+            f"**Next Steps:**\n"
+            f"Since you reported allergies ({allergies}) and chronic conditions ({chronic}), please avoid self-medicating without medical consultation. "
+            f"If symptoms worsen or you experience severe pain, seek emergency medical care.\n\n"
+            f"**Physician Recommendation:**\n"
+            f"We recommend scheduling a follow-up. You can compare and book our recommended doctors below (such as "
+            + (", ".join(d['name'] for d in doctors_list[:2]) if doctors_list else "our specialists") +
+            f") directly by clicking on their cards to view their overall profile, ratings, and reviews."
         )
         return fallback_guidance
 
