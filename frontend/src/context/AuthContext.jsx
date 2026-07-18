@@ -8,24 +8,39 @@ export const AuthProvider = ({ children }) => {
     return savedUser ? JSON.parse(savedUser) : null;
   });
 
-  const login = (email, password, role = 'patient') => {
-    // Simulated token storage
-    const mockUser = {
-      name: role === 'patient' 
-        ? 'Kate Prokopchuk' 
-        : (role === 'doctor' ? 'Dr. Helen Ross' : 'Nola Hawkins'),
+  const login = async (email, password, role = 'patient') => {
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email, password })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Invalid credentials');
+    }
+
+    const data = await response.json();
+
+    const userObj = {
+      name: data.name,
       email,
-      role: role.toLowerCase(), // 'patient', 'doctor', 'admin'
-      token: 'mock-jwt-token-xyz'
+      role: data.role.toLowerCase(),
+      token: data.token
     };
-    setUser(mockUser);
-    localStorage.setItem('user', JSON.stringify(mockUser));
-    return mockUser;
+
+    setUser(userObj);
+    localStorage.setItem('user', JSON.stringify(userObj));
+    localStorage.setItem('token', data.token);
+    return userObj;
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
   };
 
   const isAuthenticated = !!user;
