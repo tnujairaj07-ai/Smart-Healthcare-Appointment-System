@@ -74,6 +74,8 @@ class SymptomCheck(db.Model):
     symptoms = db.Column(db.String(500), nullable=False)
     diagnosed_conditions = db.Column(db.String(500))  # JSON
     confidence_scores = db.Column(db.String(500))     # JSON
+    severity_score = db.Column(db.Integer, default=0)
+    is_urgent = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.now)
 
 class Prescription(db.Model):
