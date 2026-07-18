@@ -12,6 +12,15 @@ class User(db.Model):
     status = db.Column(db.String(20), default='Active') # 'Active' or 'Locked' or 'Pending'
     created_at = db.Column(db.DateTime, default=datetime.now)
 
+    # Patient demographics
+    phone = db.Column(db.String(30))
+    address = db.Column(db.String(200))
+    dob = db.Column(db.String(30))
+    allergies = db.Column(db.String(200))
+    chronic = db.Column(db.String(200))
+    blood_type = db.Column(db.String(10))
+    past_illnesses = db.Column(db.String(200))
+
     doctors = db.relationship('Doctor', backref='user', lazy=True)
     appointments = db.relationship('Appointment', backref='patient', lazy=True)
 
@@ -56,6 +65,8 @@ class Appointment(db.Model):
     time_slot = db.Column(db.String(20), nullable=False) # "10 AM"
     status = db.Column(db.String(20), default="pending")
     created_at = db.Column(db.DateTime, default=datetime.now)
+
+    doctor = db.relationship('Doctor', backref='appointments', lazy=True)
 
 class SymptomCheck(db.Model):
     id = db.Column(db.Integer, primary_key=True)
