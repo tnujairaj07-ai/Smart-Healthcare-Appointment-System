@@ -139,7 +139,10 @@ const AiDoctorPage = () => {
         };
 
         setMessages((prev) => {
-          const list = [...prev, assistantMessage, diagnosisCard];
+          const list = [...prev, assistantMessage];
+          if (data.condition) {
+            list.push(diagnosisCard);
+          }
           if (data.doctors && data.doctors.length > 0) {
             list.push(doctorsCard);
           }
