@@ -244,13 +244,7 @@ def diagnose_symptoms():
     if is_urgent:
         urgency_tier = "high"
         
-    # 4. Fetch precautions from metadata CSV lookup
-    precautions = get_condition_precautions(condition_name)
-    
-    # 5. Generate clinical next steps and guidelines using MedGemma (falls back to pre-defined templates)
-    guidance = client.generate_guidance(condition_name, description, precautions, patient_info)
-    
-    # 6. Retrieve and rank matching doctors for this recommended specialty
+    # 3.5 Retrieve and rank matching doctors for this recommended specialty
     doctors = Doctor.query.filter_by(specialty=recommended_specialty).all()
     doctors_list = [
         {
@@ -259,13 +253,21 @@ def diagnose_symptoms():
             'specialty': d.specialty,
             'location': d.location,
             'rating': d.rating,
-            'availability': d.availability
+            'availability': d.availability,
+            'years_experience': d.years_experience
         }
         for d in doctors
     ]
     
     # Sort matching doctors by rating (highest first)
     doctors_list = sorted(doctors_list, key=lambda x: x['rating'], reverse=True)
+    top_doctors = doctors_list[:3]
+        
+    # 4. Fetch precautions from metadata CSV lookup
+    precautions = get_condition_precautions(condition_name)
+    
+    # 5. Generate clinical next steps and guidelines using MedGemma (falls back to pre-defined templates)
+    guidance = client.generate_guidance(condition_name, description, precautions, patient_info, top_doctors)
     
     # Save the symptom check history
     check = SymptomCheck(
@@ -289,6 +291,54 @@ def diagnose_symptoms():
         'urgency': urgency_tier,
         'guidance': guidance,
         'doctors': doctors_list
+    }), 200
+
+@app.route('/api/doctors/<int:id>/profile', methods=['GET'])
+@jwt_required()
+def get_doctor_profile(id):
+    d = Doctor.query.get(id)
+    if not d:
+        return jsonify({'error': 'Doctor not found'}), 404
+        
+    reviews = []
+    if d.reviews_json:
+        try:
+            reviews = json.loads(d.reviews_json)
+        except Exception:
+            pass
+            
+    licenses = []
+    if d.licenses:
+        try:
+            licenses = json.loads(d.licenses)
+        except Exception:
+            pass
+
+    return jsonify({
+        'id': d.id,
+        'name': d.user.name,
+        'specialty': d.specialty,
+        'location': d.location,
+        'latitude': d.latitude,
+        'longitude': d.longitude,
+        'rating': d.rating,
+        'availability': d.availability,
+        'schedule': d.schedule,
+        'phone': d.phone,
+        'address': d.address,
+        'description': d.description,
+        'npi': d.npi,
+        'specialist_type': d.specialist_type,
+        'languages': d.languages,
+        'verified': d.verified,
+        'revenue': d.revenue,
+        'avatar_url': d.avatar_url,
+        'duty_status': d.duty_status,
+        'hospital': d.hospital,
+        'years_experience': d.years_experience,
+        'reviews_count': d.reviews_count or len(reviews),
+        'reviews': reviews,
+        'licenses': licenses
     }), 200
 
 # ---------- DOCTOR MATCHING ----------
