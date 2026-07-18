@@ -4,14 +4,18 @@ import csv
 from datetime import datetime
 from collections import defaultdict
 from app import app, db
-from models import User, Doctor, Condition, Appointment, Prescription, MedicalRecord
+from models import User, Doctor, Condition, Appointment, Prescription, MedicalRecord, Product
 
 SPELLING_MAPS = {
     "peptic ulcer diseae": "Peptic Ulcer Disease",
     "peptic ulcer disease": "Peptic Ulcer Disease",
     "dimorphic hemmorhoids(piles)": "Dimorphic Hemorrhoids (Piles)",
+    "dimorphic hemmorhoids (piles)": "Dimorphic Hemorrhoids (Piles)",
+    "dimorphic hemorrhoids (piles)": "Dimorphic Hemorrhoids (Piles)",
     "osteoarthristis": "Osteoarthritis",
     "(vertigo) paroymsal  positional vertigo": "(Vertigo) Paroxysmal Positional Vertigo",
+    "(vertigo) paroymsal positional vertigo": "(Vertigo) Paroxysmal Positional Vertigo",
+    "(vertigo) paroxysmal positional vertigo": "(Vertigo) Paroxysmal Positional Vertigo",
     "hepatitis a": "Hepatitis A",
     "gerd": "GERD",
     "aids": "AIDS",
@@ -19,23 +23,21 @@ SPELLING_MAPS = {
 }
 
 def clean_name(name):
-    n_lower = name.strip().lower()
+    n_lower = " ".join(name.strip().lower().split())
     if n_lower in SPELLING_MAPS:
         return SPELLING_MAPS[n_lower]
     return " ".join(w.capitalize() for w in n_lower.split())
 
 
 def seed_database():
-    db_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'smart_healthcare.db')
-    if os.path.exists(db_path):
-        print(f"Removing old database at {db_path}...")
-        try:
-            db.session.remove()
-            db.engine.dispose()
-            os.remove(db_path)
-            print("Database removed successfully.")
-        except Exception as e:
-            print("Failed to remove database file:", e)
+    print("Dropping all existing database tables...")
+    try:
+        db.session.remove()
+        db.engine.dispose()
+        db.drop_all()
+        print("All tables dropped successfully.")
+    except Exception as e:
+        print("Failed to drop tables:", e)
 
     print("Re-creating all database tables...")
     db.create_all()
@@ -301,6 +303,58 @@ def seed_database():
         db.session.commit()
         doctors_map[item["name"]] = d.id
 
+    # Seed Doctors from doctors.csv (complementary to the demo doctors)
+    doctors_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), '..', 'data', 'doctors.csv')
+    if os.path.exists(doctors_path):
+        print("Seeding Doctors from doctors.csv...")
+        with open(doctors_path, mode='r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for i, row in enumerate(reader):
+                if i >= 50:  # Seed first 50 doctors for efficiency
+                    break
+                name = row.get("name")
+                email = name.lower().replace(" ", ".") + "@novacare.com"
+                if User.query.filter_by(email=email).first():
+                    continue
+                u = User(name=name, email=email, password="doctorpassword", role="doctor")
+                db.session.add(u)
+                db.session.commit()
+                
+                licenses_mock = [
+                    { "number": f"#{row.get('npi_number', '10029302')}", "expiration": "2024 - 2028", "state": "Washington", "status": "Active" }
+                ]
+                patient_overview_mock = {
+                    "old": [20, 25, 30, 22, 28, 35, 33],
+                    "new": [15, 12, 19, 18, 25, 20, 24]
+                }
+                
+                d = Doctor(
+                    user_id=u.id,
+                    specialty=row.get("specialty", "General Medicine"),
+                    location=row.get("location", "Seattle, USA"),
+                    latitude=47.6062,
+                    longitude=-122.3321,
+                    rating=float(row.get("rating", 4.0)) if row.get("rating") else 4.0,
+                    availability=row.get("availability_hours", "09:00 AM - 05:00 PM"),
+                    schedule=row.get("weekly_schedule", "Mon-Fri"),
+                    phone=row.get("phone", "+(555) 000-0000"),
+                    address=row.get("location", "Seattle, USA"),
+                    description=row.get("biography", "Specialist medical practitioner."),
+                    npi=row.get("npi_number", "1000000000"),
+                    specialist_type=row.get("specialty", "General Medicine"),
+                    languages=row.get("languages_spoken", "English"),
+                    verified=True,
+                    revenue="$15,000",
+                    avatar_url=row.get("avatar_url", ""),
+                    type="old",
+                    licenses=json.dumps(licenses_mock),
+                    patient_overview=json.dumps(patient_overview_mock),
+                    hospital=row.get("hospital_affiliation", "NovaCare General Hospital")
+                )
+                db.session.add(d)
+                db.session.commit()
+                doctors_map[name] = d.id
+
     # 3. Patient Users
     patients_data = [
         {"name": "Leslie Alexander", "email": "leslie@novacare.com", "password": "patientpassword"},
@@ -323,6 +377,69 @@ def seed_database():
         db.session.add(u)
         db.session.commit()
         patients_map[p["name"]] = u.id
+
+    # Seed Patients from patients.csv (first 200 patients)
+    patients_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), '..', 'data', 'patients.csv')
+    if os.path.exists(patients_path):
+        print("Seeding Patients from patients.csv...")
+        with open(patients_path, mode='r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for i, row in enumerate(reader):
+                if i >= 200:  # Seed first 200 patients for efficiency
+                    break
+                name = row.get("name")
+                email = row.get("email")
+                if User.query.filter_by(email=email).first():
+                    continue
+                u = User(
+                    name=name,
+                    email=email,
+                    password="patientpassword",
+                    role="patient",
+                    phone=row.get("phone", ""),
+                    address=row.get("address", ""),
+                    dob=row.get("date_of_birth", ""),
+                    allergies=row.get("allergies", "None"),
+                    chronic=row.get("chronic_conditions", "None"),
+                    blood_type=row.get("blood_type", "")
+                )
+                db.session.add(u)
+                db.session.commit()
+                patients_map[name] = u.id
+
+    # Seed Products from pharmacy_catalog.csv (first 150 items)
+    products_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), '..', 'data', 'pharmacy_catalog.csv')
+    if os.path.exists(products_path):
+        print("Seeding Products from pharmacy_catalog.csv...")
+        with open(products_path, mode='r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for i, row in enumerate(reader):
+                if i >= 150:  # Seed first 150 products for efficiency
+                    break
+                name = row.get("product_name")
+                price = float(row.get("price", 10.0)) if row.get("price") else 10.0
+                stock = int(row.get("stock_quantity", 50)) if row.get("stock_quantity") else 50
+                category = row.get("category", "General")
+                desc = row.get("description", "")
+                
+                status = "In Stock"
+                if stock == 0:
+                    status = "Out of Stock"
+                elif stock <= 20:
+                    status = "Low Stock"
+                if row.get("prescription_required") == "True" or row.get("prescription_required") == "true":
+                    status = "Prescription Only"
+                    
+                p = Product(
+                    name=name,
+                    price=price,
+                    stock=stock,
+                    category=category,
+                    description=desc,
+                    status=status
+                )
+                db.session.add(p)
+            db.session.commit()
 
     # --- SEED APPOINTMENTS & PRESCRIPTIONS (Treated Patients History) ---
     print("Seeding Appointments & Prescriptions...")
