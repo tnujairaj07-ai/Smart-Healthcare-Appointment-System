@@ -13,6 +13,8 @@ import BookAppointment from './pages/BookAppointment';
 import CalendarPage from './pages/CalendarPage';
 import PharmacyPage from './pages/PharmacyPage';
 import PrescriptionPage from './pages/PrescriptionPage';
+import SettingsPage from './pages/SettingsPage';
+import SupportPage from './pages/SupportPage';
 
 function App() {
   return (
@@ -57,6 +59,16 @@ function App() {
           <Route path="/prescription" element={
             <ProtectedRoute allowedRoles={['patient']}>
               <PrescriptionPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/settings" element={
+            <ProtectedRoute allowedRoles={['patient']}>
+              <SettingsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/support" element={
+            <ProtectedRoute allowedRoles={['patient']}>
+              <SupportPage />
             </ProtectedRoute>
           } />
 
