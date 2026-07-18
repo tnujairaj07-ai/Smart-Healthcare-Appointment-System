@@ -143,7 +143,7 @@ class OllamaClient:
             }
             
             try:
-                response = requests.post(self.url, json=payload, timeout=10)
+                response = requests.post(self.url, json=payload, timeout=45)
                 if response.status_code == 200:
                     res_json = response.json()
                     res_text = res_json.get("response", "").strip()
@@ -218,7 +218,7 @@ class OllamaClient:
             }
             
             try:
-                response = requests.post(self.url, json=payload, timeout=15)
+                response = requests.post(self.url, json=payload, timeout=45)
                 if response.status_code == 200:
                     return response.json().get("response", "").strip()
             except Exception as e:
@@ -271,7 +271,7 @@ class OllamaClient:
                 }
             }
             try:
-                response = requests.post(self.url, json=payload, timeout=12)
+                response = requests.post(self.url, json=payload, timeout=45)
                 if response.status_code == 200:
                     return response.json().get("response", "").strip()
             except Exception as e:
