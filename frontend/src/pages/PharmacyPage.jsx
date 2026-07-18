@@ -5,7 +5,7 @@ import Toast from '../components/Toast';
 
 const MEDICINES = [
   { id: 1, name: 'Cetirizine 10mg', category: 'Allergy', price: 12.50, stock: 'In Stock', stockCount: 45, image: '💊', desc: 'Antihistamine for seasonal allergy symptoms relief' },
-  { id: 2, name: 'Salbutamol Inhaler', category: 'Respiratory', pricje: 24.00, stock: 'In Stock', stockCount: 18, image: '🌬️', desc: 'Relief of bronchospasm in asthma or COPD patients' },
+  { id: 2, name: 'Salbutamol Inhaler', category: 'Respiratory', price: 24.00, stock: 'In Stock', stockCount: 18, image: '🌬️', desc: 'Relief of bronchospasm in asthma or COPD patients' },
   { id: 3, name: 'Ibuprofen 400mg', category: 'Pain Relief', price: 8.99, stock: 'Low Stock', stockCount: 5, image: '💊', desc: 'Nonsteroidal anti-inflammatory drug (NSAID)' },
   { id: 4, name: 'Amoxicillin 500mg', category: 'Antibiotics', price: 18.50, stock: 'Prescription Only', stockCount: 30, image: '🧪', desc: 'Penicillin-type antibiotic that fights bacterial infections' },
   { id: 5, name: 'Vitamin D3 1000IU', category: 'Vitamins', price: 14.25, stock: 'In Stock', stockCount: 88, image: '☀️', desc: 'Supports immune health, calcium absorption & bone density' },
