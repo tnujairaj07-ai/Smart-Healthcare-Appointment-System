@@ -41,6 +41,22 @@ with app.app_context():
     except Exception:
         db.session.rollback()
 
+    # User demographics table migrations
+    for col, col_type in [
+        ("phone", "VARCHAR(30)"),
+        ("address", "VARCHAR(200)"),
+        ("dob", "VARCHAR(30)"),
+        ("allergies", "VARCHAR(200)"),
+        ("chronic", "VARCHAR(200)"),
+        ("blood_type", "VARCHAR(10)"),
+        ("past_illnesses", "VARCHAR(200)")
+    ]:
+        try:
+            db.session.execute(db.text(f"ALTER TABLE user ADD COLUMN {col} {col_type};"))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
     # Seed Products
     if Product.query.count() == 0:
         products = [
@@ -289,6 +305,98 @@ def symptom_analytics():
             symptom_count[symptom] = symptom_count.get(symptom, 0) + 1
 
     return jsonify({'top_symptoms': symptom_count}), 200
+
+# ---------- PATIENT PORTAL & SUPPORT ----------
+
+@app.route('/api/patient/profile', methods=['GET'])
+@jwt_required()
+def get_patient_profile():
+    user_id = current_user_id()
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    return jsonify({
+        'id': user.id,
+        'name': user.name,
+        'email': user.email,
+        'phone': user.phone or '',
+        'address': user.address or '',
+        'dob': user.dob or '',
+        'allergies': user.allergies or '',
+        'chronic': user.chronic or '',
+        'blood_type': user.blood_type or '',
+        'past_illnesses': user.past_illnesses or '',
+        'created_at': user.created_at.strftime("%Y-%m-%d") if user.created_at else ''
+    }), 200
+
+@app.route('/api/patient/profile', methods=['PUT'])
+@jwt_required()
+def update_patient_profile():
+    user_id = current_user_id()
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    data = request.json
+    if 'name' in data:
+        user.name = data['name']
+    if 'phone' in data:
+        user.phone = data['phone']
+    if 'address' in data:
+        user.address = data['address']
+    if 'dob' in data:
+        user.dob = data['dob']
+    if 'allergies' in data:
+        user.allergies = data['allergies']
+    if 'chronic' in data:
+        user.chronic = data['chronic']
+    if 'blood_type' in data:
+        user.blood_type = data['blood_type']
+    if 'past_illnesses' in data:
+        user.past_illnesses = data['past_illnesses']
+    db.session.commit()
+    return jsonify({'message': 'Profile updated successfully'}), 200
+
+@app.route('/api/support/tickets', methods=['POST'])
+@jwt_required()
+def create_support_ticket():
+    user_id = current_user_id()
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    data = request.json
+    ticket = SupportTicket(
+        creator_name=user.name,
+        role=user.role,
+        subject=data.get('subject', 'General Inquiry'),
+        description=data.get('description', ''),
+        priority=data.get('priority', 'Medium'),
+        status='Open'
+    )
+    db.session.add(ticket)
+    db.session.commit()
+    return jsonify({'message': 'Support ticket submitted successfully', 'ticket_id': ticket.id}), 201
+
+@app.route('/api/support/tickets', methods=['GET'])
+@jwt_required()
+def get_support_tickets():
+    user_id = current_user_id()
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    tickets = SupportTicket.query.filter_by(creator_name=user.name).order_by(SupportTicket.created_at.desc()).all()
+    result = []
+    for t in tickets:
+        result.append({
+            'id': t.id,
+            'creatorName': t.creator_name,
+            'role': t.role,
+            'subject': t.subject,
+            'description': t.description,
+            'priority': t.priority,
+            'status': t.status,
+            'createdAt': t.created_at.strftime("%Y-%m-%d %H:%M") if t.created_at else ''
+        })
+    return jsonify(result), 200
 
 # ---------- ADMIN CUSTOM ENDPOINTS ----------
 
@@ -686,10 +794,16 @@ def admin_get_patient_details(id):
         'dbId': patient.id,
         'name': patient.name,
         'email': patient.email,
-        'phone': '+(555) 019-2834', # Mock meta
-        'age': 34, # Mock meta
-        'gender': 'Female' if id % 2 == 0 else 'Male', # Mock meta
-        'joined': patient.created_at.strftime("%b %d, %Y")
+        'phone': patient.phone or '+(555) 019-2834',
+        'address': patient.address or 'None declared',
+        'dob': patient.dob or '23.07.1994',
+        'allergies': patient.allergies or 'None',
+        'chronic': patient.chronic or 'None',
+        'blood_type': patient.blood_type or 'O+',
+        'past_illnesses': patient.past_illnesses or 'None',
+        'age': 32,
+        'gender': 'Female' if patient.id % 2 == 0 else 'Male',
+        'joined': patient.created_at.strftime("%b %d, %Y") if patient.created_at else 'Jul 15, 2026'
     }
     
     return jsonify({
@@ -714,10 +828,10 @@ def admin_get_all_appointments():
         result.append({
             'id': appt.id,
             'patientId': appt.patient_id,
-            'patientName': appt.patient.name,
-            'patientEmail': appt.patient.email,
+            'patientName': appt.patient.name if appt.patient else 'Unknown Patient',
+            'patientEmail': appt.patient.email if appt.patient else '',
             'doctorId': appt.doctor_id,
-            'doctorName': appt.doctor.user.name if appt.doctor else 'Unknown Doctor',
+            'doctorName': appt.doctor.user.name if appt.doctor and appt.doctor.user else 'Unknown Doctor',
             'specialty': appt.doctor.specialty if appt.doctor else 'General Practitioner',
             'date': appt.date,
             'timeSlot': appt.time_slot,
