@@ -224,9 +224,19 @@ def diagnose_symptoms():
     extracted_symptoms = client.extract_symptoms(query)
     
     if not extracted_symptoms:
+        # Generate generic conversational answer instead of throwing 400 Bad Request
+        guidance = client.generate_general_chat(query, patient_info)
         return jsonify({
-            'error': 'No recognizable symptoms identified. Please describe your symptoms in more detail.'
-        }), 400
+            'symptoms': [],
+            'condition': None,
+            'confidence': None,
+            'urgency': 'low',
+            'description': 'General health consultation.',
+            'precautions': [],
+            'recommended_specialty': None,
+            'guidance': guidance,
+            'doctors': []
+        }), 200
         
     # 2. Predict condition using our Naive Bayes ML model
     condition_name, confidence = predict_condition(extracted_symptoms)
