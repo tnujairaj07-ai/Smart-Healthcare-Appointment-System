@@ -222,3 +222,33 @@ class OllamaClient:
             f"We recommend scheduling an appointment with a specialist as soon as possible."
         )
         return fallback_guidance
+
+def load_symptom_severities():
+    """Loads symptom severity weights from Symptom-severity.csv."""
+    severities = {}
+    path = os.path.join(BASE_DIR, "..", "data", "Symptom-severity.csv")
+    if os.path.exists(path):
+        try:
+            with open(path, mode='r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    symptom = row.get("Symptom") or ""
+                    weight = row.get("weight") or "1"
+                    if symptom:
+                        # Clean multiple spaces/underscores for consistency
+                        key = " ".join(symptom.strip().lower().replace("_", " ").split())
+                        severities[key] = int(weight)
+        except Exception as e:
+            print(f"Error loading symptom severities: {e}")
+    return severities
+
+def calculate_symptom_severity_score(symptoms_list):
+    """Calculates the sum of severity weights for a list of symptoms."""
+    severities = load_symptom_severities()
+    total_score = 0
+    for s in symptoms_list:
+        # Standardize matching key to match both underscores and spaces
+        key = " ".join(s.strip().lower().replace("_", " ").split())
+        # Default to 1 if not found in Symptom-severity.csv
+        total_score += severities.get(key, 1)
+    return total_score
