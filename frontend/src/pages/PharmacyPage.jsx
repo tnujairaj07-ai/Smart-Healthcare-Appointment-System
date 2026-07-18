@@ -1,22 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
 import Toast from '../components/Toast';
 
-const MEDICINES = [
-  { id: 1, name: 'Cetirizine 10mg', category: 'Allergy', price: 12.50, stock: 'In Stock', stockCount: 45, image: '💊', desc: 'Antihistamine for seasonal allergy symptoms relief' },
-  { id: 2, name: 'Salbutamol Inhaler', category: 'Respiratory', price: 24.00, stock: 'In Stock', stockCount: 18, image: '🌬️', desc: 'Relief of bronchospasm in asthma or COPD patients' },
-  { id: 3, name: 'Ibuprofen 400mg', category: 'Pain Relief', price: 8.99, stock: 'Low Stock', stockCount: 5, image: '💊', desc: 'Nonsteroidal anti-inflammatory drug (NSAID)' },
-  { id: 4, name: 'Amoxicillin 500mg', category: 'Antibiotics', price: 18.50, stock: 'Prescription Only', stockCount: 30, image: '🧪', desc: 'Penicillin-type antibiotic that fights bacterial infections' },
-  { id: 5, name: 'Vitamin D3 1000IU', category: 'Vitamins', price: 14.25, stock: 'In Stock', stockCount: 88, image: '☀️', desc: 'Supports immune health, calcium absorption & bone density' },
-  { id: 6, name: 'Paracetamol 500mg', category: 'Pain Relief', price: 4.50, stock: 'In Stock', stockCount: 120, image: '💊', desc: 'Analgesic and antipyretic for pain and fever reducer' }
-];
-
 const CATEGORIES = ['All', 'Allergy', 'Respiratory', 'Pain Relief', 'Antibiotics', 'Vitamins'];
+
+const getMedicineEmoji = (med) => {
+  const name = med.name.toLowerCase();
+  const category = med.category.toLowerCase();
+  
+  if (name.includes('syrup') || name.includes('liquid')) return '🧪';
+  if (name.includes('inhaler') || category.includes('respiratory')) return '🌬️';
+  if (name.includes('injection') || name.includes('vaccine')) return '💉';
+  if (category.includes('vitamin') || name.includes('vitamin') || name.includes('calcium')) return '☀️';
+  return '💊';
+};
 
 const PharmacyPage = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [medicines, setMedicines] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [cart, setCart] = useState([]);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const [showCheckout, setShowCheckout] = useState(false);
@@ -25,15 +29,37 @@ const PharmacyPage = () => {
     setToast({ show: true, message, type });
   };
 
-  const filteredMedicines = MEDICINES.filter((med) => {
-    const matchesCategory = selectedCategory === 'All' || med.category === selectedCategory;
-    const matchesSearch = med.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      med.desc.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  const fetchMedicines = (category, search) => {
+    setLoading(true);
+    let url = `/api/pharmacy/products?category=${encodeURIComponent(category)}`;
+    if (search) {
+      url += `&search=${encodeURIComponent(search)}`;
+    }
+    fetch(url)
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to load products');
+        return res.json();
+      })
+      .then((data) => {
+        setMedicines(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        triggerToast(err.message, 'error');
+        setLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      fetchMedicines(selectedCategory, searchQuery);
+    }, 250);
+    
+    return () => clearTimeout(delayDebounceFn);
+  }, [selectedCategory, searchQuery]);
 
   const addToCart = (med) => {
-    if (med.stock === 'Prescription Only') {
+    if (med.status === 'Prescription Only') {
       triggerToast(`Prescription verification required for ${med.name}. Added conditionally.`, 'info');
     }
 
@@ -62,7 +88,7 @@ const PharmacyPage = () => {
   };
 
   const cartSubtotal = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
-  const prescriptionNeeded = cart.some((item) => item.stock === 'Prescription Only');
+  const prescriptionNeeded = cart.some((item) => item.status === 'Prescription Only');
 
   const handleCheckout = () => {
     if (cart.length === 0) {
@@ -116,39 +142,46 @@ const PharmacyPage = () => {
 
               {/* Medicine Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {filteredMedicines.map((med) => (
-                  <div key={med.id} className="dashboard-card p-5 flex flex-col justify-between text-left relative overflow-hidden group hover:shadow-lg transition duration-300">
-                    <div>
-                      <div className="flex justify-between items-start mb-4">
-                        <span className="text-3xl bg-slate-50 p-2.5 rounded-2xl border border-slate-100 flex items-center justify-center">{med.image}</span>
-                        <span className={`text-[9px] font-extrabold px-2.5 py-0.5 rounded-full border ${med.stock === 'In Stock' ? 'bg-emerald-50 text-emerald-700 border-emerald-250' :
-                            med.stock === 'Low Stock' ? 'bg-rose-50 text-rose-700 border-rose-200' :
-                              'bg-indigo-50 text-indigo-700 border-indigo-200'
-                          }`}>
-                          {med.stock} ({med.stockCount})
-                        </span>
-                      </div>
-                      <h4 className="text-sm font-extrabold text-slate-900 group-hover:text-brand-sidebar transition leading-snug">{med.name}</h4>
-                      <p className="text-xs text-slate-500 font-semibold tracking-wide uppercase mt-0.5">{med.category}</p>
-                      <p className="text-[11px] text-slate-450 mt-2 leading-relaxed font-medium">{med.desc}</p>
-                    </div>
-
-                    <div className="flex justify-between items-center mt-5 pt-3 border-t border-slate-50">
-                      <div>
-                        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Price</span>
-                        <span className="text-xs font-extrabold text-slate-800">${med.price.toFixed(2)}</span>
-                      </div>
-                      <button
-                        onClick={() => addToCart(med)}
-                        className="px-4 py-2 bg-indigo-50 hover:bg-brand-sidebar text-brand-sidebar hover:text-white border border-indigo-100/50 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
-                      >
-                        Add to Cart 🛒
-                      </button>
-                    </div>
+                {loading ? (
+                  <div className="col-span-full py-12 text-center space-y-2">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-650 mx-auto"></div>
+                    <p className="text-xs text-slate-500 font-semibold">Loading medication catalog...</p>
                   </div>
-                ))}
+                ) : (
+                  medicines.map((med) => (
+                    <div key={med.id} className="dashboard-card p-5 flex flex-col justify-between text-left relative overflow-hidden group hover:shadow-lg transition duration-300">
+                      <div>
+                        <div className="flex justify-between items-start mb-4">
+                          <span className="text-3xl bg-slate-50 p-2.5 rounded-2xl border border-slate-100 flex items-center justify-center">{getMedicineEmoji(med)}</span>
+                          <span className={`text-[9px] font-extrabold px-2.5 py-0.5 rounded-full border ${med.status === 'In Stock' ? 'bg-emerald-50 text-emerald-700 border-emerald-250' :
+                              med.status === 'Low Stock' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                                'bg-indigo-50 text-indigo-700 border-indigo-200'
+                            }`}>
+                            {med.status} ({med.stock})
+                          </span>
+                        </div>
+                        <h4 className="text-sm font-extrabold text-slate-900 group-hover:text-brand-sidebar transition leading-snug">{med.name}</h4>
+                        <p className="text-xs text-slate-500 font-semibold tracking-wide uppercase mt-0.5">{med.category}</p>
+                        <p className="text-[11px] text-slate-450 mt-2 leading-relaxed font-medium">{med.description}</p>
+                      </div>
 
-                {filteredMedicines.length === 0 && (
+                      <div className="flex justify-between items-center mt-5 pt-3 border-t border-slate-50">
+                        <div>
+                          <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Price</span>
+                          <span className="text-xs font-extrabold text-slate-800">${med.price.toFixed(2)}</span>
+                        </div>
+                        <button
+                          onClick={() => addToCart(med)}
+                          className="px-4 py-2 bg-indigo-50 hover:bg-brand-sidebar text-brand-sidebar hover:text-white border border-indigo-100/50 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
+                        >
+                          Add to Cart 🛒
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+
+                {!loading && medicines.length === 0 && (
                   <div className="col-span-full py-12 text-center space-y-2">
                     <span className="text-2xl block">🔍</span>
                     <p className="text-xs text-slate-500 font-semibold">No pharmacy items found matching current filters.</p>
