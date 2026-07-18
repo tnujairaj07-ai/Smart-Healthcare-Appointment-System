@@ -11,8 +11,12 @@ SPELLING_MAPS = {
     "peptic ulcer diseae": "Peptic Ulcer Disease",
     "peptic ulcer disease": "Peptic Ulcer Disease",
     "dimorphic hemmorhoids(piles)": "Dimorphic Hemorrhoids (Piles)",
+    "dimorphic hemmorhoids (piles)": "Dimorphic Hemorrhoids (Piles)",
+    "dimorphic hemorrhoids (piles)": "Dimorphic Hemorrhoids (Piles)",
     "osteoarthristis": "Osteoarthritis",
     "(vertigo) paroymsal  positional vertigo": "(Vertigo) Paroxysmal Positional Vertigo",
+    "(vertigo) paroymsal positional vertigo": "(Vertigo) Paroxysmal Positional Vertigo",
+    "(vertigo) paroxysmal positional vertigo": "(Vertigo) Paroxysmal Positional Vertigo",
     "hepatitis a": "Hepatitis A",
     "gerd": "GERD",
     "aids": "AIDS",
@@ -20,37 +24,46 @@ SPELLING_MAPS = {
 }
 
 def clean_name(name):
-    n_lower = name.strip().lower()
+    n_lower = " ".join(name.strip().lower().split())
     if n_lower in SPELLING_MAPS:
         return SPELLING_MAPS[n_lower]
     return " ".join(w.capitalize() for w in n_lower.split())
 
 def train_bernoulli_nb():
-    path = os.path.join(DATA_DIR, "symptoms_conditions1.csv")
-    if not os.path.exists(path):
-        print(f"Dataset not found at {path}!")
-        return
+    paths = [
+        os.path.join(DATA_DIR, "symptoms_conditions1.csv"),
+        os.path.join(DATA_DIR, "symptoms_conditions.csv")
+    ]
     
     # 1. Load data
     instances = []
     vocab = set()
     class_counts = defaultdict(int)
     
-    with open(path, mode='r', encoding='utf-8') as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            raw_name = row.get("condition_name")
-            if not raw_name:
-                continue
-            name = clean_name(raw_name)
-            syms_str = row.get("symptoms", "")
-            syms = set(s.strip() for s in syms_str.split(",") if s.strip())
-            
-            vocab.update(syms)
-            class_counts[name] += 1
-            instances.append((name, syms))
+    for path in paths:
+        if not os.path.exists(path):
+            print(f"Warning: Dataset not found at {path}, skipping.")
+            continue
+        
+        with open(path, mode='r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                raw_name = row.get("condition_name")
+                if not raw_name:
+                    continue
+                name = clean_name(raw_name)
+                syms_str = row.get("symptoms", "")
+                syms = set(s.strip() for s in syms_str.split(",") if s.strip())
+                
+                vocab.update(syms)
+                class_counts[name] += 1
+                instances.append((name, syms))
             
     total_docs = len(instances)
+    if total_docs == 0:
+        print("No training data found!")
+        return
+        
     vocab = sorted(list(vocab))
     
     # 2. Calculate counts for Bernoulli NB
