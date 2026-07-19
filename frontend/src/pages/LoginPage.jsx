@@ -8,10 +8,26 @@ const LoginPage = () => {
   const navigate = useNavigate();
 
   // Form states
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('leslie@novacare.com');
+  const [password, setPassword] = useState('patientpassword');
   const [role, setRole] = useState('patient'); // Default test role
   const [staySignedIn, setStaySignedIn] = useState(true);
+
+  // Testing Credentials Auto-filler mapping
+  const TEST_CREDENTIALS = {
+    patient: { email: 'leslie@novacare.com', password: 'patientpassword' },
+    doctor: { email: 'brooklyn.s@novacare.com', password: 'doctorpassword' },
+    admin: { email: 'nola.hawkins@novacare.com', password: 'adminpassword' }
+  };
+
+  const handleRoleChange = (selectedRole) => {
+    setRole(selectedRole);
+    const creds = TEST_CREDENTIALS[selectedRole];
+    if (creds) {
+      setEmail(creds.email);
+      setPassword(creds.password);
+    }
+  };
 
   // Loading & notification states
   const [loading, setLoading] = useState(false);
@@ -161,7 +177,7 @@ const LoginPage = () => {
             </div>
 
             {/* Login Form */}
-            <form onSubmit={handleLoginSubmit} className="space-y-4">
+            <form onSubmit={handleLoginSubmit} className="space-y-4" autoComplete="off">
               
               {/* Email */}
               <div className="relative">
@@ -207,7 +223,7 @@ const LoginPage = () => {
                         name="test-role" 
                         value={r}
                         checked={role === r}
-                        onChange={() => setRole(r)}
+                        onChange={() => handleRoleChange(r)}
                         className="mr-1.5 accent-brand-sidebar"
                       />
                       <span className="capitalize">{r}</span>
