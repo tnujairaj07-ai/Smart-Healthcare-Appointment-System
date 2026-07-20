@@ -4,8 +4,8 @@ import os
 from datetime import datetime
 
 def generate_prescription_qr(prescription_id, patient_name, doctor_name, diagnosis, medications, notes_json=None):
-    os.makedirs('qr_codes', exist_ok=True)
-    os.makedirs('prescriptions', exist_ok=True)
+    os.makedirs('static/qr', exist_ok=True)
+    os.makedirs('uploads/prescriptions', exist_ok=True)
 
     # Resolve default notes_json for backward compatibility in mock tests
     if not notes_json:
@@ -36,7 +36,7 @@ def generate_prescription_qr(prescription_id, patient_name, doctor_name, diagnos
     qr.make(fit=True)
     qr_img = qr.make_image()
 
-    qr_path = f"qr_codes/qr_{prescription_id}.png"
+    qr_path = f"static/qr/qr_{prescription_id}.png"
     qr_img.save(qr_path)
 
     pdf = FPDF()
@@ -200,10 +200,9 @@ def generate_prescription_qr(prescription_id, patient_name, doctor_name, diagnos
     pdf.cell(120, 4, txt=f"Security Signature Stamp: {notes_json.get('digital_signature_hash', 'N/A')}", ln=1)
     pdf.set_x(x_pos)
     pdf.cell(120, 4, txt="Disclaimer: Valid when accompanied by official identity documentation.", ln=1)
-    
     pdf.image(qr_path, x=155, y=y_pos - 2, w=35, h=35)
 
-    pdf_path = f"prescriptions/prescription_{prescription_id}.pdf"
+    pdf_path = f"uploads/prescriptions/prescription_{prescription_id}.pdf"
     pdf.output(pdf_path)
 
     return qr_path, pdf_path
