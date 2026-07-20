@@ -20,6 +20,7 @@ class User(db.Model):
     chronic = db.Column(db.String(200))
     blood_type = db.Column(db.String(10))
     past_illnesses = db.Column(db.String(200))
+    intake_form = db.Column(db.Text)
 
     doctors = db.relationship('Doctor', backref='user', lazy=True)
     appointments = db.relationship('Appointment', backref='patient', lazy=True)
