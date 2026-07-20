@@ -276,7 +276,7 @@ const PatientDashboard = () => {
                 onClick={() => window.print()} 
                 className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-all text-xs font-bold rounded-xl shadow-sm flex items-center gap-2 uppercase tracking-wide"
               >
-                🖨️ Print Profile
+                <i className="fa-solid fa-print text-slate-400"></i> Print Profile
               </button>
               <button 
                 onClick={handleEditToggle} 
@@ -284,7 +284,7 @@ const PatientDashboard = () => {
                   isEditMode ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/10' : 'bg-brand-sidebar hover:bg-brand-sidebarHover shadow-indigo-600/15'
                 }`}
               >
-                {isEditMode ? '💾 Save' : '✏️ Edit'}
+                {isEditMode ? <><i className="fa-solid fa-floppy-disk"></i> Save</> : <><i className="fa-solid fa-pen"></i> Edit</>}
               </button>
             </div>
           </div>
@@ -357,9 +357,9 @@ const PatientDashboard = () => {
               <div>
                 <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                   <h3 className="font-bold text-slate-800 text-xs tracking-wide uppercase flex items-center gap-2">
-                    <span className="text-indigo-500 font-semibold text-lg">ℹ️</span> General information
+                    <i className="fa-solid fa-circle-info text-slate-400 text-sm"></i> General information
                   </h3>
-                  <span className="text-slate-400 text-xs font-medium">✏️ Editable</span>
+                  <span className="text-slate-400 text-xs font-medium"><i className="fa-solid fa-pen text-[10px]"></i> Editable</span>
                 </div>
 
                 <div className="space-y-4 mt-5">
@@ -427,9 +427,9 @@ const PatientDashboard = () => {
               <div>
                 <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                   <h3 className="font-bold text-slate-800 text-xs tracking-wide uppercase flex items-center gap-2">
-                    <span className="text-emerald-500 text-lg">🧬</span> Anamnesis
+                    <i className="fa-solid fa-dna text-slate-400 text-sm"></i> Anamnesis
                   </h3>
-                  <span className="text-slate-400 text-xs font-medium">✏️ Editable</span>
+                  <span className="text-slate-400 text-xs font-medium"><i className="fa-solid fa-pen text-[10px]"></i> Editable</span>
                 </div>
 
                 <div className="space-y-4 mt-5">
@@ -500,7 +500,7 @@ const PatientDashboard = () => {
               </div>
 
               <div className="bg-rose-50/40 p-3 rounded-xl border border-rose-100/50 mt-4 text-xs flex items-center gap-2">
-                <span className="text-lg">🚨</span>
+                <i className="fa-solid fa-circle-exclamation text-rose-500 text-base"></i>
                 <p className="text-rose-700 font-medium leading-normal">Rescue inhaler is designated in cabinet #3.</p>
               </div>
             </div>
@@ -586,7 +586,7 @@ const PatientDashboard = () => {
                             <p className="text-xs font-bold text-slate-800 mt-0.5">{visit.service}</p>
                             
                             <div className="flex items-center gap-1.5 mt-2">
-                              <span className="text-xs">🩺</span>
+                              <i className="fa-solid fa-user-doctor text-slate-400 text-xs"></i>
                               <span className="text-xs text-slate-500 font-medium">
                                 {visit.doctor} <span className="text-[10px] text-slate-400">({visit.doctorTitle})</span>
                               </span>
@@ -626,7 +626,7 @@ const PatientDashboard = () => {
                             className="flex items-center justify-between p-4 bg-white hover:bg-slate-50/50 rounded-2xl border border-slate-100 transition-all text-left shadow-sm hover:translate-y-[-2px]"
                           >
                             <div className="flex items-center gap-3.5">
-                              <span className="text-2xl">📄</span>
+                              <i className="fa-solid fa-file-pdf text-slate-400 text-xl"></i>
                               <div>
                                 <p className="text-xs font-bold text-slate-700 leading-none">{file.name}</p>
                                 <p className="text-[10px] text-slate-400 mt-1.5">{file.size} · {file.date} · <span className="bg-emerald-50 text-emerald-650 px-1.5 py-0.5 rounded font-extrabold text-[8px] uppercase">Verified</span></p>
@@ -635,9 +635,9 @@ const PatientDashboard = () => {
                             <div className="flex gap-2">
                               <button 
                                 onClick={() => triggerToast(`Downloading: ${file.name}`)} 
-                                className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 hover:text-indigo-600 transition"
+                                className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400 hover:text-indigo-600 transition"
                               >
-                                📥
+                                <i className="fa-solid fa-download"></i>
                               </button>
                               <button 
                                 onClick={() => {
@@ -646,9 +646,9 @@ const PatientDashboard = () => {
                                     triggerToast(`Deleted file: ${file.name}`);
                                   }
                                 }} 
-                                className="w-8 h-8 rounded-lg bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-500 hover:text-rose-700 transition"
+                                className="w-8 h-8 rounded-lg bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-450 hover:text-rose-600 transition"
                               >
-                                🗑️
+                                <i className="fa-solid fa-trash-can"></i>
                               </button>
                             </div>
                           </div>
@@ -681,7 +681,7 @@ const PatientDashboard = () => {
               <div className="dashboard-card p-6 flex flex-col">
                 <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                   <h3 className="font-bold text-slate-800 text-xs tracking-wide uppercase flex items-center gap-2">
-                    📂 Patient Files
+                    <i className="fa-solid fa-folder-open text-slate-400"></i> Patient Files
                   </h3>
                   <button 
                     onClick={simulateFileUpload} 
@@ -698,7 +698,7 @@ const PatientDashboard = () => {
                       className="flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100/80 rounded-xl border border-slate-100 transition-all text-left"
                     >
                       <div className="flex items-center gap-3.5">
-                        <span className="text-xl">📄</span>
+                        <i className="fa-solid fa-file-pdf text-slate-450 text-base"></i>
                         <div>
                           <p className="text-xs font-bold text-slate-700 leading-none">{file.name}</p>
                           <p className="text-[9px] text-slate-400 mt-1">{file.size} · {file.date}</p>
@@ -706,9 +706,9 @@ const PatientDashboard = () => {
                       </div>
                       <button 
                         onClick={() => triggerToast(`Downloading: ${file.name}`)} 
-                        className="text-slate-400 hover:text-indigo-600 transition-colors text-xs"
+                        className="text-slate-400 hover:text-indigo-650 transition-colors text-xs"
                       >
-                        📥
+                        <i className="fa-solid fa-download"></i>
                       </button>
                     </div>
                   ))}
@@ -719,7 +719,7 @@ const PatientDashboard = () => {
               <div className="dashboard-card p-6 flex flex-col">
                 <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                   <h3 className="font-bold text-slate-800 text-xs tracking-wide uppercase flex items-center gap-2">
-                    📝 Doctor Notes
+                    <i className="fa-solid fa-file-waveform text-slate-400"></i> Doctor Notes
                   </h3>
                   <button 
                     onClick={addNewNote} 
