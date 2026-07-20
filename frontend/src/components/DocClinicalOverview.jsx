@@ -405,7 +405,7 @@ const DocClinicalOverview = ({
                     />
                     <span className="text-slate-600 font-bold">Check-up</span>
                   </label>
-                  <label class="flex items-center gap-1.5 cursor-pointer select-none">
+                  <label className="flex items-center gap-1.5 cursor-pointer select-none">
                     <input 
                       type="checkbox" 
                       checked={filterUrgent} 
