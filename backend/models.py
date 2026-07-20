@@ -51,6 +51,10 @@ class Doctor(db.Model):
     years_experience = db.Column(db.Integer, default=5)
     reviews_count = db.Column(db.Integer, default=0)
     reviews_json = db.Column(db.Text)  # JSON-encoded array of reviews
+    blocked_dates = db.Column(db.Text)  # JSON array of blocked dates
+    slot_templates = db.Column(db.Text)  # JSON template of recurring weekly slots
+    education = db.Column(db.String(100), default="Harvard Medical School")
+    license = db.Column(db.String(50), default="MD-2023-4982")
 
 class Condition(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -67,6 +71,7 @@ class Appointment(db.Model):
     date = db.Column(db.String(20), nullable=False)      # "2026-06-25"
     time_slot = db.Column(db.String(20), nullable=False) # "10 AM"
     status = db.Column(db.String(20), default="pending")
+    rejection_reason = db.Column(db.Text)  # Doctor's reason for cancellation/specialty mismatch
     created_at = db.Column(db.DateTime, default=datetime.now)
 
     doctor = db.relationship('Doctor', backref='appointments', lazy=True)
@@ -138,3 +143,17 @@ class SupportTicket(db.Model):
     priority = db.Column(db.String(20), default="Medium") # "Low", "Medium", "High"
     status = db.Column(db.String(20), default="Open") # "Open", "In Progress", "Resolved"
     created_at = db.Column(db.DateTime, default=datetime.now)
+
+class Referral(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    patient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    referrer_id = db.Column(db.Integer, db.ForeignKey('doctor.id'), nullable=False)
+    referee_id = db.Column(db.Integer, db.ForeignKey('doctor.id'), nullable=False)
+    reason = db.Column(db.String(250), nullable=False)
+    notes = db.Column(db.Text)
+    status = db.Column(db.String(20), default="Pending") # "Pending", "Accepted", "Declined"
+    created_at = db.Column(db.DateTime, default=datetime.now)
+
+    patient = db.relationship('User', foreign_keys=[patient_id], backref='referrals', lazy=True)
+    referrer = db.relationship('Doctor', foreign_keys=[referrer_id], backref='outbound_referrals', lazy=True)
+    referee = db.relationship('Doctor', foreign_keys=[referee_id], backref='inbound_referrals', lazy=True)
