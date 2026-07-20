@@ -11,12 +11,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
-      '/qr_codes': {
+      '/static': {
         target: 'http://127.0.0.1:5000',
         changeOrigin: true,
         secure: false,
       },
-      '/prescriptions': {
+      '/uploads': {
         target: 'http://127.0.0.1:5000',
         changeOrigin: true,
         secure: false,
