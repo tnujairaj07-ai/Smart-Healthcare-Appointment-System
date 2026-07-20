@@ -23,12 +23,25 @@ const INITIAL_MESSAGES = [
   },
 ];
 
-const MOCK_AI_RESPONSES = [
-  "Based on the symptoms you've described, there are a few possible explanations I can explore with you. Could you clarify how long you've been experiencing these symptoms, and whether they worsen at any particular time of day?",
-  "Thank you for sharing those details. The combination of symptoms you've listed may be consistent with several conditions. A thorough physical examination by a physician would be important to rule out any serious underlying causes. In the meantime, rest adequately and stay hydrated.",
-  "I'm analyzing your symptom pattern now. Based on typical presentations, I would recommend monitoring your temperature, maintaining adequate fluid intake, and seeking immediate medical attention if symptoms worsen or new ones appear — particularly difficulty breathing, chest pressure, or altered consciousness.",
-  "That's a helpful clarification. Your described symptoms are commonly associated with viral upper respiratory tract infections during seasonal transitions. If fever persists beyond 3 days or you develop localized pain, imaging or laboratory workup may be warranted.",
-  "I understand your concern. While I cannot diagnose, I can tell you this presentation warrants a clinical consultation within 24-48 hours. Please document the timing, intensity, and any aggravating or relieving factors to share with your physician.",
+const INTAKE_CHECKLIST_SYMPTOMS = [
+  'Fever',
+  'Chest pain / tightness',
+  'Shortness of breath',
+  'Cough',
+  'Headache / migraine',
+  'Abdominal pain',
+  'Nausea / vomiting',
+  'Skin rash / itching',
+  'Joint pain / swelling',
+  'Dizziness / fainting'
+];
+
+const FAMILY_HISTORY_ITEMS = [
+  'Heart disease',
+  'Stroke',
+  'High blood pressure',
+  'Diabetes',
+  'Cancer'
 ];
 
 const AiDoctorPage = () => {
@@ -39,16 +52,117 @@ const AiDoctorPage = () => {
   const [severity, setSeverity] = useState(5);
   const [duration, setDuration] = useState('1–3 days');
   const [isTyping, setIsTyping] = useState(false);
-  const [analysisMode, setAnalysisMode] = useState(false);
   const chatEndRef = useRef(null);
   const [selectedDoctorProfile, setSelectedDoctorProfile] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [showDoctorModal, setShowDoctorModal] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
+  // Intake Form State
+  const [isIntakeOpen, setIsIntakeOpen] = useState(false);
+  const [intakeStep, setIntakeStep] = useState(1);
+  const [intakeForm, setIntakeForm] = useState({
+    patientInformation: {
+      fullName: '',
+      dateOfBirth: '',
+      gender: '',
+      contactNumber: '',
+      emailAddress: '',
+      homeAddress: '',
+      emergencyContactName: '',
+      emergencyContactPhone: '',
+      emergencyContactRelationship: ''
+    },
+    visitDetails: {
+      reason: '',
+      startDate: '',
+      issueType: 'New'
+    },
+    currentSymptoms: {
+      description: '',
+      checklist: [],
+      severity: 'Moderate',
+      pattern: 'Continuous',
+      otherSymptom: ''
+    },
+    currentHealthIssues: {
+      hasDiagnosed: 'No',
+      listConditions: '',
+      hospitalAdmitted: 'No',
+      hospitalReason: ''
+    },
+    pastMedicalHistory: {
+      pastIllnesses: '',
+      pastSurgeries: '',
+      pastInjuries: '',
+      previousHospitalizations: ''
+    },
+    medications: {
+      hasMedicines: 'No',
+      medicines: [],
+      supplements: ''
+    },
+    allergiesSensitivities: {
+      drugAllergies: '',
+      foodAllergies: '',
+      otherAllergies: '',
+      reactionType: ''
+    },
+    lifestyleRiskFactors: {
+      smokingStatus: 'Never',
+      alcoholUse: 'None',
+      physicalActivity: 'Rare',
+      sleepHours: '8',
+      sleepQuality: 'Good',
+      hasStress: 'No',
+      stressDetails: ''
+    },
+    familyHistory: {
+      historyChecklist: [],
+      otherConditions: '',
+      familyDetails: ''
+    },
+    additionalInformation: {
+      pregnancyStatus: 'Not applicable',
+      devicesImplants: '',
+      labTestsScans: '',
+      notes: ''
+    },
+    consentPreferences: {
+      consentStoreCareAnalytics: false,
+      consentAISharing: false,
+      preferredCommunication: 'Email'
+    }
+  });
+
   const triggerToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
   };
+
+  // Load Intake form from LocalStorage and Cloud Database
+  useEffect(() => {
+    const saved = localStorage.getItem('novacare_intake_form');
+    if (saved) {
+      try {
+        setIntakeForm(JSON.parse(saved));
+      } catch (e) {}
+    }
+
+    const token = localStorage.getItem('token');
+    if (token) {
+      fetch('/api/patient/intake-form', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data && data.intake_form && Object.keys(data.intake_form).length > 0) {
+            setIntakeForm(data.intake_form);
+            localStorage.setItem('novacare_intake_form', JSON.stringify(data.intake_form));
+          }
+        })
+        .catch(() => {});
+    }
+  }, []);
 
   const openDoctorProfile = (id) => {
     setLoadingProfile(true);
@@ -91,13 +205,20 @@ const AiDoctorPage = () => {
     setIsTyping(true);
 
     const token = localStorage.getItem('token');
+    const bodyPayload = { query: content.trim() };
+    
+    // Inject intake form context if consented to AI Sharing
+    if (intakeForm.consentPreferences.consentAISharing) {
+      bodyPayload.intake_form = intakeForm;
+    }
+
     fetch('/api/ai/diagnose', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({ query: content.trim() })
+      body: JSON.stringify(bodyPayload)
     })
       .then((res) => {
         if (!res.ok) {
@@ -165,7 +286,6 @@ const AiDoctorPage = () => {
   const handleSymptomAnalysis = () => {
     if (!symptoms.trim()) return;
     const prompt = `I am experiencing the following symptoms for ${duration}: ${symptoms}. Severity level: ${severity}/10. ${selectedDomain ? `Affected body system: ${selectedDomain}.` : ''} Please analyze this and provide clinical guidance.`;
-    setAnalysisMode(false);
     sendMessage(prompt);
   };
 
@@ -183,6 +303,75 @@ const AiDoctorPage = () => {
       .replace(/\n/g, '<br />');
   };
 
+  // Intake Form wizard helper functions
+  const handleIntakeChange = (section, field, val) => {
+    setIntakeForm(prev => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        [field]: val
+      }
+    }));
+  };
+
+  const handleIntakeChecklist = (section, field, item) => {
+    const list = [...intakeForm[section][field]];
+    const idx = list.indexOf(item);
+    if (idx === -1) {
+      list.push(item);
+    } else {
+      list.splice(idx, 1);
+    }
+    handleIntakeChange(section, field, list);
+  };
+
+  const addMedicineRow = () => {
+    const list = [...intakeForm.medications.medicines, { name: '', dose: '', frequency: '', since: '' }];
+    handleIntakeChange('medications', 'medicines', list);
+  };
+
+  const removeMedicineRow = (idx) => {
+    const list = [...intakeForm.medications.medicines];
+    list.splice(idx, 1);
+    handleIntakeChange('medications', 'medicines', list);
+  };
+
+  const handleMedicineChange = (idx, key, val) => {
+    const list = [...intakeForm.medications.medicines];
+    list[idx] = { ...list[idx], [key]: val };
+    handleIntakeChange('medications', 'medicines', list);
+  };
+
+  const handleSaveIntakeForm = () => {
+    localStorage.setItem('novacare_intake_form', JSON.stringify(intakeForm));
+
+    const token = localStorage.getItem('token');
+    if (token && intakeForm.consentPreferences.consentStoreCareAnalytics) {
+      fetch('/api/patient/intake-form', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ intake_form: intakeForm })
+      })
+        .then(res => {
+          if (!res.ok) throw new Error('Could not upload history to cloud repository.');
+          return res.json();
+        })
+        .then(() => {
+          triggerToast('Intake health form synchronized successfully.', 'success');
+          setIsIntakeOpen(false);
+        })
+        .catch(err => {
+          triggerToast(err.message, 'error');
+        });
+    } else {
+      triggerToast('Intake health form saved locally on your device.', 'success');
+      setIsIntakeOpen(false);
+    }
+  };
+
   return (
     <div className="flex h-screen bg-[#f4f7fc] overflow-hidden w-full font-sans antialiased text-slate-800">
       <Sidebar />
@@ -197,23 +386,36 @@ const AiDoctorPage = () => {
           <div className="w-[340px] xl:w-[380px] flex-shrink-0 flex flex-col gap-4 overflow-y-auto pr-1">
 
             {/* AI Status Header */}
-            <div className="dashboard-card p-4 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg flex-shrink-0">
-                <span className="text-2xl">🤖</span>
-              </div>
-              <div className="text-left">
-                <h2 className="text-sm font-extrabold text-slate-900">MedGemma AI</h2>
-                <p className="text-[10px] text-slate-500 font-semibold mt-0.5">via Ollama · NovaCare Engine</p>
-                <div className="flex items-center gap-1.5 mt-1">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <span className="text-[10px] font-bold text-emerald-600">Model Online</span>
+            <div className="dashboard-card p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg flex-shrink-0">
+                  <span className="text-xl">🤖</span>
+                </div>
+                <div className="text-left">
+                  <h2 className="text-xs font-extrabold text-slate-900 leading-tight">MedGemma AI</h2>
+                  <p className="text-[10px] text-slate-500 font-semibold mt-0.5">Online · NovaCare Engine</p>
                 </div>
               </div>
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            </div>
+
+            {/* Intake Health Profile Card */}
+            <div className="dashboard-card p-4 bg-gradient-to-tr from-indigo-50/50 to-white border border-indigo-100/60 flex items-center justify-between">
+              <div className="text-left">
+                <h3 className="text-xs font-extrabold text-slate-800 uppercase tracking-wide">Structured Intake</h3>
+                <p className="text-[10px] text-slate-400 font-medium mt-0.5">Device profile for AI & Doctor reviews</p>
+              </div>
+              <button 
+                onClick={() => { setIntakeStep(1); setIsIntakeOpen(true); }}
+                className="px-3.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-[10px] font-bold border border-indigo-150 transition uppercase tracking-wider shadow-sm"
+              >
+                <i className="fa-solid fa-file-invoice-medical mr-1 text-[11px]"></i> Wizard
+              </button>
             </div>
 
             {/* Body System Selector */}
             <div className="dashboard-card p-5 space-y-3">
-              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Body System</h3>
+              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider text-left">Body System</h3>
               <div className="grid grid-cols-2 gap-2">
                 {SYSTEM_DOMAINS.map(({ key, label, icon }) => (
                   <button
@@ -226,7 +428,7 @@ const AiDoctorPage = () => {
                     }`}
                   >
                     <span className="text-lg">{icon}</span>
-                    <span className="leading-none">{label}</span>
+                    <span className="leading-none text-[11px]">{label}</span>
                   </button>
                 ))}
               </div>
@@ -234,7 +436,7 @@ const AiDoctorPage = () => {
 
             {/* Symptom Description */}
             <div className="dashboard-card p-5 space-y-3">
-              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Symptom Description</h3>
+              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider text-left">Symptom Description</h3>
               <textarea
                 value={symptoms}
                 onChange={(e) => setSymptoms(e.target.value)}
@@ -281,7 +483,7 @@ const AiDoctorPage = () => {
 
             {/* Duration */}
             <div className="dashboard-card p-5 space-y-3">
-              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Duration</h3>
+              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider text-left">Duration</h3>
               <div className="grid grid-cols-2 gap-2">
                 {['< 1 day', '1–3 days', '4–7 days', '> 1 week'].map((d) => (
                   <button
@@ -305,8 +507,8 @@ const AiDoctorPage = () => {
               disabled={!symptoms.trim()}
               className={`w-full py-4 font-bold text-sm rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2 ${
                 symptoms.trim()
-                  ? 'bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white cursor-pointer'
-                  : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                  ? 'bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white cursor-pointer shadow-indigo-600/10'
+                  : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200/50'
               }`}
             >
               <span>🔬</span> Analyze with MedGemma AI
@@ -332,12 +534,19 @@ const AiDoctorPage = () => {
                   <p className="text-[10px] text-slate-400 font-semibold">AI-powered clinical assistant</p>
                 </div>
               </div>
-              <button
-                onClick={() => setMessages(INITIAL_MESSAGES)}
-                className="text-[10px] font-bold px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition"
-              >
-                Clear Chat
-              </button>
+              <div className="flex items-center gap-2">
+                {intakeForm.consentPreferences.consentAISharing && (
+                  <span className="text-[9px] bg-emerald-50 border border-emerald-100 text-emerald-700 font-extrabold px-2 py-1 rounded-lg uppercase tracking-wider">
+                    ✓ History shared
+                  </span>
+                )}
+                <button
+                  onClick={() => setMessages(INITIAL_MESSAGES)}
+                  className="text-[10px] font-bold px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-650 rounded-lg transition"
+                >
+                  Clear Chat
+                </button>
+              </div>
             </div>
 
             {/* Messages Area */}
@@ -347,7 +556,6 @@ const AiDoctorPage = () => {
                   key={idx}
                   className={`flex gap-3 items-end ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
                 >
-                  {/* Avatar */}
                   <div className={`w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center text-sm shadow-sm ${
                     msg.role === 'assistant'
                       ? 'bg-gradient-to-br from-violet-500 to-indigo-600'
@@ -356,7 +564,6 @@ const AiDoctorPage = () => {
                     {msg.role === 'assistant' ? '🤖' : '👤'}
                   </div>
 
-                  {/* Bubble / Rich Cards */}
                   {msg.type === 'diagnosis_card' ? (
                     <div className="bg-white border border-indigo-100 rounded-2xl rounded-bl-sm p-5 shadow-sm max-w-[75%] text-left space-y-4">
                       <div className="flex justify-between items-center border-b border-slate-100 pb-2 flex-wrap gap-2">
@@ -459,7 +666,6 @@ const AiDoctorPage = () => {
                 </div>
               ))}
 
-              {/* Typing Indicator */}
               {isTyping && (
                 <div className="flex gap-3 items-end">
                   <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex-shrink-0 flex items-center justify-center text-sm shadow-sm">🤖</div>
@@ -485,7 +691,7 @@ const AiDoctorPage = () => {
                 <button
                   key={chip}
                   onClick={() => sendMessage(chip)}
-                  className="text-[10px] font-bold px-3 py-1.5 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-full whitespace-nowrap hover:bg-indigo-100 transition flex-shrink-0"
+                  className="text-[10px] font-bold px-3 py-1.5 bg-indigo-50 text-indigo-650 border border-indigo-100 rounded-full whitespace-nowrap hover:bg-indigo-100 transition flex-shrink-0"
                 >
                   {chip}
                 </button>
@@ -501,7 +707,7 @@ const AiDoctorPage = () => {
                   onKeyDown={handleKeyPress}
                   placeholder="Ask MedGemma anything about your symptoms, medications, or health concerns..."
                   rows={1}
-                  className="flex-1 bg-transparent text-xs text-slate-700 font-medium resize-none outline-none px-2 py-2.5 leading-relaxed max-h-24 overflow-y-auto placeholder-slate-400"
+                  className="flex-1 bg-transparent text-xs text-slate-700 font-medium resize-none outline-none px-2 py-2.5 leading-relaxed max-h-24 overflow-y-auto placeholder-slate-450"
                 />
                 <button
                   onClick={() => sendMessage(userInput)}
@@ -515,126 +721,826 @@ const AiDoctorPage = () => {
                   <i className="fa-solid fa-paper-plane text-xs"></i>
                 </button>
               </div>
-              <p className="text-[9px] text-slate-400 font-semibold mt-2 text-center">Press Enter to send · Shift+Enter for new line</p>
+              <p className="text-[9px] text-slate-450 font-semibold mt-2 text-center">Press Enter to send · Shift+Enter for new line</p>
             </div>
 
           </div>
         </div>
       </div>
 
-      {/* Doctor Profile Modal */}
-      {showDoctorModal && (
+      {/* Multi-Step Intake Wizard Modal */}
+      {isIntakeOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl p-6 md:p-8 w-full max-w-2xl max-h-[85vh] overflow-y-auto shadow-2xl border border-slate-100 text-left space-y-6">
+          <div className="bg-white rounded-3xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl border border-slate-100 text-left">
             
-            {loadingProfile ? (
-              <div className="py-20 text-center space-y-3">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-650 mx-auto"></div>
-                <p className="text-sm text-slate-500 font-bold">Retrieving medical profile & patient reviews...</p>
+            {/* Modal Header */}
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center flex-shrink-0">
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                  <i className="fa-solid fa-file-medical text-indigo-600"></i> Intake Health History Wizard
+                </h3>
+                <p className="text-[10px] text-slate-400 font-semibold mt-0.5">NovaCare Clinical Profile Portal</p>
               </div>
-            ) : selectedDoctorProfile ? (
-              <>
-                {/* Header */}
-                <div className="flex gap-5 border-b border-slate-100 pb-5 items-start">
-                  <img
-                    src={selectedDoctorProfile.avatar_url || 'https://images.unsplash.com/photo-1594824813573-246434de83fb?auto=format&fit=crop&q=80&w=250'}
-                    alt={selectedDoctorProfile.name}
-                    className="w-20 h-20 rounded-2xl object-cover border border-slate-150 shadow-sm flex-shrink-0"
-                  />
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-lg font-extrabold text-slate-900 leading-tight">{selectedDoctorProfile.name}</h3>
-                      {selectedDoctorProfile.verified && (
-                        <span className="bg-emerald-50 border border-emerald-150 text-emerald-700 text-[8px] font-extrabold px-2 py-0.5 rounded-full uppercase flex items-center gap-1 shadow-sm">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Verified
-                        </span>
-                      )}
+              <button 
+                onClick={() => setIsIntakeOpen(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-all text-sm border border-slate-150"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Wizard Steps Navigation */}
+            <div className="bg-slate-50/70 border-b border-slate-100 px-6 py-3.5 flex justify-between gap-1 overflow-x-auto flex-shrink-0">
+              {[
+                { step: 1, label: '1. Profile Info' },
+                { step: 2, label: '2. Today\'s Visit' },
+                { step: 3, label: '3. Conditions' },
+                { step: 4, label: '4. Medications' },
+                { step: 5, label: '5. Lifestyle' },
+                { step: 6, label: '6. Consent' }
+              ].map(s => (
+                <button
+                  key={s.step}
+                  onClick={() => setIntakeStep(s.step)}
+                  className={`text-[10px] font-bold px-3 py-1.5 rounded-lg whitespace-nowrap transition-colors flex-shrink-0 ${
+                    intakeStep === s.step 
+                      ? 'bg-indigo-600 text-white shadow-sm' 
+                      : 'bg-white border border-slate-200 text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Step Content Area */}
+            <div className="flex-grow overflow-y-auto p-6 space-y-6">
+              
+              {/* Step 1: Patient Information */}
+              {intakeStep === 1 && (
+                <div className="space-y-4">
+                  <h4 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest border-b border-slate-50 pb-1">1. Patient Demographic Profile</h4>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">Full Name</label>
+                      <input 
+                        type="text"
+                        value={intakeForm.patientInformation.fullName}
+                        onChange={e => handleIntakeChange('patientInformation', 'fullName', e.target.value)}
+                        placeholder="John Doe"
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition"
+                      />
                     </div>
-                    <p className="text-xs font-bold text-indigo-650 tracking-wide">{selectedDoctorProfile.specialty}</p>
-                    <p className="text-[11px] text-slate-450 font-semibold">{selectedDoctorProfile.hospital}</p>
-                    <div className="flex items-center gap-2 pt-1 text-xs font-extrabold text-slate-500 flex-wrap">
-                      <span className="text-amber-500">★ {selectedDoctorProfile.rating.toFixed(1)}</span>
-                      <span className="text-slate-300">|</span>
-                      <span>{selectedDoctorProfile.years_experience} Years Experience</span>
-                      <span className="text-slate-300">|</span>
-                      <span className="text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded text-[10px] uppercase font-extrabold">{selectedDoctorProfile.duty_status}</span>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">Date of Birth</label>
+                      <input 
+                        type="date"
+                        value={intakeForm.patientInformation.dateOfBirth}
+                        onChange={e => handleIntakeChange('patientInformation', 'dateOfBirth', e.target.value)}
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition font-bold"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">Gender</label>
+                      <select 
+                        value={intakeForm.patientInformation.gender}
+                        onChange={e => handleIntakeChange('patientInformation', 'gender', e.target.value)}
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition font-semibold"
+                      >
+                        <option value="">Select Gender</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                        <option value="Prefer not to say">Prefer not to say</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">Contact Number</label>
+                      <input 
+                        type="text"
+                        value={intakeForm.patientInformation.contactNumber}
+                        onChange={e => handleIntakeChange('patientInformation', 'contactNumber', e.target.value)}
+                        placeholder="+1 (555) 000-0000"
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">Email Address</label>
+                      <input 
+                        type="email"
+                        value={intakeForm.patientInformation.emailAddress}
+                        onChange={e => handleIntakeChange('patientInformation', 'emailAddress', e.target.value)}
+                        placeholder="john.doe@example.com"
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">Home Address</label>
+                      <input 
+                        type="text"
+                        value={intakeForm.patientInformation.homeAddress}
+                        onChange={e => handleIntakeChange('patientInformation', 'homeAddress', e.target.value)}
+                        placeholder="123 Health Ave, St. Jude, NY"
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition"
+                      />
+                    </div>
+                  </div>
+
+                  <h5 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest pt-2 border-b border-slate-50 pb-1">Emergency contact</h5>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">Contact Name</label>
+                      <input 
+                        type="text"
+                        value={intakeForm.patientInformation.emergencyContactName}
+                        onChange={e => handleIntakeChange('patientInformation', 'emergencyContactName', e.target.value)}
+                        placeholder="Jane Doe"
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">Contact Phone</label>
+                      <input 
+                        type="text"
+                        value={intakeForm.patientInformation.emergencyContactPhone}
+                        onChange={e => handleIntakeChange('patientInformation', 'emergencyContactPhone', e.target.value)}
+                        placeholder="+1 (555) 111-2222"
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">Relationship</label>
+                      <input 
+                        type="text"
+                        value={intakeForm.patientInformation.emergencyContactRelationship}
+                        onChange={e => handleIntakeChange('patientInformation', 'emergencyContactRelationship', e.target.value)}
+                        placeholder="Spouse / Parent / Sibling"
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition"
+                      />
                     </div>
                   </div>
                 </div>
+              )}
 
-                {/* About & Bio */}
-                <div className="space-y-2">
-                  <h4 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest">Biography</h4>
-                  <p className="text-xs text-slate-650 leading-relaxed font-medium bg-slate-50 border border-slate-100 p-4 rounded-2xl">
-                    {selectedDoctorProfile.description}
-                  </p>
-                </div>
-
-                {/* Grid Details */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="p-3.5 bg-slate-50 border border-slate-100 rounded-xl text-xs space-y-1 text-left">
-                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Clinic & Contact</span>
-                    <p className="font-bold text-slate-800">📍 {selectedDoctorProfile.location}</p>
-                    <p className="font-semibold text-slate-650">📞 {selectedDoctorProfile.phone}</p>
+              {/* Step 2: Visit & Symptom Details */}
+              {intakeStep === 2 && (
+                <div className="space-y-4">
+                  <h4 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest border-b border-slate-50 pb-1 font-bold">2. Visit Details</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1 sm:col-span-2">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">Reason for Today's Visit</label>
+                      <input 
+                        type="text"
+                        value={intakeForm.visitDetails.reason}
+                        onChange={e => handleIntakeChange('visitDetails', 'reason', e.target.value)}
+                        placeholder="Routine physical screening checkup, symptom checking..."
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">Onset Date / Timeline</label>
+                      <input 
+                        type="text"
+                        value={intakeForm.visitDetails.startDate}
+                        onChange={e => handleIntakeChange('visitDetails', 'startDate', e.target.value)}
+                        placeholder="e.g. 3 days ago"
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition font-semibold"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">Issue Type</label>
+                      <div className="flex gap-2">
+                        {['New', 'Follow-up'].map(opt => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => handleIntakeChange('visitDetails', 'issueType', opt)}
+                            className={`flex-1 py-2 text-xs font-semibold rounded-xl border transition ${
+                              intakeForm.visitDetails.issueType === opt 
+                                ? 'bg-indigo-50 border-indigo-400 text-indigo-700 font-bold'
+                                : 'bg-slate-50 border-slate-200 text-slate-650'
+                            }`}
+                          >
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                  <div className="p-3.5 bg-slate-50 border border-slate-100 rounded-xl text-xs space-y-1 text-left">
-                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Languages & NPI</span>
-                    <p className="font-bold text-slate-800">🗣️ {selectedDoctorProfile.languages}</p>
-                    <p className="font-semibold text-slate-650">NPI Number: {selectedDoctorProfile.npi}</p>
+
+                  <h5 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest pt-2 border-b border-slate-50 pb-1">3. Current Symptoms Checklist</h5>
+                  
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">Symptom Description (In Your Own Words)</label>
+                      <textarea 
+                        value={intakeForm.currentSymptoms.description}
+                        onChange={e => handleIntakeChange('currentSymptoms', 'description', e.target.value)}
+                        placeholder="Explain the sensation, location, pain scale details..."
+                        className="w-full h-20 p-3 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none resize-none transition"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">Select Experienced Symptoms</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {INTAKE_CHECKLIST_SYMPTOMS.map(sym => (
+                          <button
+                            key={sym}
+                            type="button"
+                            onClick={() => handleIntakeChecklist('currentSymptoms', 'checklist', sym)}
+                            className={`p-2.5 rounded-xl border text-[11px] font-semibold text-left transition flex items-center justify-between ${
+                              intakeForm.currentSymptoms.checklist.includes(sym)
+                                ? 'bg-indigo-50 border-indigo-400 text-indigo-700 font-bold'
+                                : 'bg-slate-50 border-slate-100 text-slate-650 hover:bg-slate-100'
+                            }`}
+                          >
+                            <span>{sym}</span>
+                            {intakeForm.currentSymptoms.checklist.includes(sym) && <span className="text-indigo-600 font-extrabold text-xs">✓</span>}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-extrabold text-slate-400 uppercase">Other Symptom Details</label>
+                        <input 
+                          type="text"
+                          value={intakeForm.currentSymptoms.otherSymptom}
+                          onChange={e => handleIntakeChange('currentSymptoms', 'otherSymptom', e.target.value)}
+                          placeholder="List any others..."
+                          className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-extrabold text-slate-400 uppercase">Symptom Severity</label>
+                        <select 
+                          value={intakeForm.currentSymptoms.severity}
+                          onChange={e => handleIntakeChange('currentSymptoms', 'severity', e.target.value)}
+                          className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition font-semibold"
+                        >
+                          <option value="Mild">Mild</option>
+                          <option value="Moderate">Moderate</option>
+                          <option value="Severe">Severe</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-extrabold text-slate-400 uppercase">Pattern</label>
+                        <select 
+                          value={intakeForm.currentSymptoms.pattern}
+                          onChange={e => handleIntakeChange('currentSymptoms', 'pattern', e.target.value)}
+                          className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition font-semibold"
+                        >
+                          <option value="Continuous">Continuous</option>
+                          <option value="Comes and goes">Comes and goes</option>
+                          <option value="Getting worse">Getting worse</option>
+                          <option value="Getting better">Getting better</option>
+                        </select>
+                      </div>
+                    </div>
                   </div>
                 </div>
+              )}
 
-                {/* Patient Reviews Accordion */}
-                <div className="space-y-3">
-                  <h4 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest">Patient Reviews ({selectedDoctorProfile.reviews_count})</h4>
-                  <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
-                    {selectedDoctorProfile.reviews && selectedDoctorProfile.reviews.length > 0 ? (
-                      selectedDoctorProfile.reviews.map((rev, rIdx) => (
-                        <div key={rIdx} className="p-4 bg-white border border-slate-150 rounded-2xl space-y-2 text-left shadow-sm">
-                          <div className="flex justify-between items-center flex-wrap gap-2">
-                            <div>
-                              <h5 className="text-xs font-bold text-slate-800">{rev.patient_name}</h5>
-                              <p className="text-[9px] text-slate-400 font-semibold">{rev.date}</p>
-                            </div>
-                            <div className="flex gap-0.5 text-xs text-amber-500 font-bold">
-                              {Array.from({ length: rev.rating }).map((_, starIdx) => (
-                                <span key={starIdx}>★</span>
-                              ))}
-                              {Array.from({ length: 5 - rev.rating }).map((_, starIdx) => (
-                                <span key={starIdx} className="text-slate-200">★</span>
-                              ))}
-                            </div>
-                          </div>
-                          <p className="text-xs text-slate-600 italic font-medium leading-normal">
-                            "{rev.comment}"
-                          </p>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-xs text-slate-400 italic">No patient testimonials found for this practitioner yet.</p>
+              {/* Step 3: Current & Past History */}
+              {intakeStep === 3 && (
+                <div className="space-y-4">
+                  <h4 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest border-b border-slate-50 pb-1">4. Current Health Conditions</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase block">Diagnosed Health Conditions?</label>
+                      <div className="flex gap-2">
+                        {['Yes', 'No'].map(opt => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => handleIntakeChange('currentHealthIssues', 'hasDiagnosed', opt)}
+                            className={`flex-1 py-2 text-xs font-semibold rounded-xl border transition ${
+                              intakeForm.currentHealthIssues.hasDiagnosed === opt 
+                                ? 'bg-indigo-50 border-indigo-400 text-indigo-700 font-bold'
+                                : 'bg-slate-50 border-slate-200 text-slate-650'
+                            }`}
+                          >
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {intakeForm.currentHealthIssues.hasDiagnosed === 'Yes' && (
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-extrabold text-slate-400 uppercase">List Diagnosed Conditions</label>
+                        <input 
+                          type="text"
+                          value={intakeForm.currentHealthIssues.listConditions}
+                          onChange={e => handleIntakeChange('currentHealthIssues', 'listConditions', e.target.value)}
+                          placeholder="e.g. hypertension, type 2 diabetes"
+                          className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition"
+                        />
+                      </div>
+                    )}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase block">Recent emergency or hospital admission?</label>
+                      <div className="flex gap-2">
+                        {['Yes', 'No'].map(opt => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => handleIntakeChange('currentHealthIssues', 'hospitalAdmitted', opt)}
+                            className={`flex-1 py-2 text-xs font-semibold rounded-xl border transition ${
+                              intakeForm.currentHealthIssues.hospitalAdmitted === opt 
+                                ? 'bg-indigo-50 border-indigo-400 text-indigo-700 font-bold'
+                                : 'bg-slate-50 border-slate-200 text-slate-650'
+                            }`}
+                          >
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {intakeForm.currentHealthIssues.hospitalAdmitted === 'Yes' && (
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-extrabold text-slate-400 uppercase">Admittance Reason & Approx Date</label>
+                        <input 
+                          type="text"
+                          value={intakeForm.currentHealthIssues.hospitalReason}
+                          onChange={e => handleIntakeChange('currentHealthIssues', 'hospitalReason', e.target.value)}
+                          placeholder="e.g. asthma crisis in June 2026"
+                          className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition"
+                        />
+                      </div>
                     )}
                   </div>
-                </div>
 
-                {/* Footer Controls */}
-                <div className="flex gap-3 pt-4 border-t border-slate-100">
-                  <button
-                    onClick={() => setShowDoctorModal(false)}
-                    className="flex-1 py-3.5 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl text-center cursor-pointer transition"
-                  >
-                    Close Profile
-                  </button>
-                  <Link
-                    to={`/book-appointment?doctor_id=${selectedDoctorProfile.id}`}
-                    className="flex-1 py-3.5 text-xs font-bold text-white bg-brand-sidebar hover:bg-brand-sidebarHover rounded-xl text-center shadow-lg shadow-indigo-650/15 uppercase tracking-wide"
-                  >
-                    Schedule Consultation
-                  </Link>
+                  <h5 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest pt-2 border-b border-slate-50 pb-1">5. Past Medical History</h5>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">Past Illnesses / Major Diseases</label>
+                      <input 
+                        type="text"
+                        value={intakeForm.pastMedicalHistory.pastIllnesses}
+                        onChange={e => handleIntakeChange('pastMedicalHistory', 'pastIllnesses', e.target.value)}
+                        placeholder="e.g. childhood asthma, pneumonia"
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">Past Surgeries or Procedures (Name & Year)</label>
+                      <input 
+                        type="text"
+                        value={intakeForm.pastMedicalHistory.pastSurgeries}
+                        onChange={e => handleIntakeChange('pastMedicalHistory', 'pastSurgeries', e.target.value)}
+                        placeholder="e.g. appendectomy (2020)"
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">Past Injuries (Fractures, Head Trauma, etc.)</label>
+                      <input 
+                        type="text"
+                        value={intakeForm.pastMedicalHistory.pastInjuries}
+                        onChange={e => handleIntakeChange('pastMedicalHistory', 'pastInjuries', e.target.value)}
+                        placeholder="e.g. broken left arm (2018)"
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">Previous Hospitalizations (Reason & Year)</label>
+                      <input 
+                        type="text"
+                        value={intakeForm.pastMedicalHistory.previousHospitalizations}
+                        onChange={e => handleIntakeChange('pastMedicalHistory', 'previousHospitalizations', e.target.value)}
+                        placeholder="e.g. severe dehydration (2022)"
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition"
+                      />
+                    </div>
+                  </div>
                 </div>
-              </>
-            ) : (
-              <div className="py-12 text-center text-slate-400 italic">Could not load medical profile.</div>
-            )}
+              )}
+
+              {/* Step 4: Medications & Allergies */}
+              {intakeStep === 4 && (
+                <div className="space-y-4">
+                  <h4 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest border-b border-slate-50 pb-1">6. Medications & Supplements</h4>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">Are you taking any medications?</label>
+                      <div className="flex gap-2 w-32">
+                        {['Yes', 'No'].map(opt => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => handleIntakeChange('medications', 'hasMedicines', opt)}
+                            className={`flex-1 py-1.5 text-xs font-semibold rounded-lg border transition ${
+                              intakeForm.medications.hasMedicines === opt 
+                                ? 'bg-indigo-50 border-indigo-400 text-indigo-700 font-bold'
+                                : 'bg-slate-50 border-slate-200 text-slate-655'
+                            }`}
+                          >
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {intakeForm.medications.hasMedicines === 'Yes' && (
+                      <div className="space-y-2 border border-slate-100 bg-slate-50/50 p-4 rounded-2xl">
+                        {intakeForm.medications.medicines.map((med, idx) => (
+                          <div key={idx} className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-center bg-white border border-slate-200 p-2.5 rounded-xl">
+                            <input 
+                              type="text" 
+                              value={med.name} 
+                              onChange={e => handleMedicineChange(idx, 'name', e.target.value)} 
+                              placeholder="Name (e.g. Paracetamol)" 
+                              className="p-2 border border-slate-200 rounded-lg text-xs outline-none"
+                            />
+                            <input 
+                              type="text" 
+                              value={med.dose} 
+                              onChange={e => handleMedicineChange(idx, 'dose', e.target.value)} 
+                              placeholder="Dose (e.g. 500mg)" 
+                              className="p-2 border border-slate-200 rounded-lg text-xs outline-none"
+                            />
+                            <input 
+                              type="text" 
+                              value={med.frequency} 
+                              onChange={e => handleMedicineChange(idx, 'frequency', e.target.value)} 
+                              placeholder="Frequency (e.g. Twice Daily)" 
+                              className="p-2 border border-slate-200 rounded-lg text-xs outline-none"
+                            />
+                            <div className="flex gap-1">
+                              <input 
+                                type="text" 
+                                value={med.since} 
+                                onChange={e => handleMedicineChange(idx, 'since', e.target.value)} 
+                                placeholder="Since" 
+                                className="p-2 border border-slate-200 rounded-lg text-xs outline-none flex-1"
+                              />
+                              <button 
+                                type="button" 
+                                onClick={() => removeMedicineRow(idx)}
+                                className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center font-bold"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={addMedicineRow}
+                          className="px-3 py-1.5 bg-indigo-650 hover:bg-indigo-700 text-white rounded-lg text-[10px] font-bold transition flex items-center gap-1.5 uppercase tracking-wider"
+                        >
+                          + Add Medicine
+                        </button>
+                      </div>
+                    )}
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">Over-the-counter or herbal supplements</label>
+                      <input 
+                        type="text"
+                        value={intakeForm.medications.supplements}
+                        onChange={e => handleIntakeChange('medications', 'supplements', e.target.value)}
+                        placeholder="Vitamins, Ayurvedic, Homeopathic details..."
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition"
+                      />
+                    </div>
+                  </div>
+
+                  <h5 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest pt-2 border-b border-slate-50 pb-1">7. Allergies & Sensitivities</h5>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">Drug Allergies (e.g. penicillin, aspirin)</label>
+                      <input 
+                        type="text"
+                        value={intakeForm.allergiesSensitivities.drugAllergies}
+                        onChange={e => handleIntakeChange('allergiesSensitivities', 'drugAllergies', e.target.value)}
+                        placeholder="List allergens..."
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">Food Allergies (e.g. peanuts, dairy)</label>
+                      <input 
+                        type="text"
+                        value={intakeForm.allergiesSensitivities.foodAllergies}
+                        onChange={e => handleIntakeChange('allergiesSensitivities', 'foodAllergies', e.target.value)}
+                        placeholder="List allergens..."
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">Other Allergies (e.g. pollen, latex)</label>
+                      <input 
+                        type="text"
+                        value={intakeForm.allergiesSensitivities.otherAllergies}
+                        onChange={e => handleIntakeChange('allergiesSensitivities', 'otherAllergies', e.target.value)}
+                        placeholder="List allergens..."
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">Type of Reaction (rash, breathing difficulty)</label>
+                      <input 
+                        type="text"
+                        value={intakeForm.allergiesSensitivities.reactionType}
+                        onChange={e => handleIntakeChange('allergiesSensitivities', 'reactionType', e.target.value)}
+                        placeholder="Describe reaction details..."
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 5: Lifestyle, Family & Implants */}
+              {intakeStep === 5 && (
+                <div className="space-y-4">
+                  <h4 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest border-b border-slate-50 pb-1">8. Lifestyle & Risk Factors</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">Smoking Status</label>
+                      <select 
+                        value={intakeForm.lifestyleRiskFactors.smokingStatus}
+                        onChange={e => handleIntakeChange('lifestyleRiskFactors', 'smokingStatus', e.target.value)}
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition font-semibold"
+                      >
+                        <option value="Never">Never</option>
+                        <option value="Former">Former</option>
+                        <option value="Current (Light)">Current (Light)</option>
+                        <option value="Current (Heavy)">Current (Heavy)</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">Alcohol Use</label>
+                      <select 
+                        value={intakeForm.lifestyleRiskFactors.alcoholUse}
+                        onChange={e => handleIntakeChange('lifestyleRiskFactors', 'alcoholUse', e.target.value)}
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition font-semibold"
+                      >
+                        <option value="None">None</option>
+                        <option value="Occasional">Occasional</option>
+                        <option value="Regular">Regular</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">Physical Activity</label>
+                      <select 
+                        value={intakeForm.lifestyleRiskFactors.physicalActivity}
+                        onChange={e => handleIntakeChange('lifestyleRiskFactors', 'physicalActivity', e.target.value)}
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition font-semibold"
+                      >
+                        <option value="Rare">Rare</option>
+                        <option value="1–2 times per week">1–2 times per week</option>
+                        <option value="3+ times per week">3+ times per week</option>
+                      </select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-extrabold text-slate-400 uppercase">Sleep Hours</label>
+                        <input 
+                          type="number"
+                          value={intakeForm.lifestyleRiskFactors.sleepHours}
+                          onChange={e => handleIntakeChange('lifestyleRiskFactors', 'sleepHours', e.target.value)}
+                          className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition font-bold"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-extrabold text-slate-400 uppercase">Sleep Quality</label>
+                        <select 
+                          value={intakeForm.lifestyleRiskFactors.sleepQuality}
+                          onChange={e => handleIntakeChange('lifestyleRiskFactors', 'sleepQuality', e.target.value)}
+                          className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition font-semibold"
+                        >
+                          <option value="Good">Good</option>
+                          <option value="Fair">Fair</option>
+                          <option value="Poor">Poor</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase block">Recent Major Stress?</label>
+                      <div className="flex gap-2">
+                        {['Yes', 'No'].map(opt => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => handleIntakeChange('lifestyleRiskFactors', 'hasStress', opt)}
+                            className={`flex-1 py-2 text-xs font-semibold rounded-xl border transition ${
+                              intakeForm.lifestyleRiskFactors.hasStress === opt 
+                                ? 'bg-indigo-50 border-indigo-400 text-indigo-700 font-bold'
+                                : 'bg-slate-50 border-slate-200 text-slate-655'
+                            }`}
+                          >
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {intakeForm.lifestyleRiskFactors.hasStress === 'Yes' && (
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-extrabold text-slate-400 uppercase">Brief Stress Explanation</label>
+                        <input 
+                          type="text"
+                          value={intakeForm.lifestyleRiskFactors.stressDetails}
+                          onChange={e => handleIntakeChange('lifestyleRiskFactors', 'stressDetails', e.target.value)}
+                          placeholder="Exam pressure, job changes..."
+                          className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <h5 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest pt-2 border-b border-slate-50 pb-1">9. Family History</h5>
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">Select Conditions in Family History</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {FAMILY_HISTORY_ITEMS.map(item => (
+                          <button
+                            key={item}
+                            type="button"
+                            onClick={() => handleIntakeChecklist('familyHistory', 'historyChecklist', item)}
+                            className={`p-2.5 rounded-xl border text-[11px] font-semibold text-left transition flex items-center justify-between ${
+                              intakeForm.familyHistory.historyChecklist.includes(item)
+                                ? 'bg-indigo-50 border-indigo-400 text-indigo-700 font-bold'
+                                : 'bg-slate-50 border-slate-100 text-slate-650 hover:bg-slate-100'
+                            }`}
+                          >
+                            <span>{item}</span>
+                            {intakeForm.familyHistory.historyChecklist.includes(item) && <span className="text-indigo-600 font-extrabold text-xs">✓</span>}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-extrabold text-slate-400 uppercase">Other Inherited Conditions</label>
+                        <input 
+                          type="text"
+                          value={intakeForm.familyHistory.otherConditions}
+                          onChange={e => handleIntakeChange('familyHistory', 'otherConditions', e.target.value)}
+                          placeholder="List any others..."
+                          className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-extrabold text-slate-400 uppercase">Specific Details (Relation & Onset Age)</label>
+                        <input 
+                          type="text"
+                          value={intakeForm.familyHistory.familyDetails}
+                          onChange={e => handleIntakeChange('familyHistory', 'familyDetails', e.target.value)}
+                          placeholder="e.g. Father diagnosed with diabetes at 45"
+                          className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <h5 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest pt-2 border-b border-slate-50 pb-1">10. Additional Clinical Information</h5>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">Pregnancy Status (if applicable)</label>
+                      <select 
+                        value={intakeForm.additionalInformation.pregnancyStatus}
+                        onChange={e => handleIntakeChange('additionalInformation', 'pregnancyStatus', e.target.value)}
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition font-semibold"
+                      >
+                        <option value="Pregnant">Pregnant</option>
+                        <option value="Planning pregnancy">Planning pregnancy</option>
+                        <option value="Not applicable">Not applicable</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">Devices or Implants (Pacemaker, Stents, etc.)</label>
+                      <input 
+                        type="text"
+                        value={intakeForm.additionalInformation.devicesImplants}
+                        onChange={e => handleIntakeChange('additionalInformation', 'devicesImplants', e.target.value)}
+                        placeholder="List surgical implants..."
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">Recent Lab Tests or Scans (Brief Description)</label>
+                      <input 
+                        type="text"
+                        value={intakeForm.additionalInformation.labTestsScans}
+                        onChange={e => handleIntakeChange('additionalInformation', 'labTestsScans', e.target.value)}
+                        placeholder="e.g. Chest X-ray in March 2026"
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-extrabold text-slate-400 uppercase">Additional Notes for Clinician</label>
+                      <input 
+                        type="text"
+                        value={intakeForm.additionalInformation.notes}
+                        onChange={e => handleIntakeChange('additionalInformation', 'notes', e.target.value)}
+                        placeholder="Anything else you want the doctor to know..."
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 6: Consent & Preferences */}
+              {intakeStep === 6 && (
+                <div className="space-y-4">
+                  <h4 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest border-b border-slate-50 pb-1">11. Consent & Preferences</h4>
+                  
+                  <div className="space-y-4 bg-slate-50 border border-slate-200/60 p-5 rounded-2xl">
+                    <div className="flex items-start gap-3">
+                      <input 
+                        type="checkbox"
+                        id="consentStoreCareAnalytics"
+                        checked={intakeForm.consentPreferences.consentStoreCareAnalytics}
+                        onChange={e => handleIntakeChange('consentPreferences', 'consentStoreCareAnalytics', e.target.checked)}
+                        className="mt-1 w-4 h-4 rounded text-indigo-650 accent-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                      />
+                      <label htmlFor="consentStoreCareAnalytics" className="text-xs text-slate-700 font-semibold leading-relaxed cursor-pointer selection:bg-transparent">
+                        I consent to use, store, and share my health information for clinical care and internal analytics. (Required to show this details directly to your consulting doctors)
+                      </label>
+                    </div>
+
+                    <div className="flex items-start gap-3 pt-2 border-t border-slate-200/50">
+                      <input 
+                        type="checkbox"
+                        id="consentAISharing"
+                        checked={intakeForm.consentPreferences.consentAISharing}
+                        onChange={e => handleIntakeChange('consentPreferences', 'consentAISharing', e.target.checked)}
+                        className="mt-1 w-4 h-4 rounded text-indigo-650 accent-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                      />
+                      <label htmlFor="consentAISharing" className="text-xs text-slate-700 font-semibold leading-relaxed cursor-pointer selection:bg-transparent">
+                        I consent for my data to be used by the MedGemma AI assistant to provide diagnostic guidance and self-care recommendations.
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1 w-full sm:w-1/2">
+                    <label className="text-[10px] font-extrabold text-slate-400 uppercase">Preferred Communication Method</label>
+                    <select 
+                      value={intakeForm.consentPreferences.preferredCommunication}
+                      onChange={e => handleIntakeChange('consentPreferences', 'preferredCommunication', e.target.value)}
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-400 rounded-xl text-xs outline-none transition font-semibold"
+                    >
+                      <option value="Email">Email</option>
+                      <option value="Phone">Phone</option>
+                      <option value="SMS">SMS</option>
+                      <option value="In-app notifications">In-app notifications</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+            {/* Modal Footer Controls */}
+            <div className="p-6 border-t border-slate-100 flex justify-between items-center flex-shrink-0">
+              <button
+                type="button"
+                disabled={intakeStep === 1}
+                onClick={() => setIntakeStep(prev => prev - 1)}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+                  intakeStep === 1 
+                    ? 'bg-slate-55 text-slate-300 cursor-not-allowed' 
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-650'
+                }`}
+              >
+                Previous
+              </button>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsIntakeOpen(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700"
+                >
+                  Close
+                </button>
+                {intakeStep < 6 ? (
+                  <button
+                    type="button"
+                    onClick={() => setIntakeStep(prev => prev + 1)}
+                    className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition shadow-md shadow-indigo-600/10"
+                  >
+                    Next Step
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleSaveIntakeForm}
+                    className="px-6 py-2 bg-emerald-650 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-md shadow-emerald-600/10 uppercase tracking-wider"
+                  >
+                    ✓ Save Form
+                  </button>
+                )}
+              </div>
+            </div>
+
           </div>
         </div>
       )}
