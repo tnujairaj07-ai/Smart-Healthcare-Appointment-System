@@ -586,7 +586,7 @@ const DocPrescriptions = ({ appointments }) => {
                     </div>
 
                     <a 
-                      href={`/prescriptions/prescription_${rx.id}.pdf`}
+                      href={`/uploads/prescriptions/prescription_${rx.id}.pdf`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="p-1.5 bg-white border border-slate-200 hover:bg-indigo-50 text-slate-500 hover:text-indigo-600 rounded-xl transition text-[10px]"
