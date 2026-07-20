@@ -93,7 +93,7 @@ class TestPatientPrescriptionEndpoints(unittest.TestCase):
             diagnosis="Seasonal Allergies",
             medications=json.dumps([{'name': 'Cetirizine', 'dosage': '10mg', 'frequency': 'Daily'}]),
             notes="Take before sleeping",
-            pdf_path="prescriptions/prescription_active.pdf"
+            pdf_path="uploads/prescriptions/prescription_active.pdf"
         )
         db.session.add(self.rx_active)
 
@@ -105,7 +105,7 @@ class TestPatientPrescriptionEndpoints(unittest.TestCase):
             diagnosis="Chronic Allergies",
             medications=json.dumps([{'name': 'Cetirizine', 'dosage': '10mg', 'frequency': 'Daily'}]),
             notes="Completed intake",
-            pdf_path="prescriptions/prescription_expired.pdf"
+            pdf_path="uploads/prescriptions/prescription_expired.pdf"
         )
         db.session.add(self.rx_expired)
         db.session.commit()
@@ -129,7 +129,7 @@ class TestPatientPrescriptionEndpoints(unittest.TestCase):
         self.assertEqual(active_rx['status'], 'Active')
         self.assertEqual(active_rx['doctor'], 'Dr. Jenkins')
         self.assertEqual(active_rx['doctorSpecialty'], 'Immunology')
-        self.assertEqual(active_rx['pdfPath'], 'prescriptions/prescription_active.pdf')
+        self.assertEqual(active_rx['pdfPath'], 'uploads/prescriptions/prescription_active.pdf')
         self.assertEqual(active_rx['refillsLeft'], 3)
 
         expired_rx = next(x for x in data if x['prescription_id'] == self.rx_expired.id)
