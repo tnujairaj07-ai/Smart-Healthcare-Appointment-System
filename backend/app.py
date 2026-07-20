@@ -551,25 +551,107 @@ def book_appointment():
 @app.route('/api/prescriptions/generate', methods=['POST'])
 @jwt_required()
 def generate_prescription():
+    import hashlib
     data = request.json
+
+    doctor = get_logged_in_doctor()
+    doctor_id = doctor.id if doctor else data.get('doctor_id', 1)
+    
+    # Extract prescriber info
+    if doctor and doctor.user:
+        doctor_name = doctor.user.name
+        doctor_qual = doctor.education or "MD"
+        doctor_spec = doctor.specialty or "General Practitioner"
+        doctor_npi = doctor.license or "NPI-999-999"
+        doctor_phone = doctor.phone or "Not provided"
+        doctor_hospital = doctor.hospital or "St. Jude General"
+        doctor_address = doctor.address or ""
+    else:
+        doctor_name = data.get('doctor_name', 'Dr. Dianne Russell')
+        doctor_qual = "MD"
+        doctor_spec = "General Practitioner"
+        doctor_npi = "NPI-999-999"
+        doctor_phone = "Not provided"
+        doctor_hospital = "St. Jude General"
+        doctor_address = ""
+
+    # Extract patient info
+    patient_id = data.get('patient_id')
+    patient = User.query.get(patient_id)
+    if patient:
+        patient_name = patient.name
+        patient_dob = patient.dob or data.get('patient_dob', '')
+        patient_phone = patient.phone or data.get('patient_phone', '')
+        patient_email = patient.email or data.get('patient_email', '')
+        
+        patient_gender = "N/A"
+        if patient.intake_form:
+            try:
+                intake_data = json.loads(patient.intake_form)
+                patient_gender = intake_data.get('patientInformation', {}).get('gender', 'N/A')
+            except Exception:
+                pass
+        if patient_gender == "N/A" and 'patient_gender' in data:
+            patient_gender = data['patient_gender']
+    else:
+        patient_name = data.get('patient_name', 'Unknown Patient')
+        patient_dob = data.get('patient_dob', '')
+        patient_gender = data.get('patient_gender', '')
+        patient_phone = data.get('patient_phone', '')
+        patient_email = data.get('patient_email', '')
+
+    patient_age = "N/A"
+    if patient_dob:
+        try:
+            birth_date = datetime.strptime(patient_dob, "%Y-%m-%d")
+            today = datetime.today()
+            patient_age = str(today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day)))
+        except Exception:
+            pass
+
+    # Generate secure digital signature hash
+    sig_payload = f"{patient_id}-{doctor_id}-{data.get('diagnosis')}-{json.dumps(data.get('medications', []))}"
+    digital_signature_hash = hashlib.sha256(sig_payload.encode()).hexdigest()[:16].upper()
+
+    prescription_notes = {
+        'notes': data.get('notes', ''),
+        'chief_complaint': data.get('chief_complaint', 'No chief complaint recorded.'),
+        'secondary_diagnosis': data.get('secondary_diagnosis', ''),
+        'general_advice': data.get('general_advice', ''),
+        'follow_up_plan': data.get('follow_up_plan', ''),
+        'digital_signature_hash': digital_signature_hash,
+        'clinic_department': data.get('clinic_department', 'General Outpatient'),
+        'patient_dob': patient_dob,
+        'patient_gender': patient_gender,
+        'patient_age': patient_age,
+        'patient_phone': patient_phone,
+        'patient_email': patient_email,
+        'doctor_qual': doctor_qual,
+        'doctor_spec': doctor_spec,
+        'doctor_npi': doctor_npi,
+        'doctor_phone': doctor_phone,
+        'doctor_hospital': doctor_hospital,
+        'doctor_address': doctor_address
+    }
 
     prescription = Prescription(
         appointment_id=data['appointment_id'],
-        doctor_id=data['doctor_id'],
-        patient_id=data['patient_id'],
+        doctor_id=doctor_id,
+        patient_id=patient_id,
         diagnosis=data['diagnosis'],
         medications=json.dumps(data['medications']),
-        notes=data.get('notes', '')
+        notes=json.dumps(prescription_notes)
     )
     db.session.add(prescription)
     db.session.commit()
 
     qr_path, pdf_path = generate_prescription_qr(
         prescription.id,
-        data['patient_name'],
-        data['doctor_name'],
+        patient_name,
+        doctor_name,
         data['diagnosis'],
-        data['medications']
+        data['medications'],
+        prescription_notes
     )
 
     prescription.qr_code_path = qr_path
