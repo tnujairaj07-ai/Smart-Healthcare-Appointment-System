@@ -1,11 +1,12 @@
 from flask import Flask, request, jsonify
+from datetime import datetime
 from flask_jwt_extended import (
     JWTManager,
     create_access_token,
     jwt_required,
     get_jwt_identity
 )
-from models import db, User, Doctor, Condition, Appointment, SymptomCheck, Prescription, MedicalRecord, Product, PharmacyOrder, RAGDataset, SupportTicket
+from models import db, User, Doctor, Condition, Appointment, SymptomCheck, Prescription, MedicalRecord, Product, PharmacyOrder, RAGDataset, SupportTicket, Referral
 from utils.nlp_engine import analyze_symptoms
 from utils.doctor_matcher import match_doctors
 from utils.qr_generator import generate_prescription_qr
@@ -44,6 +45,18 @@ with app.app_context():
 
     try:
         db.session.execute(db.text("ALTER TABLE doctor ADD COLUMN hospital VARCHAR(100) DEFAULT 'St. Jude General';"))
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+
+    try:
+        db.session.execute(db.text("ALTER TABLE doctor ADD COLUMN education VARCHAR(100) DEFAULT 'Harvard Medical School';"))
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+
+    try:
+        db.session.execute(db.text("ALTER TABLE doctor ADD COLUMN license VARCHAR(50) DEFAULT 'MD-2023-4982';"))
         db.session.commit()
     except Exception:
         db.session.rollback()
@@ -220,7 +233,116 @@ def diagnose_symptoms():
 
     client = OllamaClient()
     
-    # 1. Extract symptoms list from patient query using MedGemma (falls back to keyword parsing)
+    # Construct conditions reference context (RAG) from database
+    conditions = Condition.query.all()
+    ref_entries = []
+    for c in conditions:
+        precs = get_condition_precautions(c.name)
+        ref_entries.append(
+            f"Condition: {c.name}\n"
+            f"- Description: {c.description}\n"
+            f"- Recommended Specialty: {c.recommended_specialty}\n"
+            f"- Default Urgency: {c.urgency}\n"
+            f"- Suggested Precautions: {precs}"
+        )
+    reference_context = "\n\n".join(ref_entries)
+
+    # Invoke structured clinical reasoning using MedGemma
+    diagnosis_result = client.diagnose_query(query, patient_info, reference_context)
+
+    if diagnosis_result:
+        condition_name = diagnosis_result.get('suspected_condition')
+        confidence = diagnosis_result.get('confidence', 85)
+        description = diagnosis_result.get('description', 'Consult doctor for clinical diagnosis.')
+        precautions = diagnosis_result.get('precautions', [])
+        urgency_tier = diagnosis_result.get('urgency', 'medium')
+        recommended_specialty = diagnosis_result.get('recommended_specialty')
+        guidance = diagnosis_result.get('guidance')
+        extracted_symptoms = diagnosis_result.get('extracted_symptoms', [])
+
+        # Retrieve and rank matching doctors
+        doctors_list = []
+        if recommended_specialty:
+            spec_clean = recommended_specialty.strip().lower().replace("-", " ")
+            specialty_mapping = {
+                'cardiologist': 'Cardiology',
+                'cardiology': 'Cardiology',
+                'cardiologist surgeon': 'Cardiology',
+                'neurologist': 'Neurology',
+                'neurology': 'Neurology',
+                'neurosurgeon': 'Neurology',
+                'dermatologist': 'Dermatology',
+                'dermatology': 'Dermatology',
+                'orthopedics': 'Orthopedics',
+                'orthopedist': 'Orthopedics',
+                'gastroenterology': 'Gastroenterology',
+                'gastroenterologist': 'Gastroenterology',
+                'pulmonology': 'Pulmonology',
+                'pulmonologist': 'Pulmonology',
+                'pediatrics': 'Pediatrics',
+                'pediatrician': 'Pediatrics',
+                'ophthalmology': 'Ophthalmology',
+                'ophthalmologist': 'Ophthalmology',
+                'psychiatry': 'Psychiatry',
+                'psychiatrist': 'Psychiatry',
+                'endocrinology': 'Endocrinology',
+                'endocrinologist': 'Endocrinology',
+                'oncology': 'Oncology',
+                'oncologist': 'Oncology',
+                'rheumatology': 'Rheumatologist',
+                'rheumatologist': 'Rheumatologist',
+                'general medicine': 'General Medicine',
+                'general practitioner': 'General Medicine',
+                'internal medicine': 'General Medicine'
+            }
+            normalized_specialty = specialty_mapping.get(spec_clean, recommended_specialty)
+            
+            doctors = Doctor.query.filter(
+                (Doctor.specialty.ilike(f"%{normalized_specialty}%")) | 
+                (Doctor.specialty.ilike(f"%{recommended_specialty}%"))
+            ).all()
+            doctors_list = [
+                {
+                    'id': d.id,
+                    'name': d.user.name,
+                    'specialty': d.specialty,
+                    'location': d.location,
+                    'rating': d.rating,
+                    'availability': d.availability,
+                    'years_experience': d.years_experience
+                }
+                for d in doctors
+            ]
+            doctors_list = sorted(doctors_list, key=lambda x: x['rating'], reverse=True)
+
+        severity_score = calculate_symptom_severity_score(extracted_symptoms)
+        is_urgent = urgency_tier in ['high', 'critical']
+
+        # Save symptom check history
+        check = SymptomCheck(
+            patient_id=patient_id,
+            symptoms=", ".join(extracted_symptoms) if extracted_symptoms else "General inquiry",
+            diagnosed_conditions=json.dumps([condition_name]) if condition_name else json.dumps([]),
+            confidence_scores=json.dumps([round(confidence, 1)]) if confidence else json.dumps([]),
+            severity_score=severity_score,
+            is_urgent=is_urgent
+        )
+        db.session.add(check)
+        db.session.commit()
+
+        return jsonify({
+            'symptoms': extracted_symptoms,
+            'condition': condition_name,
+            'confidence': round(confidence, 1) if confidence else None,
+            'description': description,
+            'precautions': precautions,
+            'recommended_specialty': recommended_specialty,
+            'urgency': urgency_tier,
+            'guidance': guidance,
+            'doctors': doctors_list
+        }), 200
+
+    # 1. FALLBACK PATHWAY: Extract symptoms list from patient query using MedGemma / keyword parsing
     extracted_symptoms = client.extract_symptoms(query)
     
     if not extracted_symptoms:
@@ -1231,16 +1353,617 @@ def admin_get_support_tickets():
         })
     return jsonify(result), 200
 
-@app.route('/api/admin/support/<int:id>', methods=['PUT'])
-def admin_update_support_ticket(id):
-    ticket = SupportTicket.query.get(id)
-    if not ticket:
-        return jsonify({'error': 'Ticket not found'}), 404
-    data = request.json
-    if 'status' in data:
-        ticket.status = data['status']
-    db.session.commit()
     return jsonify({'message': 'Ticket status updated successfully'}), 200
+
+# ---------- DOCTOR DASHBOARD ENDPOINTS ----------
+
+def get_logged_in_doctor():
+    user_id = current_user_id()
+    if not user_id:
+        return None
+    return Doctor.query.filter_by(user_id=user_id).first()
+
+@app.route('/api/doctor/appointments', methods=['GET'])
+@jwt_required()
+def get_doctor_appointments():
+    doctor = get_logged_in_doctor()
+    if not doctor:
+        return jsonify({'error': 'Doctor profile not found'}), 404
+
+    appointments = Appointment.query.filter_by(doctor_id=doctor.id).all()
+    result = []
+    for appt in appointments:
+        # Get patient details
+        patient = appt.patient
+        if not patient:
+            continue
+
+        # Get latest symptom check
+        latest_check = SymptomCheck.query.filter_by(patient_id=patient.id).order_by(SymptomCheck.id.desc()).first()
+        severity = latest_check.severity_score if latest_check else 5
+        is_urgent = latest_check.is_urgent if latest_check else False
+
+        # Check for prescription
+        has_presc = Prescription.query.filter_by(appointment_id=appt.id).first() is not None
+
+        result.append({
+            'id': appt.id,
+            'date': appt.date,
+            'timeSlot': appt.time_slot,
+            'status': appt.status,
+            'rejectionReason': appt.rejection_reason or "",
+            'patient': {
+                'id': patient.id,
+                'name': patient.name,
+                'email': patient.email,
+                'phone': patient.phone or "",
+                'dob': patient.dob or "",
+                'allergies': patient.allergies or "None",
+                'chronic': patient.chronic or "None",
+                'bloodType': patient.blood_type or "O+",
+                'pastIllnesses': patient.past_illnesses or "None"
+            },
+            'triage': {
+                'severity': severity,
+                'isUrgent': is_urgent
+            },
+            'hasPrescription': has_presc,
+            'diagnosis': Prescription.query.filter_by(appointment_id=appt.id).first().diagnosis if has_presc else "General Consultation"
+        })
+
+    return jsonify(result), 200
+
+@app.route('/api/doctor/appointments/<int:id>/status', methods=['PUT'])
+@jwt_required()
+def update_appointment_status(id):
+    doctor = get_logged_in_doctor()
+    if not doctor:
+        return jsonify({'error': 'Doctor profile not found'}), 404
+
+    appt = Appointment.query.filter_by(id=id, doctor_id=doctor.id).first()
+    if not appt:
+        return jsonify({'error': 'Appointment not found'}), 404
+
+    data = request.json
+    if not data or 'status' not in data:
+        return jsonify({'error': 'Status is required'}), 400
+
+    appt.status = data['status']
+    db.session.commit()
+
+    return jsonify({'status': appt.status}), 200
+
+@app.route('/api/doctor/appointments/<int:id>/reject', methods=['PUT'])
+@jwt_required()
+def reject_specialty_mismatch(id):
+    doctor = get_logged_in_doctor()
+    if not doctor:
+        return jsonify({'error': 'Doctor profile not found'}), 404
+
+    appt = Appointment.query.filter_by(id=id, doctor_id=doctor.id).first()
+    if not appt:
+        return jsonify({'error': 'Appointment not found'}), 404
+
+    data = request.json
+    reason = data.get('reason', '') if data else ''
+    if not reason.strip():
+        return jsonify({'error': 'Rejection reason is required'}), 400
+
+    appt.status = 'rejected'
+    appt.rejection_reason = reason
+
+    # Create admin support ticket
+    ticket = SupportTicket(
+        creator_name=doctor.user.name,
+        role='doctor',
+        subject=f"Specialty Mismatch Reassignment Request (Appt #{appt.id})",
+        description=f"Doctor {doctor.user.name} flagged appointment #{appt.id} as out-of-specialty. Reason: {reason}",
+        priority='High',
+        status='Open'
+    )
+    db.session.add(ticket)
+    db.session.commit()
+
+    return jsonify({'message': 'Appointment mismatch rejected successfully'}), 200
+
+@app.route('/api/doctor/patients/<int:patient_id>/records', methods=['GET'])
+@jwt_required()
+def get_patient_health_chart(patient_id):
+    doctor = get_logged_in_doctor()
+    if not doctor:
+        return jsonify({'error': 'Doctor profile not found'}), 404
+
+    # Enforce treating relationship: an appointment must exist between doctor and patient
+    appt_exists = Appointment.query.filter_by(doctor_id=doctor.id, patient_id=patient_id).first()
+    if not appt_exists:
+        return jsonify({'error': 'Access Denied: No treating relationship exists with this patient.'}), 403
+
+    patient = User.query.get(patient_id)
+    if not patient:
+        return jsonify({'error': 'Patient not found'}), 404
+
+    # Get clinical visit history (prescriptions & diagnoses)
+    appts = Appointment.query.filter_by(patient_id=patient_id).all()
+    history = []
+    for a in appts:
+        presc = Prescription.query.filter_by(appointment_id=a.id).first()
+        meds = []
+        if presc and presc.medications:
+            try:
+                meds = json.loads(presc.medications)
+            except Exception:
+                meds = []
+        
+        history.append({
+            'id': a.id,
+            'doctorName': a.doctor.user.name if (a.doctor and a.doctor.user) else "Unknown Doctor",
+            'date': a.date,
+            'diagnosis': Prescription.query.filter_by(appointment_id=a.id).first().diagnosis if (Prescription.query.filter_by(appointment_id=a.id).first()) else "General Practitioner checkup",
+            'medications': meds,
+            'notes': presc.notes if presc else ""
+        })
+
+    # Get reports (Medical Records)
+    records = MedicalRecord.query.filter_by(patient_id=patient_id).all()
+    reports = []
+    for r in records:
+        reports.append({
+            'id': r.id,
+            'fileName': r.file_path.split('/')[-1] if r.file_path else "Unnamed file",
+            'filePath': r.file_path,
+            'fileType': r.file_type or "PDF",
+            'uploadDate': r.created_at.strftime("%Y-%m-%d") if r.created_at else ""
+        })
+
+    # Get symptom checks history
+    checks = SymptomCheck.query.filter_by(patient_id=patient_id).all()
+    symptom_history = []
+    for c in checks:
+        conditions = []
+        if c.diagnosed_conditions:
+            try:
+                conditions = json.loads(c.diagnosed_conditions)
+            except Exception:
+                conditions = []
+
+        symptom_history.append({
+            'id': c.id,
+            'symptoms': c.symptoms,
+            'diagnosedConditions': conditions,
+            'severity': c.severity_score or 5,
+            'isUrgent': c.is_urgent or False,
+            'date': c.created_at.strftime("%Y-%m-%d") if c.created_at else ""
+        })
+
+    profile = {
+        'id': patient.id,
+        'name': patient.name,
+        'email': patient.email,
+        'phone': patient.phone or "",
+        'address': patient.address or "",
+        'dob': patient.dob or "",
+        'bloodType': patient.blood_type or "O+",
+        'allergies': patient.allergies or "None",
+        'chronic': patient.chronic or "None",
+        'pastIllnesses': patient.past_illnesses or "None"
+    }
+
+    return jsonify({
+        'profile': profile,
+        'history': history,
+        'reports': reports,
+        'symptomHistory': symptom_history
+    }), 200
+
+@app.route('/api/doctor/patients/<int:patient_id>/upload', methods=['POST'])
+@jwt_required()
+def upload_patient_record(patient_id):
+    doctor = get_logged_in_doctor()
+    if not doctor:
+        return jsonify({'error': 'Doctor profile not found'}), 404
+
+    appt_exists = Appointment.query.filter_by(doctor_id=doctor.id, patient_id=patient_id).first()
+    if not appt_exists:
+        return jsonify({'error': 'Access Denied: No treating relationship exists.'}), 403
+
+    filename = None
+    if 'file' in request.files:
+        file = request.files['file']
+        if file.filename:
+            filename = file.filename
+            import os
+            os.makedirs('uploads', exist_ok=True)
+            file.save(os.path.join('uploads', filename))
+    else:
+        # Fallback simulation/JSON filename post
+        data = request.json
+        if data and 'filename' in data:
+            filename = data['filename']
+
+    if not filename:
+        return jsonify({'error': 'No file uploaded'}), 400
+
+    rec = MedicalRecord(
+        patient_id=patient_id,
+        file_path=f"uploads/{filename}",
+        file_type="PDF" if filename.lower().endswith('.pdf') else "Image"
+    )
+    db.session.add(rec)
+    db.session.commit()
+
+    return jsonify({'recordId': rec.id, 'fileName': filename}), 201
+
+@app.route('/api/doctor/referrals', methods=['GET'])
+@jwt_required()
+def get_doctor_referrals():
+    doctor = get_logged_in_doctor()
+    if not doctor:
+        return jsonify({'error': 'Doctor profile not found'}), 404
+
+    # Inbound referrals
+    inbound_records = Referral.query.filter_by(referee_id=doctor.id).all()
+    inbound = []
+    for ref in inbound_records:
+        inbound.append({
+            'id': ref.id,
+            'patientName': ref.patient.name if ref.patient else "Unknown Patient",
+            'referrerName': ref.referrer.user.name if (ref.referrer and ref.referrer.user) else "Unknown Doctor",
+            'referrerSpecialty': ref.referrer.specialty if ref.referrer else "",
+            'reason': ref.reason,
+            'notes': ref.notes or "",
+            'status': ref.status
+        })
+
+    # Outbound referrals
+    outbound_records = Referral.query.filter_by(referrer_id=doctor.id).all()
+    outbound = []
+    for ref in outbound_records:
+        outbound.append({
+            'id': ref.id,
+            'patientName': ref.patient.name if ref.patient else "Unknown Patient",
+            'refereeName': ref.referee.user.name if (ref.referee and ref.referee.user) else "Unknown Doctor",
+            'refereeSpecialty': ref.referee.specialty if ref.referee else "",
+            'reason': ref.reason,
+            'notes': ref.notes or "",
+            'status': ref.status
+        })
+
+    # Patient choices: patients with an appointment connection to this doctor
+    patients = User.query.join(Appointment, Appointment.patient_id == User.id)\
+                         .filter(Appointment.doctor_id == doctor.id).all()
+    patient_options = [{'id': p.id, 'name': p.name} for p in patients]
+
+    # Referee choices: all other doctors
+    referee_docs = Doctor.query.filter(Doctor.id != doctor.id).all()
+    referee_options = [{'id': d.id, 'name': d.user.name if d.user else "Unknown Doctor", 'specialty': d.specialty} for d in referee_docs]
+
+    # AI smart matches: Symptom checks matching this doctor's specialty or general symptom checking logs
+    symptom_checks = SymptomCheck.query.all()
+    smart_matches = []
+    for chk in symptom_checks:
+        symptoms_str = chk.symptoms.lower()
+        match_reason = None
+        if doctor.specialty.lower() == 'cardiology' and ('chest' in symptoms_str or 'breath' in symptoms_str or 'heart' in symptoms_str or 'angina' in symptoms_str):
+            match_reason = "Migraine/Cardio symptoms match Cardiology"
+        elif 'headache' in symptoms_str or 'migraine' in symptoms_str or 'dizzy' in symptoms_str:
+            if doctor.specialty.lower() == 'neurology':
+                match_reason = "Neurological symptoms match Neurology"
+
+        if match_reason:
+            patient = User.query.get(chk.patient_id)
+            patient_name = patient.name if patient else "Anonymous"
+            smart_matches.append({
+                'patientName': patient_name,
+                'symptoms': chk.symptoms,
+                'reason': match_reason,
+                'date': chk.created_at.strftime("%Y-%m-%d") if chk.created_at else ""
+            })
+
+    return jsonify({
+        'inbound': inbound,
+        'outbound': outbound,
+        'patientOptions': patient_options,
+        'refereeOptions': referee_options,
+        'smartMatches': smart_matches
+    }), 200
+
+@app.route('/api/doctor/referrals', methods=['POST'])
+@jwt_required()
+def create_referral():
+    doctor = get_logged_in_doctor()
+    if not doctor:
+        return jsonify({'error': 'Doctor profile not found'}), 404
+
+    data = request.json
+    if not data or 'patient_id' not in data or 'referee_id' not in data or 'reason' not in data:
+        return jsonify({'error': 'Missing required fields'}), 400
+
+    ref = Referral(
+        patient_id=data['patient_id'],
+        referrer_id=doctor.id,
+        referee_id=data['referee_id'],
+        reason=data['reason'],
+        notes=data.get('notes', ''),
+        status='Pending'
+    )
+    db.session.add(ref)
+    db.session.commit()
+
+    return jsonify({'id': ref.id, 'message': 'Referral created successfully'}), 201
+
+@app.route('/api/doctor/referrals/<int:id>/status', methods=['PUT'])
+@jwt_required()
+def update_referral_status(id):
+    doctor = get_logged_in_doctor()
+    if not doctor:
+        return jsonify({'error': 'Doctor profile not found'}), 404
+
+    ref = Referral.query.filter_by(id=id, referee_id=doctor.id).first()
+    if not ref:
+        return jsonify({'error': 'Referral request not found'}), 404
+
+    data = request.json
+    status = data.get('status')
+    if not status or status not in ['Accepted', 'Declined']:
+        return jsonify({'error': 'Invalid status'}), 400
+
+    ref.status = status
+
+    if status == 'Accepted':
+        # Create a new scheduled appointment automatically
+        appt = Appointment(
+            patient_id=ref.patient_id,
+            doctor_id=ref.referee_id,
+            date=datetime.now().strftime("%Y-%m-%d"),
+            time_slot="09:00 AM",
+            status="scheduled"
+        )
+        db.session.add(appt)
+
+    db.session.commit()
+    return jsonify({'message': 'Referral status updated successfully'}), 200
+
+@app.route('/api/doctor/schedule', methods=['GET'])
+@jwt_required()
+def get_doctor_schedule():
+    doctor = get_logged_in_doctor()
+    if not doctor:
+        return jsonify({'error': 'Doctor profile not found'}), 404
+
+    return jsonify({
+        'availability': doctor.availability or "09:00 AM - 05:00 PM",
+        'schedule': doctor.schedule or "Mon-Fri",
+        'blockedDates': json.loads(doctor.blocked_dates) if doctor.blocked_dates else [],
+        'slotTemplates': json.loads(doctor.slot_templates) if doctor.slot_templates else {}
+    }), 200
+
+@app.route('/api/doctor/schedule', methods=['POST'])
+@jwt_required()
+def update_doctor_schedule():
+    doctor = get_logged_in_doctor()
+    if not doctor:
+        return jsonify({'error': 'Doctor profile not found'}), 404
+
+    data = request.json
+    if not data:
+        return jsonify({'error': 'Missing request body'}), 400
+
+    if 'availability' in data:
+        doctor.availability = data['availability']
+    if 'schedule' in data:
+        doctor.schedule = data['schedule']
+    if 'blockedDates' in data:
+        doctor.blocked_dates = json.dumps(data['blockedDates'])
+    if 'slotTemplates' in data:
+        doctor.slot_templates = json.dumps(data['slotTemplates'])
+
+    db.session.commit()
+    return jsonify({'message': 'Schedule settings updated successfully'}), 200
+
+@app.route('/api/doctor/analytics', methods=['GET'])
+@jwt_required()
+def get_doctor_analytics():
+    doctor = get_logged_in_doctor()
+    if not doctor:
+        return jsonify({'error': 'Doctor profile not found'}), 404
+
+    completed_visits = Appointment.query.filter_by(doctor_id=doctor.id, status='completed').count()
+    successful_patients = db.session.query(Appointment.patient_id)\
+                                    .filter_by(doctor_id=doctor.id, status='completed')\
+                                    .distinct().count()
+
+    # Reviews parsing
+    positive = 5
+    negative = 0
+    if doctor.reviews_json:
+        try:
+            reviews = json.loads(doctor.reviews_json)
+            positive = sum(1 for r in reviews if r.get('rating', 5) >= 4)
+            negative = sum(1 for r in reviews if r.get('rating', 5) < 4)
+        except Exception:
+            pass
+
+    return jsonify({
+        'completedVisits': completed_visits,
+        'successfulPatients': successful_patients,
+        'averageRating': doctor.rating or 4.8,
+        'sentiment': {
+            'positive': positive,
+            'negative': negative
+        }
+    }), 200
+
+@app.route('/api/doctor/profile', methods=['GET'])
+@jwt_required()
+def get_doctor_self_profile():
+    doctor = get_logged_in_doctor()
+    if not doctor:
+        return jsonify({'error': 'Doctor profile not found'}), 404
+    
+    user = doctor.user
+    reviews = []
+    if doctor.reviews_json:
+        try:
+            reviews = json.loads(doctor.reviews_json)
+        except Exception:
+            pass
+            
+    # Calculate total patients
+    total_patients_count = db.session.query(Appointment.patient_id)\
+                                     .filter_by(doctor_id=doctor.id)\
+                                     .distinct().count()
+
+    return jsonify({
+        'id': doctor.id,
+        'name': user.name,
+        'email': user.email,
+        'phone': doctor.phone or user.phone or '',
+        'address': doctor.address or user.address or '',
+        'dob': user.dob or '',
+        'specialty': doctor.specialty,
+        'location': doctor.location,
+        'rating': doctor.rating or 4.5,
+        'availability': doctor.availability or "09:00 AM - 05:00 PM",
+        'schedule': doctor.schedule or "Mon-Fri",
+        'years_experience': f"{doctor.years_experience or 5}+ Years",
+        'reviews_count': doctor.reviews_count or len(reviews),
+        'reviews': reviews,
+        'education': doctor.education or "Harvard Medical School",
+        'license': doctor.license or "MD-2023-4982",
+        'specialization': doctor.specialist_type or doctor.specialty,
+        'status': doctor.duty_status or "On Duty",
+        'gender': 'Male' if ('albert' in user.name.lower() or 'ross' in user.name.lower()) else 'Female',
+        'totalPatients': total_patients_count or 230,
+        'surgeries': 90 if 'russell' in user.name.lower() else (64 if 'flores' in user.name.lower() else 12),
+        'image': doctor.avatar_url or f"https://images.unsplash.com/photo-1594824813573-246434de83fb?auto=format&fit=crop&q=80&w=400"
+    }), 200
+
+@app.route('/api/doctor/profile', methods=['PUT'])
+@jwt_required()
+def update_doctor_self_profile():
+    doctor = get_logged_in_doctor()
+    if not doctor:
+        return jsonify({'error': 'Doctor profile not found'}), 404
+        
+    data = request.json or {}
+    user = doctor.user
+    
+    if 'name' in data:
+        user.name = data['name']
+    if 'phone' in data:
+        doctor.phone = data['phone']
+        user.phone = data['phone']
+    if 'address' in data:
+        doctor.address = data['address']
+        doctor.location = data['address']
+        user.address = data['address']
+    if 'specialty' in data:
+        doctor.specialty = data['specialty']
+    if 'specialization' in data:
+        doctor.specialist_type = data['specialization']
+    if 'education' in data:
+        doctor.education = data['education']
+    if 'license' in data:
+        doctor.license = data['license']
+    if 'status' in data:
+        doctor.duty_status = data['status']
+        
+    db.session.commit()
+    return jsonify({'message': 'Profile updated successfully'}), 200
+
+@app.route('/api/doctors', methods=['GET'])
+@jwt_required()
+def get_all_doctors():
+    doctors = Doctor.query.all()
+    result = []
+    for d in doctors:
+        reviews = []
+        if d.reviews_json:
+            try:
+                reviews = json.loads(d.reviews_json)
+            except Exception:
+                pass
+        result.append({
+            'id': d.id,
+            'name': d.user.name,
+            'specialty': d.specialty,
+            'location': d.location,
+            'rating': d.rating,
+            'availability': d.availability,
+            'schedule': d.schedule,
+            'years_experience': f"{d.years_experience or 5}+ Years",
+            'avatar_url': d.avatar_url or "https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=400",
+            'bio': d.description or f"Expert {d.specialty} specialist committed to patient care.",
+            'reviews_count': d.reviews_count or len(reviews),
+            'reviews': reviews,
+            'education': d.education or "Harvard Medical School",
+            'license': d.license or "MD-2023-4982"
+        })
+    return jsonify(result), 200
+
+@app.route('/api/patient/appointments', methods=['GET'])
+@jwt_required()
+def get_patient_appointments():
+    patient_id = current_user_id()
+    appointments = Appointment.query.filter_by(patient_id=patient_id).all()
+    result = []
+    for a in appointments:
+        result.append({
+            'id': a.id,
+            'doctor_id': a.doctor_id,
+            'doctor_name': a.doctor.user.name if (a.doctor and a.doctor.user) else "Unknown Doctor",
+            'specialty': a.doctor.specialty if a.doctor else "General",
+            'date': a.date,
+            'time_slot': a.time_slot,
+            'status': a.status,
+            'doctor_image': a.doctor.avatar_url or "https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=400",
+            'rejection_reason': a.rejection_reason or ""
+        })
+    result = sorted(result, key=lambda x: x['date'], reverse=True)
+    return jsonify(result), 200
+
+@app.route('/api/doctors/<int:doctor_id>/slots', methods=['GET'])
+@jwt_required()
+def get_doctor_slots(doctor_id):
+    date_str = request.args.get('date')
+    if not date_str:
+        return jsonify({'error': 'Date parameter is required'}), 400
+        
+    doctor = Doctor.query.get(doctor_id)
+    if not doctor:
+        return jsonify({'error': 'Doctor not found'}), 404
+        
+    blocked_dates = []
+    if doctor.blocked_dates:
+        try:
+            blocked_dates = json.loads(doctor.blocked_dates)
+        except Exception:
+            pass
+            
+    if date_str in blocked_dates:
+        return jsonify([]), 200
+        
+    try:
+        dt = datetime.strptime(date_str, "%Y-%m-%d")
+        day_of_week = dt.strftime("%A")
+    except Exception:
+        return jsonify({'error': 'Invalid date format, use YYYY-MM-DD'}), 400
+        
+    slot_templates = {}
+    if doctor.slot_templates:
+        try:
+            slot_templates = json.loads(doctor.slot_templates)
+        except Exception:
+            pass
+            
+    default_slots = ["09:00 AM", "10:00 AM", "11:00 AM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"]
+    slots = slot_templates.get(day_of_week, default_slots)
+    
+    booked_appts = Appointment.query.filter_by(doctor_id=doctor_id, date=date_str).filter(Appointment.status != 'cancelled').all()
+    booked_slots = {a.time_slot for a in booked_appts}
+    
+    free_slots = [s for s in slots if s not in booked_slots]
+    return jsonify(free_slots), 200
 
 if __name__ == '__main__':
     app.run(debug=True)
