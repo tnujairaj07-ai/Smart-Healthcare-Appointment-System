@@ -69,7 +69,8 @@ with app.app_context():
         ("allergies", "VARCHAR(200)"),
         ("chronic", "VARCHAR(200)"),
         ("blood_type", "VARCHAR(10)"),
-        ("past_illnesses", "VARCHAR(200)")
+        ("past_illnesses", "VARCHAR(200)"),
+        ("intake_form", "TEXT")
     ]:
         try:
             db.session.execute(db.text(f"ALTER TABLE user ADD COLUMN {col} {col_type};"))
@@ -224,11 +225,23 @@ def diagnose_symptoms():
     patient_id = current_user_id()
     user = User.query.get(patient_id) if patient_id else None
     
+    intake_form = data.get('intake_form')
+    if not intake_form and user and user.intake_form:
+        try:
+            form_json = json.loads(user.intake_form)
+            consent_prefs = form_json.get('consentPreferences', {})
+            # If patient consented to share data with the AI assistant
+            if consent_prefs.get('consentAISharing'):
+                intake_form = form_json
+        except Exception:
+            pass
+
     patient_info = {
         "name": user.name if user else "Guest Patient",
         "dob": user.dob if user else "Unknown",
         "allergies": user.allergies if user else "None",
-        "chronic": user.chronic if user else "None"
+        "chronic": user.chronic if user else "None",
+        "intake_form": intake_form
     }
 
     client = OllamaClient()
@@ -646,6 +659,72 @@ def update_patient_profile():
         user.past_illnesses = data['past_illnesses']
     db.session.commit()
     return jsonify({'message': 'Profile updated successfully'}), 200
+
+@app.route('/api/patient/intake-form', methods=['GET'])
+@jwt_required()
+def get_patient_intake_form():
+    user_id = current_user_id()
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    form_data = {}
+    if user.intake_form:
+        try:
+            form_data = json.loads(user.intake_form)
+        except Exception:
+            pass
+    return jsonify({'intake_form': form_data}), 200
+
+@app.route('/api/patient/intake-form', methods=['PUT'])
+@jwt_required()
+def update_patient_intake_form():
+    user_id = current_user_id()
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    data = request.json
+    intake_data = data.get('intake_form')
+    if intake_data is None:
+        return jsonify({'error': 'Intake form data is required'}), 400
+        
+    user.intake_form = json.dumps(intake_data)
+    
+    # Sync demographics fields
+    personal_info = intake_data.get('patientInformation', {})
+    if personal_info.get('fullName'):
+        user.name = personal_info['fullName']
+    if personal_info.get('dateOfBirth'):
+        user.dob = personal_info['dateOfBirth']
+    if personal_info.get('contactNumber'):
+        user.phone = personal_info['contactNumber']
+    if personal_info.get('homeAddress'):
+        user.address = personal_info['homeAddress']
+        
+    allergies_info = intake_data.get('allergiesSensitivities', {})
+    allergy_list = []
+    if allergies_info.get('drugAllergies'):
+        allergy_list.append(f"Drugs: {allergies_info['drugAllergies']}")
+    if allergies_info.get('foodAllergies'):
+        allergy_list.append(f"Food: {allergies_info['foodAllergies']}")
+    if allergies_info.get('otherAllergies'):
+        allergy_list.append(f"Other: {allergies_info['otherAllergies']}")
+    if allergy_list:
+        user.allergies = ", ".join(allergy_list)
+
+    history_info = intake_data.get('pastMedicalHistory', {})
+    illness_list = []
+    if history_info.get('pastIllnesses'):
+        illness_list.append(history_info['pastIllnesses'])
+    if illness_list:
+        user.past_illnesses = ", ".join(illness_list)
+
+    chronic_info = intake_data.get('currentHealthIssues', {})
+    if chronic_info.get('listConditions'):
+        user.chronic = chronic_info['listConditions']
+
+    db.session.commit()
+    return jsonify({'message': 'Intake form updated successfully'}), 200
 
 @app.route('/api/support/tickets', methods=['POST'])
 @jwt_required()
@@ -1535,6 +1614,16 @@ def get_patient_health_chart(patient_id):
             'date': c.created_at.strftime("%Y-%m-%d") if c.created_at else ""
         })
 
+    intake_form = None
+    if patient.intake_form:
+        try:
+            form_json = json.loads(patient.intake_form)
+            consent_prefs = form_json.get('consentPreferences', {})
+            if consent_prefs.get('consentStoreCareAnalytics'):
+                intake_form = form_json
+        except Exception:
+            pass
+
     profile = {
         'id': patient.id,
         'name': patient.name,
@@ -1552,7 +1641,8 @@ def get_patient_health_chart(patient_id):
         'profile': profile,
         'history': history,
         'reports': reports,
-        'symptomHistory': symptom_history
+        'symptomHistory': symptom_history,
+        'intakeForm': intake_form
     }), 200
 
 @app.route('/api/doctor/patients/<int:patient_id>/upload', methods=['POST'])
