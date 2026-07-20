@@ -1591,7 +1591,7 @@ def get_patient_health_chart(patient_id):
             'fileName': r.file_path.split('/')[-1] if r.file_path else "Unnamed file",
             'filePath': r.file_path,
             'fileType': r.file_type or "PDF",
-            'uploadDate': r.created_at.strftime("%Y-%m-%d") if r.created_at else ""
+            'uploadDate': r.upload_date.strftime("%Y-%m-%d") if r.upload_date else ""
         })
 
     # Get symptom checks history
