@@ -46,17 +46,19 @@ const Sidebar = () => {
                 }`
               }
             >
-              👤 <span>Care Overview</span>
+              <i className="fa-solid fa-address-card text-xs w-4 shrink-0 text-center"></i>
+              <span>Care Overview</span>
             </NavLink>
             <NavLink 
-              to="/patient?tab=future" 
-              className={() => 
+              to="/book-appointment" 
+              className={({ isActive }) => 
                 `flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all text-xs font-semibold ${
-                  location.search.includes('tab=future') || location.search.includes('tab=past') || location.search.includes('tab=treatment') ? 'bg-white/20 text-white shadow-inner font-bold' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white'
+                  isActive ? 'bg-white/20 text-white shadow-inner font-bold' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white'
                 }`
               }
             >
-              📅 <span>My Appointments</span>
+              <i className="fa-solid fa-calendar-check text-xs w-4 shrink-0 text-center"></i>
+              <span>My Appointments</span>
             </NavLink>
             <NavLink 
               to="/prescription" 
@@ -66,7 +68,8 @@ const Sidebar = () => {
                 }`
               }
             >
-              💊 <span>Prescriptions & QR</span>
+              <i className="fa-solid fa-file-prescription text-xs w-4 shrink-0 text-center"></i>
+              <span>Prescriptions & QR</span>
             </NavLink>
 
             {/* Services Section */}
@@ -79,17 +82,8 @@ const Sidebar = () => {
                 }`
               }
             >
-              🤖 <span>AI Doctor Assistant</span>
-            </NavLink>
-            <NavLink 
-              to="/book-appointment" 
-              className={({ isActive }) => 
-                `flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all text-xs font-semibold ${
-                  isActive ? 'bg-white/20 text-white shadow-inner font-bold' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white'
-                }`
-              }
-            >
-              🔍 <span>Find & Book Doctors</span>
+              <i className="fa-solid fa-robot text-xs w-4 shrink-0 text-center"></i>
+              <span>AI Doctor Assistant</span>
             </NavLink>
             <NavLink 
               to="/pharmacy" 
@@ -99,7 +93,8 @@ const Sidebar = () => {
                 }`
               }
             >
-              🏪 <span>Online Pharmacy</span>
+              <i className="fa-solid fa-prescription-bottle-medical text-xs w-4 shrink-0 text-center"></i>
+              <span>Online Pharmacy</span>
             </NavLink>
 
             {/* Health Records Section */}
@@ -112,7 +107,8 @@ const Sidebar = () => {
                 }`
               }
             >
-              📂 <span>Medical Records</span>
+              <i className="fa-solid fa-folder-open text-xs w-4 shrink-0 text-center"></i>
+              <span>Medical Records</span>
             </NavLink>
             <NavLink 
               to="/analytics" 
@@ -122,7 +118,8 @@ const Sidebar = () => {
                 }`
               }
             >
-              📈 <span>Health Analytics</span>
+              <i className="fa-solid fa-chart-line text-xs w-4 shrink-0 text-center"></i>
+              <span>Health Analytics</span>
             </NavLink>
 
             {/* Account & Support Section */}
@@ -135,7 +132,8 @@ const Sidebar = () => {
                 }`
               }
             >
-              ⚙️ <span>Settings</span>
+              <i className="fa-solid fa-sliders text-xs w-4 shrink-0 text-center"></i>
+              <span>Settings</span>
             </NavLink>
             <NavLink 
               to="/support" 
@@ -145,7 +143,8 @@ const Sidebar = () => {
                 }`
               }
             >
-              🙋 <span>Support & Help</span>
+              <i className="fa-solid fa-circle-question text-xs w-4 shrink-0 text-center"></i>
+              <span>Support & Help</span>
             </NavLink>
           </>
         );
@@ -153,40 +152,88 @@ const Sidebar = () => {
       case 'doctor':
         return (
           <>
-            <h5 className="text-[9px] font-extrabold text-indigo-200 uppercase tracking-widest mb-2 px-3.5">Clinical Portal</h5>
-            <NavLink 
-              to="/doctor" 
-              className={({ isActive }) => 
-                `flex items-center gap-3.5 px-4.5 py-3 rounded-xl transition-all text-sm font-semibold ${
-                  isActive ? 'bg-white/20 text-white shadow-inner' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white'
-                }`
-              }
+            <h5 className="text-[9px] font-extrabold text-indigo-200 uppercase tracking-widest mb-1.5 px-3.5">Clinical Portal</h5>
+            <Link 
+              to="/doctor?tab=overview" 
+              className={getLinkClass(isTabActive('/doctor', 'overview'))}
             >
-              <i className="fa-solid fa-table-cells-large text-sm"></i>
-              <span>Dashboard</span>
-            </NavLink>
-            <NavLink 
-              to="/calendar" 
-              className={({ isActive }) => 
-                `flex items-center gap-3.5 px-4.5 py-3 rounded-xl transition-all text-sm font-semibold ${
-                  isActive ? 'bg-white/20 text-white shadow-inner' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white'
-                }`
-              }
+              <i className="fa-solid fa-table-cells-large text-xs w-4 shrink-0 text-center"></i>
+              <span>Doctor's Dashboard</span>
+            </Link>
+            <Link 
+              to="/doctor?tab=ai-assistant" 
+              className={getLinkClass(isTabActive('/doctor', 'ai-assistant'))}
             >
-              <i className="fa-solid fa-calendar text-sm"></i>
-              <span>Schedule Visits</span>
-            </NavLink>
-            <NavLink 
-              to="/prescription" 
-              className={({ isActive }) => 
-                `flex items-center gap-3.5 px-4.5 py-3 rounded-xl transition-all text-sm font-semibold ${
-                  isActive ? 'bg-white/20 text-white shadow-inner' : 'text-indigo-100 hover:bg-brand-sidebarHover hover:text-white'
-                }`
-              }
+              <i className="fa-solid fa-brain text-xs w-4 shrink-0 text-center"></i>
+              <span>AI Clinical Assistant</span>
+            </Link>
+            <Link 
+              to="/doctor?tab=queue" 
+              className={getLinkClass(isTabActive('/doctor', 'queue'))}
             >
-              <i className="fa-solid fa-file-medical text-sm"></i>
-              <span>Issue Prescription</span>
-            </NavLink>
+              <i className="fa-solid fa-users-line text-xs w-4 shrink-0 text-center"></i>
+              <span>Patient Queue / Visits</span>
+            </Link>
+            <Link 
+              to="/doctor?tab=records" 
+              className={getLinkClass(isTabActive('/doctor', 'records'))}
+            >
+              <i className="fa-solid fa-id-card-clip text-xs w-4 shrink-0 text-center"></i>
+              <span>Patients & Records</span>
+            </Link>
+            <Link 
+              to="/doctor?tab=schedule" 
+              className={getLinkClass(isTabActive('/doctor', 'schedule'))}
+            >
+              <i className="fa-solid fa-calendar-days text-xs w-4 shrink-0 text-center"></i>
+              <span>Schedule & Availability</span>
+            </Link>
+            <Link 
+              to="/doctor?tab=referrals" 
+              className={getLinkClass(isTabActive('/doctor', 'referrals'))}
+            >
+              <i className="fa-solid fa-network-wired text-xs w-4 shrink-0 text-center"></i>
+              <span>Smart Referrals</span>
+            </Link>
+
+            <h5 className="text-[9px] font-extrabold text-indigo-200 uppercase tracking-widest mt-4 mb-1.5 px-3.5">Pharmacy & Reports</h5>
+            <Link 
+              to="/doctor?tab=prescriptions" 
+              className={getLinkClass(isTabActive('/doctor', 'prescriptions'))}
+            >
+              <i className="fa-solid fa-file-prescription text-xs w-4 shrink-0 text-center"></i>
+              <span>Prescriptions & Orders</span>
+            </Link>
+            <Link 
+              to="/doctor?tab=pharmacy" 
+              className={getLinkClass(isTabActive('/doctor', 'pharmacy'))}
+            >
+              <i className="fa-solid fa-prescription-bottle-medical text-xs w-4 shrink-0 text-center"></i>
+              <span>Pharmacy Orders</span>
+            </Link>
+            <Link 
+              to="/doctor?tab=analytics" 
+              className={getLinkClass(isTabActive('/doctor', 'analytics'))}
+            >
+              <i className="fa-solid fa-chart-pie text-xs w-4 shrink-0 text-center"></i>
+              <span>Clinical Analytics</span>
+            </Link>
+
+            <h5 className="text-[9px] font-extrabold text-indigo-200 uppercase tracking-widest mt-4 mb-1.5 px-3.5">Account & Support</h5>
+            <Link 
+              to="/doctor?tab=settings" 
+              className={getLinkClass(isTabActive('/doctor', 'settings'))}
+            >
+              <i className="fa-solid fa-sliders text-xs w-4 shrink-0 text-center"></i>
+              <span>Settings</span>
+            </Link>
+            <Link 
+              to="/doctor?tab=support" 
+              className={getLinkClass(isTabActive('/doctor', 'support'))}
+            >
+              <i className="fa-solid fa-circle-question text-xs w-4 shrink-0 text-center"></i>
+              <span>Support / Help</span>
+            </Link>
           </>
         );
 
@@ -296,7 +343,8 @@ const Sidebar = () => {
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-indigo-100 hover:bg-brand-sidebarHover hover:text-white transition-all text-sm font-semibold text-left"
         >
-          🚪 <span>Logout</span>
+          <i className="fa-solid fa-right-from-bracket text-xs w-4 shrink-0 text-center"></i>
+          <span>Logout</span>
         </button>
       </nav>
 
