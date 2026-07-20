@@ -1,8 +1,9 @@
 import qrcode
 from fpdf import FPDF
 import os
+from datetime import datetime
 
-def generate_prescription_qr(prescription_id, patient_name, doctor_name, diagnosis, medications):
+def generate_prescription_qr(prescription_id, patient_name, doctor_name, diagnosis, medications, notes_json=None):
     os.makedirs('qr_codes', exist_ok=True)
     os.makedirs('prescriptions', exist_ok=True)
 
