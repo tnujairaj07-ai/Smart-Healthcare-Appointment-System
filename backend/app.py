@@ -17,15 +17,15 @@ from utils.ai_handler import predict_condition, OllamaClient, get_condition_prec
 app = Flask(__name__)
 app.config.from_object(Config)
 
-@app.route('/qr_codes/<path:filename>')
+@app.route('/static/qr/<path:filename>')
 def serve_qr_codes(filename):
     from flask import send_from_directory
-    return send_from_directory('qr_codes', filename)
+    return send_from_directory('static/qr', filename)
 
-@app.route('/prescriptions/<path:filename>')
+@app.route('/uploads/prescriptions/<path:filename>')
 def serve_prescriptions(filename):
     from flask import send_from_directory
-    return send_from_directory('prescriptions', filename)
+    return send_from_directory('uploads/prescriptions', filename)
 
 db.init_app(app)
 jwt = JWTManager(app)
