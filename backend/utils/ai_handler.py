@@ -288,6 +288,56 @@ class OllamaClient:
         Uses MedGemma to diagnose the patient's query.
         Returns a dictionary matching the structured JSON format or None if failed.
         """
+        intake_data = patient_info.get('intake_form')
+        intake_summary = "None provided"
+        if intake_data:
+            try:
+                parts = []
+                info = intake_data.get('patientInformation', {})
+                if info:
+                    parts.append(f"Basic Details: Name={info.get('fullName')}, DOB={info.get('dateOfBirth')}, Gender={info.get('gender')}, Phone={info.get('contactNumber')}, Address={info.get('homeAddress')}")
+                    parts.append(f"Emergency Contact: {info.get('emergencyContactName')} ({info.get('emergencyContactPhone')}) - Relation: {info.get('emergencyContactRelationship')}")
+                
+                visit = intake_data.get('visitDetails', {})
+                if visit:
+                    parts.append(f"Visit Details: Reason={visit.get('reason')}, Start={visit.get('startDate')}, Type={visit.get('issueType')}")
+                
+                sympt = intake_data.get('currentSymptoms', {})
+                if sympt:
+                    parts.append(f"Symptoms Description: {sympt.get('description')}. Checklist: {', '.join(sympt.get('checklist', []))}. Severity: {sympt.get('severity')}. Pattern: {sympt.get('pattern')}")
+                
+                chronic = intake_data.get('currentHealthIssues', {})
+                if chronic:
+                    parts.append(f"Chronic Health: Diagnosed={chronic.get('hasDiagnosed')}, Conditions={chronic.get('listConditions')} (ER visit: {chronic.get('hospitalAdmitted')}, Reason: {chronic.get('hospitalReason')})")
+                
+                history = intake_data.get('pastMedicalHistory', {})
+                if history:
+                    parts.append(f"Medical History: Illnesses={history.get('pastIllnesses')}, Surgeries={history.get('pastSurgeries')}, Injuries={history.get('pastInjuries')}, Hospitalizations={history.get('previousHospitalizations')}")
+                
+                meds = intake_data.get('medications', {})
+                if meds:
+                    parts.append(f"Active Meds: {json.dumps(meds.get('medicines', []))}. Supplements: {meds.get('supplements')}")
+                
+                allergies = intake_data.get('allergiesSensitivities', {})
+                if allergies:
+                    parts.append(f"Allergies: Drug={allergies.get('drugAllergies')}, Food={allergies.get('foodAllergies')}, Other={allergies.get('otherAllergies')}, Reaction Type={allergies.get('reactionType')}")
+                
+                lifestyle = intake_data.get('lifestyleRiskFactors', {})
+                if lifestyle:
+                    parts.append(f"Lifestyle & Risks: Smoking={lifestyle.get('smokingStatus')}, Alcohol={lifestyle.get('alcoholUse')}, Activity={lifestyle.get('physicalActivity')}, Sleep={lifestyle.get('sleepHours')} hrs ({lifestyle.get('sleepQuality')}), Stress={lifestyle.get('stressStatus')} ({lifestyle.get('stressDetails')})")
+                
+                family = intake_data.get('familyHistory', {})
+                if family:
+                    parts.append(f"Family History: Checklist={', '.join(family.get('historyChecklist', []))}. Inherited={family.get('otherConditions')}. Onset Details={family.get('familyDetails')}")
+                
+                additional = intake_data.get('additionalInformation', {})
+                if additional:
+                    parts.append(f"Additional details: Pregnancy={additional.get('pregnancyStatus')}, Implants/Devices={additional.get('devicesImplants')}, Scans/Labs={additional.get('labTestsScans')}, Notes={additional.get('notes')}")
+                
+                intake_summary = "\n- ".join(parts)
+            except Exception:
+                intake_summary = "Failed to serialize intake form details."
+
         if self.is_available():
             prompt = (
                 f"You are MedGemma, a compassionate medical AI assistant and personal health buddy. "
@@ -297,7 +347,8 @@ class OllamaClient:
                 f"- Name: {patient_info.get('name', 'Patient')}\n"
                 f"- DOB: {patient_info.get('dob', 'Unknown')}\n"
                 f"- Allergies: {patient_info.get('allergies', 'None')}\n"
-                f"- Chronic Conditions: {patient_info.get('chronic', 'None')}\n\n"
+                f"- Chronic Conditions: {patient_info.get('chronic', 'None')}\n"
+                f"- Detailed Intake Health History (User Confirmed):\n- {intake_summary}\n\n"
                 f"Below is our reference list of known conditions, recommended specialties, and standard precautions. "
                 f"Use this list as reference context (RAG), but synthesize it with your own clinical reasoning and do not restrict yourself solely to it:\n"
                 f"{reference_context}\n\n"
