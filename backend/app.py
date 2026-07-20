@@ -660,6 +660,74 @@ def update_patient_profile():
     db.session.commit()
     return jsonify({'message': 'Profile updated successfully'}), 200
 
+@app.route('/api/patient/prescriptions', methods=['GET'])
+@jwt_required()
+def get_patient_prescriptions():
+    from datetime import timedelta
+    user_id = current_user_id()
+    prescriptions = Prescription.query.filter_by(patient_id=user_id).order_by(Prescription.id.desc()).all()
+    
+    result = []
+    for p in prescriptions:
+        # Get doctor details
+        doc = Doctor.query.get(p.doctor_id)
+        doctor_name = doc.user.name if (doc and doc.user) else 'Unknown Doctor'
+        doctor_specialty = doc.specialty if doc else 'General Practitioner'
+        
+        # Get appointment details
+        appt = Appointment.query.get(p.appointment_id)
+        date_str = appt.date if appt else p.created_at.strftime("%Y-%m-%d")
+        
+        # Parse medications from JSON
+        meds = []
+        if p.medications:
+            try:
+                meds = json.loads(p.medications)
+            except Exception:
+                meds = []
+
+        # Parse dateIssued datetime
+        try:
+            dt = datetime.strptime(date_str, "%Y-%m-%d")
+        except Exception:
+            dt = p.created_at or datetime.now()
+            
+        date_issued_str = dt.strftime("%b %d, %Y")
+        
+        # Calculate expiry date (default 30 days after issue)
+        expiry_dt = dt + timedelta(days=30)
+        expiry_date_str = expiry_dt.strftime("%b %d, %Y")
+        
+        # Status calculation
+        is_expired = datetime.now() > expiry_dt
+        status = 'Expired' if is_expired else 'Active'
+        status_class = 'bg-rose-50 text-rose-700 border-rose-150' if is_expired else 'bg-emerald-50 text-emerald-700 border-emerald-150'
+        
+        # Medication label / details
+        medicine_names = [m.get('name') if isinstance(m, dict) else str(m) for m in meds]
+        medicine_label = ", ".join(medicine_names) if medicine_names else "General Medication"
+        
+        # Dosage detail summary
+        dosage_details = "; ".join([f"{m.get('name')}: {m.get('dosage')} ({m.get('frequency')})" if isinstance(m, dict) else str(m) for m in meds])
+        
+        result.append({
+            'id': f'#RX-{p.id}-A',
+            'prescription_id': p.id,
+            'medicine': medicine_label,
+            'doctor': doctor_name,
+            'doctorSpecialty': doctor_specialty,
+            'dateIssued': date_issued_str,
+            'expiryDate': expiry_date_str,
+            'dosage': dosage_details or "Take as directed by doctor.",
+            'refillsLeft': 3 if not is_expired else 0,
+            'status': status,
+            'statusClass': status_class,
+            'notes': p.notes or "No additional remarks.",
+            'pdfPath': p.pdf_path or ""
+        })
+        
+    return jsonify(result), 200
+
 @app.route('/api/patient/intake-form', methods=['GET'])
 @jwt_required()
 def get_patient_intake_form():
