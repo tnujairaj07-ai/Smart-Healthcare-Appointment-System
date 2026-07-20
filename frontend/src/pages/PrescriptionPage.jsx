@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
 import Toast from '../components/Toast';
@@ -15,7 +15,8 @@ const PRESCRIPTIONS = [
     refillsLeft: 3,
     status: 'Active',
     statusClass: 'bg-emerald-50 text-emerald-700 border-emerald-150',
-    notes: 'For seasonal nasal allergy symptoms & mild sneezing control. Do not exceed prescribed dosage.'
+    notes: 'For seasonal nasal allergy symptoms & mild sneezing control. Do not exceed prescribed dosage.',
+    pdfPath: ''
   },
   {
     id: '#RX-4412-B',
@@ -28,7 +29,8 @@ const PRESCRIPTIONS = [
     refillsLeft: 1,
     status: 'Active',
     statusClass: 'bg-emerald-50 text-emerald-700 border-emerald-150',
-    notes: 'Carry at all times. Use as acute bronchospasm rescue medication. Report palpitations immediately.'
+    notes: 'Carry at all times. Use as acute bronchospasm rescue medication. Report palpitations immediately.',
+    pdfPath: ''
   },
   {
     id: '#RX-1029-C',
@@ -41,12 +43,14 @@ const PRESCRIPTIONS = [
     refillsLeft: 0,
     status: 'Expired',
     statusClass: 'bg-rose-50 text-rose-700 border-rose-150',
-    notes: 'Take with food. Complete the full 10-day cycle even if symptom resolution occurs earlier.'
+    notes: 'Take with food. Complete the full 10-day cycle even if symptom resolution occurs earlier.',
+    pdfPath: ''
   }
 ];
 
 const PrescriptionPage = () => {
-  const [prescriptions, setPrescriptions] = useState(PRESCRIPTIONS);
+  const [prescriptions, setPrescriptions] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedRx, setSelectedRx] = useState(null);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
@@ -54,8 +58,34 @@ const PrescriptionPage = () => {
     setToast({ show: true, message, type });
   };
 
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    fetch('/api/patient/prescriptions', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+      .then(res => res.ok ? res.json() : [])
+      .then(data => {
+        if (data && data.length > 0) {
+          setPrescriptions(data);
+          setSelectedRx(data[0]);
+        } else {
+          setPrescriptions(PRESCRIPTIONS);
+          setSelectedRx(PRESCRIPTIONS[0]);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        setPrescriptions(PRESCRIPTIONS);
+        setSelectedRx(PRESCRIPTIONS[0]);
+        setLoading(false);
+      });
+  }, []);
+
   const handleRequestRefill = (id) => {
     const rx = prescriptions.find((p) => p.id === id);
+    if (!rx) return;
     if (rx.refillsLeft <= 0) {
       triggerToast(`No refills remaining for ${rx.medicine}. Sending renewal request to ${rx.doctor}...`, 'info');
       setTimeout(() => {
@@ -145,12 +175,23 @@ const PrescriptionPage = () => {
                       <span className="text-[9px] font-mono text-slate-400 font-semibold">{selectedRx.id}</span>
                       <h3 className="text-base font-extrabold text-slate-900 mt-0.5">{selectedRx.medicine}</h3>
                     </div>
-                    <button
-                      onClick={() => triggerToast(`Downloading PDF document for prescription ${selectedRx.id}...`)}
-                      className="px-3 py-1.5 bg-slate-50 border border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-150 rounded-xl text-[10px] font-bold transition flex items-center gap-1"
-                    >
-                      PDF 📥
-                    </button>
+                    {selectedRx.pdfPath ? (
+                      <a
+                        href={`/${selectedRx.pdfPath}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1.5 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-700 rounded-xl text-[10px] font-bold transition flex items-center gap-1"
+                      >
+                        PDF 📥
+                      </a>
+                    ) : (
+                      <button
+                        onClick={() => triggerToast(`Downloading PDF document for prescription ${selectedRx.id}...`)}
+                        className="px-3 py-1.5 bg-slate-50 border border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-150 rounded-xl text-[10px] font-bold transition flex items-center gap-1"
+                      >
+                        PDF 📥
+                      </button>
+                    )}
                   </div>
 
                   <div className="space-y-4 text-xs font-semibold">
@@ -185,12 +226,21 @@ const PrescriptionPage = () => {
                   </div>
 
                   <div className="flex gap-3 pt-4 border-t border-slate-100">
-                    <button
-                      onClick={() => handleRequestRefill(selectedRx.id)}
-                      className="flex-1 py-3 bg-brand-sidebar hover:bg-brand-sidebarHover text-white font-bold rounded-xl shadow-md text-xs tracking-wide uppercase transition"
-                    >
-                      {selectedRx.refillsLeft > 0 ? 'Request Refill Dispatch' : 'Request Physician Renewal'}
-                    </button>
+                    {selectedRx.status === 'Expired' ? (
+                      <button
+                        disabled={true}
+                        className="flex-1 py-3 bg-slate-200 text-slate-450 font-bold rounded-xl text-xs tracking-wide uppercase cursor-not-allowed text-center"
+                      >
+                        Intake Period Ended / Expired
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleRequestRefill(selectedRx.id)}
+                        className="flex-1 py-3 bg-brand-sidebar hover:bg-brand-sidebarHover text-white font-bold rounded-xl shadow-md text-xs tracking-wide uppercase transition"
+                      >
+                        {selectedRx.refillsLeft > 0 ? 'Request Refill Dispatch' : 'Request Physician Renewal'}
+                      </button>
+                    )}
                   </div>
                 </div>
               ) : (
