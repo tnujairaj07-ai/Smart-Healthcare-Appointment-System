@@ -283,6 +283,78 @@ class OllamaClient:
             f"(e.g., 'I have had a mild headache and nausea for 2 days'). I can also help you find the right specialists!"
         )
 
+    def diagnose_query(self, user_text, patient_info, reference_context):
+        """
+        Uses MedGemma to diagnose the patient's query.
+        Returns a dictionary matching the structured JSON format or None if failed.
+        """
+        if self.is_available():
+            prompt = (
+                f"You are MedGemma, a compassionate medical AI assistant and personal health buddy. "
+                f"Your goal is to genuinely understand and address all the patient's questions, health concerns, and symptoms naturally, "
+                f"acting like an empathetic clinical specialist.\n\n"
+                f"Patient Profile:\n"
+                f"- Name: {patient_info.get('name', 'Patient')}\n"
+                f"- DOB: {patient_info.get('dob', 'Unknown')}\n"
+                f"- Allergies: {patient_info.get('allergies', 'None')}\n"
+                f"- Chronic Conditions: {patient_info.get('chronic', 'None')}\n\n"
+                f"Below is our reference list of known conditions, recommended specialties, and standard precautions. "
+                f"Use this list as reference context (RAG), but synthesize it with your own clinical reasoning and do not restrict yourself solely to it:\n"
+                f"{reference_context}\n\n"
+                f"CLINICAL SPECIALTY MAPPING RULES:\n"
+                f"- If chest pain, tightness, palpitations, or shortness of breath on exertion are reported: ALWAYS recommend 'Cardiology' (or 'Cardiologist') as the primary specialty to ensure patient safety, even if abdominal/reflux symptoms are also present.\n"
+                f"- If throbbing headache, migraine, dizziness, light sensitivity, or neurological symptoms are reported: ALWAYS recommend 'Neurology' (or 'Neurologist').\n"
+                f"- If skin issues, rash, redness, itching, or lesions are reported: ALWAYS recommend 'Dermatology' (or 'Dermatologist').\n"
+                f"- If abdominal pain, nausea, acid reflux, or stomach issues are reported without exertional chest pain: recommend 'Gastroenterology' (or 'Gastroenterologist').\n"
+                f"- If respiratory issues, chronic coughing, asthma, or wheezing are reported: recommend 'Pulmonology' (or 'Pulmonologist').\n"
+                f"- If joint pain, stiffness, fractures, or bone/skeletal pain are reported: recommend 'Orthopedics' (or 'Orthopedist').\n"
+                f"- If general symptoms like fever, cold, chills, or minor generalized complaints are reported: recommend 'General Medicine' (or 'General Practitioner').\n\n"
+                f"Patient Query: \"{user_text}\"\n\n"
+                f"INSTRUCTIONS:\n"
+                f"1. Read the query thoroughly. If it is a greeting or general health question, answer it warmly, conversationally, and genuinely.\n"
+                f"2. If symptoms are reported, assess them. If multiple health issues are described, address all of them carefully.\n"
+                f"3. In the \"guidance\" field, write a warm, friendly, ChatGPT-style response directly to the patient. "
+                f"Explain what could be happening, suggest safe home remedies/self-care precautions, guide them on what to monitor, "
+                f"and advise whether they need to consult a doctor.\n"
+                f"4. Determine the primary \"suspected_condition\". Select one from the reference dataset if it's a good match, or name another standard medical condition.\n"
+                f"5. Set the \"urgency\" tier: 'low' (home care is enough), 'medium' (consult if symptoms persist), 'high' (see a doctor soon), or 'critical' (emergency care required).\n"
+                f"6. Suggest a \"recommended_specialty\" for consultation from: Cardiology, Neurology, Dermatology, Orthopedics, Gastroenterology, Pulmonology, Pediatrics, Ophthalmology, Psychiatry, General Medicine, Endocrinology, Oncology, Rheumatology.\n"
+                f"7. Provide 3-4 specific, actionable \"precautions\" in a list.\n"
+                f"8. List all identified \"extracted_symptoms\" (lowercase, matching standard names if possible).\n\n"
+                f"You MUST return ONLY a JSON object with the following structure (no surrounding markdown, no backticks, no text explanation outside the JSON):\n"
+                f"{{\n"
+                f"  \"suspected_condition\": \"string or null\",\n"
+                f"  \"confidence\": number,\n"
+                f"  \"description\": \"string\",\n"
+                f"  \"precautions\": [\"string\", ...],\n"
+                f"  \"urgency\": \"low|medium|high|critical\",\n"
+                f"  \"recommended_specialty\": \"string or null\",\n"
+                f"  \"guidance\": \"string\",\n"
+                f"  \"extracted_symptoms\": [\"string\", ...]\n"
+                f"}}"
+            )
+            
+            payload = {
+                "model": self.model,
+                "prompt": prompt,
+                "format": "json",
+                "stream": False,
+                "options": {
+                    "temperature": 0.3
+                }
+            }
+            
+            try:
+                response = requests.post(self.url, json=payload, timeout=60)
+                if response.status_code == 200:
+                    res_json = response.json()
+                    res_text = res_json.get("response", "").strip()
+                    parsed = json.loads(res_text)
+                    return parsed
+            except Exception as e:
+                print(f"Ollama structured diagnosis failed: {e}")
+        return None
+
 def load_symptom_severities():
     """Loads symptom severity weights from Symptom-severity.csv."""
     severities = {}
